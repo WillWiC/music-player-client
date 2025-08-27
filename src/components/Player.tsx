@@ -53,11 +53,11 @@ const Player: React.FC = () => {
     <div className="music-player-bar">
       {/* Track Info */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="relative">
+    <div className="relative">
           <img 
             src={current.album.images?.[0]?.url} 
             alt="art" 
-            className={`w-12 h-12 rounded ${playing ? 'playing-animation' : ''}`} 
+            className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded object-cover ${playing ? 'playing-animation' : ''}`} 
           />
           {playing && (
             <div className="absolute inset-0 bg-spotify-green/20 rounded"></div>
