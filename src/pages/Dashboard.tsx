@@ -1,11 +1,12 @@
 import React from 'react';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { token } = useAuth();
   const { play } = usePlayer();
+  const navigate = useNavigate();
   const [user, setUser] = React.useState<any | null>(null);
   const [playlists, setPlaylists] = React.useState<any[]>([]);
   const [recentlyPlayed, setRecentlyPlayed] = React.useState<any[]>([]);
@@ -15,19 +16,37 @@ const Dashboard: React.FC = () => {
   const [greeting, setGreeting] = React.useState('Good evening');
 
   React.useEffect(() => {
+    console.log('Dashboard loaded, token:', !!token);
+    
+    // Redirect to login if no token
+    if (!token) {
+      console.log('No token found, redirecting to login...');
+      navigate('/');
+      return;
+    }
+
     // Set dynamic greeting based on time
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
 
-    if (!token) return;
-
     // Fetch user profile
     fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setUser(data))
-      .catch(() => setUser(null));
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('User profile loaded:', data.display_name);
+        setUser(data);
+      })
+      .catch((error) => {
+        console.error('Failed to load user profile:', error);
+        setUser(null);
+      });
 
     // Fetch featured playlists
     fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=8', {
@@ -68,7 +87,7 @@ const Dashboard: React.FC = () => {
       .then(res => res.json())
       .then(data => setCategories(data.categories?.items ?? []))
       .catch(() => setCategories([]));
-  }, [token]);
+  }, [token, navigate]);
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-6">

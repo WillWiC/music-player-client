@@ -8,36 +8,41 @@ const Callback: React.FC = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
-      console.log('Callback page loaded, current URL:', window.location.href);
+      console.log('🔄 Callback page loaded, current URL:', window.location.href);
       
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const error = urlParams.get('error');
+      const state = urlParams.get('state');
 
-      console.log('URL params:', { code, error });
+      console.log('📋 URL params:', { code: code?.substring(0, 10) + '...', error, state });
 
       if (error) {
-        console.error('OAuth error:', error);
+        console.error('❌ OAuth error:', error);
+        alert(`Authentication error: ${error}`);
         navigate('/');
         return;
       }
 
       if (code) {
         try {
-          console.log('Found authorization code, starting token exchange...');
+          console.log('✅ Found authorization code, starting token exchange...');
           
           // Exchange authorization code for access token using PKCE
           const codeVerifier = localStorage.getItem('code_verifier');
-          console.log('Code verifier from localStorage:', codeVerifier ? 'Found' : 'Missing');
+          console.log('🔑 Code verifier from localStorage:', codeVerifier ? 'Found' : '❌ Missing');
           
           if (!codeVerifier) {
-            throw new Error('No code verifier found');
+            alert('Code verifier missing. Please try logging in again.');
+            localStorage.clear(); // Clear any stale data
+            navigate('/');
+            return;
           }
 
           const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
           const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI ?? 'http://127.0.0.1:5173/callback';
 
-          console.log('Token exchange params:', { CLIENT_ID, REDIRECT_URI, code });
+          console.log('🔧 Token exchange params:', { CLIENT_ID, REDIRECT_URI });
 
           const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
@@ -53,16 +58,19 @@ const Callback: React.FC = () => {
             }),
           });
 
-          console.log('Token response status:', response.status);
+          console.log('📡 Token response status:', response.status);
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('Token response error:', errorText);
-            throw new Error(`Token exchange failed: ${response.status} - ${errorText}`);
+            console.error('❌ Token response error:', errorText);
+            alert(`Token exchange failed: ${response.status} - ${errorText}`);
+            localStorage.removeItem('code_verifier');
+            navigate('/');
+            return;
           }
 
           const data = await response.json();
-          console.log('Token exchange successful:', { 
+          console.log('🎉 Token exchange successful:', { 
             hasAccessToken: !!data.access_token, 
             hasRefreshToken: !!data.refresh_token,
             expiresIn: data.expires_in 
@@ -73,14 +81,21 @@ const Callback: React.FC = () => {
           
           // Set token in auth context
           (setToken as any)(data.access_token, data.expires_in, data.refresh_token);
-          console.log('Token set in auth context, navigating to dashboard...');
-          navigate('/dashboard');
+          console.log('💾 Token set in auth context, navigating to dashboard...');
+          
+          // Small delay to ensure state is updated
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 100);
+          
         } catch (error) {
-          console.error('Token exchange error:', error);
+          console.error('💥 Token exchange error:', error);
+          alert(`Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          localStorage.removeItem('code_verifier');
           navigate('/');
         }
       } else {
-        console.log('No authorization code found, checking for implicit flow token...');
+        console.log('🔍 No authorization code found, checking for implicit flow token...');
         
         // Fallback: check for implicit flow token in hash (legacy)
         const hash = window.location.hash;
@@ -90,18 +105,18 @@ const Callback: React.FC = () => {
           const expires = params.get('expires_in');
           const refresh = params.get('refresh_token');
           
-          console.log('Hash params:', { hasToken: !!token, expires, hasRefresh: !!refresh });
+          console.log('# Hash params:', { hasToken: !!token, expires, hasRefresh: !!refresh });
           
           if (token) {
             const expiresIn = expires ? parseInt(expires, 10) : undefined;
             (setToken as any)(token, expiresIn, refresh ?? null);
-            console.log('Implicit flow token set, navigating to dashboard...');
+            console.log('🎉 Implicit flow token set, navigating to dashboard...');
             navigate('/dashboard');
             return;
           }
         }
         
-        console.log('No token found, redirecting to login...');
+        console.log('❌ No token found, redirecting to login...');
         navigate('/');
       }
     };
