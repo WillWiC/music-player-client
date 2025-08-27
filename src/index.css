@@ -2,11 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-/* small helper styles */
-body {
-  @apply bg-gray-50 text-gray-900;
+/* Modern UI base styles */
+@layer base {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.6);
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900 antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  a {
+    @apply text-sky-600 hover:text-sky-500;
+  }
 }
 
+/* Reusable layout helpers */
 .app-container {
   @apply min-h-screen flex flex-col;
 }
+
+/* Component styles */
+@layer components {
+  .card {
+    @apply bg-white/80 backdrop-blur-md rounded-xl shadow-md border border-gray-100 p-4;
+  }
+
+  .glass {
+    @apply bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-300;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 bg-transparent text-slate-700 hover:bg-slate-100 rounded-md;
+  }
+
+  .search-input {
+    @apply w-full px-4 py-2 rounded-lg border border-gray-200 bg-white/60 focus:ring-2 focus:ring-sky-200 placeholder:text-slate-400;
+  }
+
+  .track-item {
+    @apply flex items-center gap-4 p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors;
+  }
+
+  .player-bar {
+    @apply fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(980px,95%)] bg-white/90 backdrop-blur-md border border-gray-200 rounded-full shadow-lg px-4 py-2 flex items-center gap-4;
+  }
+}
+
+/* Small utility additions */
+@layer utilities {
+  .muted { @apply text-slate-500; }
+  .clickable { @apply cursor-pointer; }
+}
+
+/* Custom scrollbar for modern touch */
+/* Works in most Chromium-based browsers */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 9999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+

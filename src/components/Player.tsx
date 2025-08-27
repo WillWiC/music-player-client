@@ -6,21 +6,21 @@ const Player: React.FC = () => {
   if (!current) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-white shadow p-3 flex items-center rounded-lg space-x-4 md:mx-12">
-      <img src={current.album.images?.[0]?.url} alt="art" className="w-14 h-14 rounded" />
+    <div className="player-bar">
+      <img src={current.album.images?.[0]?.url} alt="art" className="w-14 h-14 rounded-md" />
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-gray-800 truncate">{current.name}</div>
-        <div className="text-sm text-gray-600 truncate">{current.artists?.[0]?.name}</div>
-        <div className="text-xs text-gray-500">{deviceId ? 'Connected' : 'Not connected'}</div>
+        <div className="font-semibold text-slate-900 truncate">{current.name}</div>
+        <div className="text-sm text-slate-600 truncate">{current.artists?.[0]?.name}</div>
+        <div className="text-xs muted">{deviceId ? 'Connected' : 'Not connected'}</div>
       </div>
 
       <div className="flex items-center space-x-2">
         {playing ? (
-          <button onClick={pause} className="px-3 py-2 bg-gray-200 rounded">
+          <button onClick={pause} className="btn-primary">
             Pause
           </button>
         ) : (
-          <div className="px-3 py-2 text-sm text-gray-500">Stopped</div>
+          <div className="px-3 py-2 text-sm muted">Stopped</div>
         )}
       </div>
     </div>

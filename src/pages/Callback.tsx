@@ -26,7 +26,11 @@ const Callback: React.FC = () => {
     }
   }, [navigate, setToken]);
 
-  return <div className="p-6">Logging in...</div>;
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <div className="card">Logging in...</div>
+    </div>
+  );
 };
 
 export default Callback;

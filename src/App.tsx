@@ -17,7 +17,8 @@ const App: React.FC = () => {
         <BrowserRouter>
           <div className="app-container">
             <Header />
-            <main className="flex-1 p-4 sm:p-6 max-w-6xl mx-auto w-full">
+            <main className="flex-1 p-4 sm:p-6 w-full">
+              <div className="max-w-6xl mx-auto">
               <Routes>
                 <Route path="/" element={<Login />} />
                 <Route path="/callback" element={<Callback />} />
@@ -25,6 +26,7 @@ const App: React.FC = () => {
                 <Route path="/search" element={<Search />} />
                 <Route path="/playlist/:id" element={<Playlist />} />
               </Routes>
+              </div>
             </main>
             <Player />
           </div>

@@ -19,11 +19,11 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold mb-4">Spotify Lite</h1>
-        <p className="mb-4">A minimal Spotify client demo.</p>
-        <a href={href} className="px-4 py-2 bg-green-500 text-white rounded">
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="card text-center max-w-md">
+        <h1 className="text-2xl font-bold mb-2">Spotify Lite</h1>
+        <p className="mb-4 muted">A minimal Spotify client demo.</p>
+        <a href={href} className="btn-primary">
           Login with Spotify
         </a>
       </div>

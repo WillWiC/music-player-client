@@ -24,22 +24,34 @@ const Search: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-2">Search</h2>
-      <div className="flex items-center">
-        <input value={query} onChange={e => setQuery(e.target.value)} className="border p-2 mr-2" />
-        <button onClick={handleSearch} className="px-3 py-2 bg-green-500 text-white rounded">
+    <div className="max-w-6xl mx-auto py-6">
+      <h2 className="text-2xl font-semibold mb-4">Search</h2>
+
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          className="search-input"
+          placeholder="Search for songs, artists or albums"
+        />
+        <button onClick={handleSearch} className="btn-primary">
           Search
         </button>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-  {results.map((t: any) => (
-          <div key={t.id} className="p-3 bg-white rounded shadow">
-            <div className="font-semibold">{t.name}</div>
-            <div className="text-sm text-gray-600">{t.artists?.[0]?.name}</div>
-            <button onClick={() => play(t)} className="mt-2 px-3 py-1 bg-blue-500 text-white rounded">
-              Play
-            </button>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {results.map((t: any) => (
+          <div key={t.id} className="card track-item">
+            <img src={t.album?.images?.[0]?.url} alt="cover" className="w-16 h-16 object-cover rounded" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold truncate">{t.name}</div>
+              <div className="text-sm muted truncate">{t.artists?.[0]?.name}</div>
+            </div>
+            <div>
+              <button onClick={() => play(t)} className="btn-primary">
+                Play
+              </button>
+            </div>
           </div>
         ))}
       </div>
