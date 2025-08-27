@@ -155,6 +155,10 @@
     cursor: pointer;
   }
 
+  /* Avatar utilities to ensure consistent small size */
+  .avatar-sm { width: 32px; height: 32px; }
+  .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
+
   .text-spotify { color: var(--spotify-green); }
   .text-muted-dark { color: var(--text-secondary); }
   .bg-dark { background-color: var(--dark-bg); }

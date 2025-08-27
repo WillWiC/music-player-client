@@ -100,9 +100,9 @@ const Dashboard: React.FC = () => {
       {/* User Profile Card */}
       {user && (
         <div className="flex items-center space-x-6 mb-8 music-card">
-          <div className="relative">
-            <img src={user.images?.[0]?.url} alt="profile" className="w-20 h-20 rounded-full" />
-            <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-spotify-green rounded-full border-2 border-dark-bg"></div>
+          <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
+            <img src={user.images?.[0]?.url} alt="profile" style={{ width: 72, height: 72 }} className="object-cover rounded-full" />
+            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-spotify-green rounded-full border-2 border-dark-bg"></div>
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white">{user.display_name ?? user.id}</h2>

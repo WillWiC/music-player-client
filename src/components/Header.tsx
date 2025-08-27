@@ -57,13 +57,14 @@ const Header: React.FC = () => {
 
           {profile ? (
             <div className="flex items-center gap-3">
-              <div className="relative">
+              <div className="relative shrink-0" style={{ width: 32, height: 32 }}>
                 <img
                   src={profile.images?.[0]?.url}
                   alt="avatar"
-                  className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full border border-spotify-green md:border-2"
+                  style={{ width: 32, height: 32 }}
+                  className="object-cover rounded-full border border-spotify-green"
                 />
-                <div className="absolute -bottom-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-spotify-green rounded-full border border-dark-bg"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-spotify-green rounded-full border border-dark-bg" />
               </div>
               <div className="hidden lg:block text-sm">
                 <div className="font-medium text-white">{profile.display_name ?? profile.id}</div>
