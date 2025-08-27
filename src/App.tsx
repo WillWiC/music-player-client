@@ -21,7 +21,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="app-container">
       {showLayout && <Header />}
-      <main className={`flex-1 w-full ${showLayout ? 'p-4 sm:p-6' : ''}`}>
+      <main className={`flex-1 w-full ${showLayout ? 'p-4 sm:p-6 pb-20' : ''}`}>
         <div className={showLayout ? 'max-w-6xl mx-auto' : ''}>
           <Routes>
             <Route path="/" element={<Login />} />
