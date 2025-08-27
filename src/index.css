@@ -86,6 +86,22 @@
     width: 1.75rem !important; /* 28px - was 32px */
     height: 1.75rem !important;
   }
+  
+  /* Header profile image force locked size */
+  .header-profile-img {
+    width: 1.5rem !important; /* 24px - force locked */
+    height: 1.5rem !important;
+    min-width: 1.5rem !important;
+    max-width: 1.5rem !important;
+    min-height: 1.5rem !important;
+    max-height: 1.5rem !important;
+  }
+  
+  /* Header profile status dot */
+  .header-status-dot {
+    width: 0.5rem !important; /* 8px */
+    height: 0.5rem !important;
+  }
   .playlist-card::before {
     content: '';
     position: absolute;
