@@ -36,7 +36,7 @@ const formatTime = (ms: number) => {
 };
 
 const Player: React.FC = () => {
-  const { current, playing, pause, positionMs, durationMs, seek, next, previous, setVolume } = usePlayer();
+  const { current, playing, pause, resume, positionMs, durationMs, seek, next, previous, setVolume } = usePlayer();
   const [localPos, setLocalPos] = useState(positionMs);
   const [isSeeking, setIsSeeking] = useState(false);
   const [vol, setVol] = useState(1);
@@ -85,7 +85,7 @@ const Player: React.FC = () => {
               <Icon name="pause" />
             </button>
           ) : (
-            <button className="btn-spotify w-8 h-8 p-0 justify-center" title="Play">
+            <button onClick={resume} className="btn-spotify w-8 h-8 p-0 justify-center" title="Play">
               <Icon name="play" />
             </button>
           )}
@@ -124,7 +124,7 @@ const Player: React.FC = () => {
             <path d="M9 18V5l12-2v13M9 13l12-2" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
         </button>
-        <div className="items-center gap-2 hidden sm:flex">
+        <div className="items-center gap-2 flex">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-muted-dark">
             <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
@@ -141,6 +141,7 @@ const Player: React.FC = () => {
             }}
             className="volume-slider"
           />
+          <div className="text-xs text-white font-mono w-8 text-center">{Math.round(vol * 100)}</div>
         </div>
         <button className="btn-ghost-dark p-1.5 hidden md:block">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

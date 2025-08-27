@@ -10,6 +10,7 @@ type PlayerContextType = {
   durationMs: number;
   play: (t: Track) => Promise<void>;
   pause: () => Promise<void>;
+  resume: () => Promise<void>;
   seek: (ms: number) => Promise<void>;
   next: () => Promise<void>;
   previous: () => Promise<void>;
@@ -114,6 +115,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const resume = async () => {
+    if (!token) return;
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/play', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      setPlaying(true);
+    } catch (e) {
+      console.warn('Resume failed', e);
+    }
+  };
+
   const seek = async (ms: number) => {
     if (!token) return;
     try {
@@ -172,7 +183,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [playing, durationMs]);
 
   return (
-    <PlayerContext.Provider value={{ current, playing, deviceId, positionMs, durationMs, play, pause, seek, next, previous, setVolume }}>
+    <PlayerContext.Provider value={{ current, playing, deviceId, positionMs, durationMs, play, pause, resume, seek, next, previous, setVolume }}>
       {children}
     </PlayerContext.Provider>
   );

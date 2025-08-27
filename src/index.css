@@ -143,7 +143,7 @@
   .volume-slider {
     width: 60px;
     height: 3px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.3);
     border-radius: 2px;
     appearance: none;
   }
@@ -151,7 +151,7 @@
     appearance: none;
     width: 10px; height: 10px;
     border-radius: 50%;
-    background: var(--spotify-green);
+    background: white;
     cursor: pointer;
   }
 

@@ -71,6 +71,10 @@ const Login: React.FC = () => {
       } else {
         console.log('Using PKCE flow');
         
+        // Clear any existing code verifier
+        localStorage.removeItem('code_verifier');
+        console.log('Cleared any existing code verifier');
+        
         // Use Authorization Code with PKCE
         const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
         const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI ?? 'http://127.0.0.1:5173/callback';
@@ -107,6 +111,13 @@ const Login: React.FC = () => {
         // Store code verifier for later use
         localStorage.setItem('code_verifier', codeVerifier);
         console.log('Code verifier stored in localStorage');
+        
+        // Verify storage worked
+        const storedVerifier = localStorage.getItem('code_verifier');
+        if (storedVerifier !== codeVerifier) {
+          throw new Error('Failed to store code verifier in localStorage');
+        }
+        console.log('✅ Code verifier storage verified');
 
         const params = new URLSearchParams({
           client_id: CLIENT_ID,

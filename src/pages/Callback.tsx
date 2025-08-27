@@ -10,6 +10,9 @@ const Callback: React.FC = () => {
     const handleCallback = async () => {
       console.log('🔄 Callback page loaded, current URL:', window.location.href);
       
+      // Small delay to ensure localStorage is available
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const error = urlParams.get('error');
@@ -30,9 +33,11 @@ const Callback: React.FC = () => {
           
           // Exchange authorization code for access token using PKCE
           const codeVerifier = localStorage.getItem('code_verifier');
-          console.log('🔑 Code verifier from localStorage:', codeVerifier ? 'Found' : '❌ Missing');
+          console.log('🔑 Code verifier from localStorage:', codeVerifier ? `Found (${codeVerifier.length} chars)` : '❌ Missing');
+          console.log('🔍 All localStorage keys:', Object.keys(localStorage));
           
           if (!codeVerifier) {
+            console.error('❌ Code verifier missing - this indicates a problem with the PKCE flow');
             alert('Code verifier missing. Please try logging in again.');
             localStorage.clear(); // Clear any stale data
             navigate('/');
@@ -63,7 +68,22 @@ const Callback: React.FC = () => {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Token response error:', errorText);
-            alert(`Token exchange failed: ${response.status} - ${errorText}`);
+            
+            // Try to parse error response
+            let errorObj;
+            try {
+              errorObj = JSON.parse(errorText);
+            } catch {
+              errorObj = { error: 'unknown', error_description: errorText };
+            }
+            
+            if (errorObj.error === 'invalid_grant') {
+              console.error('❌ Invalid grant - authorization code may have expired or been used already');
+              alert('Authorization code expired. Please try logging in again.');
+            } else {
+              alert(`Token exchange failed: ${response.status} - ${errorText}`);
+            }
+            
             localStorage.removeItem('code_verifier');
             navigate('/');
             return;
