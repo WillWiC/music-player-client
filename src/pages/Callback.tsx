@@ -1,20 +1,32 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/auth';
 
-const Callback = () => {
+const Callback: React.FC = () => {
   const navigate = useNavigate();
+  const { setToken } = useAuth();
 
   useEffect(() => {
+    // For implicit flow the access token is in the hash, for auth-code flow the server may redirect with query params
     const hash = window.location.hash;
-    if (hash) {
-      const token = new URLSearchParams(hash.replace("#", "?")).get("access_token");
-      if (token) {
-        localStorage.setItem("spotify_token", token);
-        navigate("/dashboard");
-      }
-    }
-  }, [navigate]);
+    const query = window.location.search;
+    let params = new URLSearchParams();
+    if (hash) params = new URLSearchParams(hash.replace('#', '?'));
+    else if (query) params = new URLSearchParams(query);
 
-  return <p className="text-center mt-10">Logging in...</p>;
+    const token = params.get('access_token');
+    const expires = params.get('expires_in');
+    const refresh = params.get('refresh_token');
+    if (token) {
+      const expiresIn = expires ? parseInt(expires, 10) : undefined;
+      (setToken as any)(token, expiresIn, refresh ?? null);
+      navigate('/dashboard');
+    } else {
+      navigate('/');
+    }
+  }, [navigate, setToken]);
+
+  return <div className="p-6">Logging in...</div>;
 };
+
 export default Callback;
