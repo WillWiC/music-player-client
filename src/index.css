@@ -1,8 +1,6 @@
-@tailwind base;
-@tailwind components;
+@import "tailwindcss/preflight";
 @tailwind utilities;
 
-/* Modern UI base styles */
 @layer base {
   :root {
     --glass-bg: rgba(255, 255, 255, 0.6);
@@ -13,30 +11,19 @@
   }
 
   body {
-    /* Use an explicit gradient and color values instead of @apply of gradient stop utilities
-       because some Tailwind utility classes (from-*, via-*, to-*) cannot be used with @apply.
-    */
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
-    color: #0f172a; /* slate-900 */
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
 
-  a {
-    color: #0ea5e9; /* sky-500 */
-  }
+  a { color: #0ea5e9; }
 }
 
-/* Reusable layout helpers */
-.app-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+.app-container { min-height: 100vh; display:flex; flex-direction:column; }
 
-/* Component styles */
-@layer components {
+@layer utilities {
   .card {
     background-color: rgba(255,255,255,0.8);
     backdrop-filter: blur(6px);
@@ -54,42 +41,20 @@
   }
 
   .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background-color: #0369a1; /* sky-800-ish */
-    color: white;
-    border-radius: 8px;
-    box-shadow: 0 6px 12px rgba(3,105,161,0.15);
+    display: inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem;
+    background-color:#0369a1; color:white; border-radius:8px; box-shadow:0 6px 12px rgba(3,105,161,0.15);
   }
-  .btn-primary:hover { background-color: #0ea5e9; }
-  .btn-primary:focus { outline: 2px solid rgba(14,165,233,0.25); }
+  .btn-primary:hover { background-color:#0ea5e9; }
+  .btn-primary:focus { outline:2px solid rgba(14,165,233,0.25); }
 
-  .btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.75rem;
-    background: transparent;
-    color: #334155; /* slate-700 */
-    border-radius: 8px;
-  }
+  .btn-ghost { display:inline-flex; align-items:center; gap:0.5rem; padding:0.375rem 0.75rem; background:transparent; color:#334155; border-radius:8px; }
   .btn-ghost:hover { background-color: rgba(241,245,249,0.8); }
 
-  .search-input {
-    width: 100%;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    border: 1px solid #e6e9ef;
-    background-color: rgba(255,255,255,0.6);
-  }
-  .search-input::placeholder { color: #94a3b8; }
+  .search-input { width:100%; padding:0.5rem 1rem; border-radius:10px; border:1px solid #e6e9ef; background-color:rgba(255,255,255,0.6); }
+  .search-input::placeholder { color:#94a3b8; }
 
-  .track-item {
-    display:flex; align-items:center; gap:1rem; padding:0.5rem; border-radius:8px; transition: background-color .15s ease;
-  }
-  .track-item:hover { background-color: #f8fafc; }
+  .track-item { display:flex; align-items:center; gap:1rem; padding:0.5rem; border-radius:8px; transition: background-color .15s ease; }
+  .track-item:hover { background-color:#f8fafc; }
 
   .player-bar {
     position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
@@ -101,16 +66,12 @@
     box-shadow: 0 10px 30px rgba(2,6,23,0.08);
     padding: 0.5rem 1rem; display:flex; align-items:center; gap:1rem;
   }
-}
 
-/* Small utility additions */
-@layer utilities {
   .muted { color: #64748b; }
   .clickable { cursor: pointer; }
 }
 
 /* Custom scrollbar for modern touch */
-/* Works in most Chromium-based browsers */
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 9999px; }
 *::-webkit-scrollbar-track { background: transparent; }
