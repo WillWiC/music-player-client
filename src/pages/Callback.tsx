@@ -95,18 +95,28 @@ const Callback: React.FC = () => {
             hasRefreshToken: !!data.refresh_token,
             expiresIn: data.expires_in 
           });
-          
+
+          // Persist immediately to avoid timing issues on SPA navigation
+          try {
+            const expiryMs = Date.now() + (data.expires_in || 3600) * 1000;
+            if (data.access_token) {
+              localStorage.setItem('spotify_token', data.access_token);
+              localStorage.setItem('spotify_token_expiry', String(expiryMs));
+            }
+            if (data.refresh_token) {
+              localStorage.setItem('spotify_refresh_token', data.refresh_token);
+            }
+          } catch {}
+
           // Clean up code verifier
           localStorage.removeItem('code_verifier');
-          
-          // Set token in auth context
+
+          // Set token in auth context as well
           (setToken as any)(data.access_token, data.expires_in, data.refresh_token);
-          console.log('💾 Token set in auth context, navigating to dashboard...');
-          
-          // Small delay to ensure state is updated
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 100);
+          console.log('💾 Token stored and context updated, redirecting to dashboard...');
+
+          // Force a clean navigation so providers rehydrate from localStorage
+          window.location.replace('/dashboard');
           
         } catch (error) {
           console.error('💥 Token exchange error:', error);
