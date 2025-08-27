@@ -126,7 +126,7 @@ const Dashboard: React.FC = () => {
           {playlists.slice(0, 6).map(pl => (
             <Link key={pl.id + '-quick'} to={`/playlist/${pl.id}`} className="music-card group cursor-pointer hover:bg-opacity-80 transition-all">
               <div className="flex items-center gap-4">
-                <img src={pl.images?.[0]?.url} alt="cover" className="w-16 h-16 rounded-lg object-cover" />
+                <img src={pl.images?.[0]?.url} alt="cover" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-white truncate">{pl.name}</h4>
                   <p className="text-muted-dark text-sm">Playlist</p>
@@ -153,9 +153,9 @@ const Dashboard: React.FC = () => {
       {recentlyPlayed.length > 0 && (
         <div className="mb-8">
           <h3 className="text-2xl font-bold mb-4">Recently played</h3>
-          <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4">
             {recentlyPlayed.slice(0, 6).map((item, index) => (
-              <div key={index} className="flex-shrink-0 w-48 music-card group cursor-pointer">
+        <div key={index} className="flex-shrink-0 w-36 sm:w-40 md:w-44 music-card group cursor-pointer">
                 <div className="relative">
                   <img src={item.track.album?.images?.[0]?.url} alt="cover" className="w-full aspect-square object-cover rounded-lg mb-3" />
                   <button 
@@ -183,7 +183,7 @@ const Dashboard: React.FC = () => {
             {topTracks.slice(0, 5).map((track, index) => (
               <div key={track.id} className="track-item-dark group flex items-center gap-4 p-3 rounded-lg">
                 <div className="text-muted-dark text-lg font-bold w-6">{index + 1}</div>
-                <img src={track.album?.images?.[0]?.url} alt="cover" className="w-12 h-12 rounded object-cover" />
+                <img src={track.album?.images?.[0]?.url} alt="cover" className="w-10 h-10 md:w-12 md:h-12 rounded object-cover" />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-white truncate">{track.name}</h4>
                   <p className="text-muted-dark text-sm truncate">{track.artists[0]?.name}</p>
@@ -213,7 +213,7 @@ const Dashboard: React.FC = () => {
       {/* Featured Playlists */}
       <div className="mb-8">
         <h3 className="text-2xl font-bold mb-4">Featured Playlists</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {playlists.map(pl => (
             <Link key={pl.id} to={`/playlist/${pl.id}`} className="playlist-card group cursor-pointer">
               <div className="relative">
