@@ -6,8 +6,13 @@ type PlayerContextType = {
   current: Track | null;
   playing: boolean;
   deviceId: string | null;
+  positionMs: number;
+  durationMs: number;
   play: (t: Track) => Promise<void>;
   pause: () => Promise<void>;
+  seek: (ms: number) => Promise<void>;
+  next: () => Promise<void>;
+  previous: () => Promise<void>;
   setVolume: (v: number) => Promise<void>;
 };
 
@@ -18,7 +23,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [current, setCurrent] = useState<Track | null>(null);
   const [playing, setPlaying] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [positionMs, setPositionMs] = useState<number>(0);
+  const [durationMs, setDurationMs] = useState<number>(0);
   const playerRef = useRef<any | null>(null);
+  const posInterval = useRef<number | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -48,11 +56,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       player.addListener('player_state_changed', (state: any) => {
         if (!state) return;
         setPlaying(!state.paused);
-        // map track
+        // map track and timing
         const track = state.track_window?.current_track;
         if (track) {
           setCurrent({ id: track.id, name: track.name, artists: track.artists?.map((a: any) => ({ id: a.id, name: a.name })), album: { id: track.album.id, name: track.album.name, images: track.album.images }, uri: track.uri });
+          setDurationMs(track.duration_ms ?? 0);
         }
+        // position (ms)
+        const pos = typeof state.position === 'number' ? state.position : 0;
+        setPositionMs(pos);
       });
 
       player.connect();
@@ -102,6 +114,35 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const seek = async (ms: number) => {
+    if (!token) return;
+    try {
+      const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${Math.max(0, Math.round(ms))}`;
+      await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      setPositionMs(Math.max(0, Math.round(ms)));
+    } catch (e) {
+      console.warn('Seek failed', e);
+    }
+  };
+
+  const next = async () => {
+    if (!token) return;
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/next', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) {
+      console.warn('Next failed', e);
+    }
+  };
+
+  const previous = async () => {
+    if (!token) return;
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/previous', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) {
+      console.warn('Previous failed', e);
+    }
+  };
+
   const setVolume = async (v: number) => {
     if (!token || !deviceId) return;
     try {
@@ -111,7 +152,30 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  return <PlayerContext.Provider value={{ current, playing, deviceId, play, pause, setVolume }}>{children}</PlayerContext.Provider>;
+  // keep a lightweight interval to bump position while playing (fallback)
+  useEffect(() => {
+    if (playing) {
+      if (posInterval.current) window.clearInterval(posInterval.current);
+      posInterval.current = window.setInterval(() => setPositionMs(p => Math.min((durationMs || Infinity), p + 1000)), 1000) as unknown as number;
+    } else {
+      if (posInterval.current) {
+        window.clearInterval(posInterval.current);
+        posInterval.current = null;
+      }
+    }
+    return () => {
+      if (posInterval.current) {
+        window.clearInterval(posInterval.current);
+        posInterval.current = null;
+      }
+    };
+  }, [playing, durationMs]);
+
+  return (
+    <PlayerContext.Provider value={{ current, playing, deviceId, positionMs, durationMs, play, pause, seek, next, previous, setVolume }}>
+      {children}
+    </PlayerContext.Provider>
+  );
 };
 
 export const usePlayer = () => {
