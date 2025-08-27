@@ -168,6 +168,16 @@
   .text-muted-dark { color: var(--text-secondary); }
   .bg-dark { background-color: var(--dark-bg); }
   .bg-card { background-color: var(--card-bg); }
+  .chip {
+    display: inline-flex; align-items: center; height: 32px;
+    padding: 0 12px; border-radius: 9999px; font-size: 0.875rem;
+    color: var(--text-primary); background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    transition: all 0.2s ease; cursor: pointer;
+  }
+  .chip:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.2); }
+  .section-header { display:flex; align-items:baseline; justify-content:space-between; }
+  .section-title { font-size: 1.5rem; line-height: 2rem; font-weight: 800; }
 }
 
 /* Custom scrollbar for dark theme */
