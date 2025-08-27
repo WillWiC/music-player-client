@@ -58,8 +58,12 @@ const Header: React.FC = () => {
           {profile ? (
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img src={profile.images?.[0]?.url} alt="avatar" className="w-8 h-8 rounded-full border-2 border-spotify-green" />
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-spotify-green rounded-full border border-dark-bg"></div>
+                <img
+                  src={profile.images?.[0]?.url}
+                  alt="avatar"
+                  className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 rounded-full border border-spotify-green md:border-2"
+                />
+                <div className="absolute -bottom-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-spotify-green rounded-full border border-dark-bg"></div>
               </div>
               <div className="hidden lg:block text-sm">
                 <div className="font-medium text-white">{profile.display_name ?? profile.id}</div>
