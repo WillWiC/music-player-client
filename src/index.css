@@ -51,14 +51,40 @@
     transition: all 0.3s ease;
     position: relative;
   }
-  /* Constrain cover images inside cards so they don't take over the screen */
+  /* Constrain cover images to fixed square sizes instead of full width */
   .cover-img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
+    width: 140px !important;
+    height: 140px !important;
     object-fit: cover;
-    /* Never exceed a reasonable viewport size */
-    max-width: 320px;
-    max-height: 320px;
+    flex-shrink: 0;
+  }
+  
+  /* Constrain text labels under cover images */
+  .cover-text {
+    width: 140px !important;
+    max-width: 140px !important;
+  }
+  
+  /* Player song image compact */
+  .player-img {
+    width: 2.5rem !important; /* 40px - consistent with album-img-small */
+    height: 2.5rem !important;
+  }
+  
+  /* Player control buttons compact */
+  .player-btn {
+    padding: 0.375rem !important; /* 6px - was 8px */
+  }
+  
+  .player-btn svg {
+    width: 1rem !important; /* 16px - was 18px/20px */
+    height: 1rem !important;
+  }
+  
+  /* Player main play button compact */
+  .player-main-btn {
+    width: 1.75rem !important; /* 28px - was 32px */
+    height: 1.75rem !important;
   }
   .playlist-card::before {
     content: '';
@@ -273,5 +299,194 @@
   border-color: rgba(29, 185, 84, 0.3);
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   transform: translateY(-4px);
+}
+
+/* Quick action cards */
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.quick-action-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--spotify-green);
+  transform: translateY(-2px);
+  color: var(--spotify-green);
+}
+
+/* Enhanced animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Pattern background */
+.pattern-bg {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Improved shimmer for dark theme */
+@keyframes shimmer-dark {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #2a2a2a 25%, #404040 50%, #2a2a2a 75%);
+  background-size: 200px 100%;
+  animation: shimmer-dark 1.5s infinite;
+}
+
+/* Compact Dashboard Styles - Override Tailwind for smaller sizes */
+.dashboard-compact {
+  /* Profile image compact */
+  .profile-img {
+    width: 3.5rem !important; /* 56px - was 80px */
+    height: 3.5rem !important;
+  }
+  
+  /* Verification badge compact */
+  .verification-badge {
+    width: 1rem !important; /* 16px - was 24px */
+    height: 1rem !important;
+  }
+  
+  .verification-icon {
+    width: 0.5rem !important; /* 8px - was 12px */
+    height: 0.5rem !important;
+  }
+  
+  /* Category card images compact */
+  .category-img {
+    width: 2.5rem !important; /* 40px - was 48px */
+    height: 2.5rem !important;
+  }
+  
+  /* Album artwork in lists compact */
+  .album-img-small {
+    width: 2.5rem !important; /* 40px - was 48px */
+    height: 2.5rem !important;
+  }
+  
+  /* Play buttons compact */
+  .play-btn-small {
+    width: 2.5rem !important; /* 40px - was 48px */
+    height: 2.5rem !important;
+  }
+  
+  .play-btn-small svg {
+    width: 0.875rem !important; /* 14px - was 16px */
+    height: 0.875rem !important;
+  }
+  
+  /* Action buttons compact */
+  .action-btn-small {
+    padding: 0.375rem !important; /* 6px - was 8px */
+  }
+  
+  .action-btn-small svg {
+    width: 0.875rem !important; /* 14px - was 16px */
+    height: 0.875rem !important;
+  }
+  
+  /* Text sizing compact */
+  .profile-title {
+    font-size: 1.25rem !important; /* 20px - was 24px */
+    line-height: 1.75rem !important;
+  }
+  
+  .duration-text {
+    font-size: 0.75rem !important; /* 12px - was 14px */
+  }
+  
+  .play-btn-text {
+    font-size: 0.75rem !important; /* 12px - was 14px */
+    padding: 0.375rem 0.75rem !important; /* 6px 12px - was 8px 16px */
+  }
+  
+  /* Spacing compact */
+  .profile-content {
+    gap: 1rem !important; /* 16px - was 24px */
+  }
+  
+  .track-row {
+    gap: 0.75rem !important; /* 12px - was 16px */
+  }
+  
+  .track-actions {
+    gap: 0.5rem !important; /* 8px - was 12px */
+  }
+  
+  /* Quick action compact */
+  .quick-action-compact {
+    padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
+  }
+  
+  .quick-action-compact svg {
+    width: 1rem !important; /* 16px - was 20px */
+    height: 1rem !important;
+  }
+  
+  /* Main action buttons compact */
+  .main-action-btn svg {
+    width: 0.875rem !important; /* 14px - was 16px */
+    height: 0.875rem !important;
+  }
+  
+  .main-action-btn {
+    gap: 0.5rem !important; /* 8px - was 12px */
+    font-size: 0.875rem !important; /* 14px */
+    padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
+  }
+  
+  /* Follower stats compact */
+  .follower-stats {
+    font-size: 1.5rem !important; /* 24px - was 32px */
+  }
+  
+  .follower-label {
+    font-size: 0.75rem !important; /* 12px - was 14px */
+  }
+  
+  /* Status indicators compact */
+  .status-dot {
+    width: 0.375rem !important; /* 6px - was 8px */
+    height: 0.375rem !important;
+  }
+  
+  .status-text {
+    font-size: 0.75rem !important; /* 12px - was 14px */
+  }
+  
+  .status-icon {
+    width: 0.75rem !important; /* 12px - was 16px */
+    height: 0.75rem !important;
+  }
 }
 

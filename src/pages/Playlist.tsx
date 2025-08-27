@@ -34,7 +34,6 @@ const PlaylistPage: React.FC = () => {
             src={playlist.images?.[0]?.url} 
             alt="cover" 
             className="cover-img rounded-lg shadow-lg"
-            style={{ width: '10rem', height: '10rem' }}
           />
           <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <button className="w-16 h-16 bg-spotify-green rounded-full flex items-center justify-center hover:scale-110 transition-transform">

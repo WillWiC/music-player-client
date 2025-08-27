@@ -7,6 +7,8 @@ const Dashboard: React.FC = () => {
   const { token } = useAuth();
   const { play } = usePlayer();
   const navigate = useNavigate();
+  
+  // State management
   const [user, setUser] = React.useState<any | null>(null);
   const [playlists, setPlaylists] = React.useState<any[]>([]);
   const [recentlyPlayed, setRecentlyPlayed] = React.useState<any[]>([]);
@@ -14,13 +16,18 @@ const Dashboard: React.FC = () => {
   const [newReleases, setNewReleases] = React.useState<any[]>([]);
   const [categories, setCategories] = React.useState<any[]>([]);
   const [greeting, setGreeting] = React.useState('Good evening');
-  // Loading flags for a more intuitive skeleton UI
+  
+  // Enhanced loading states
   const [loadingProfile, setLoadingProfile] = React.useState(false);
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
   const [loadingRecently, setLoadingRecently] = React.useState(false);
   const [loadingTop, setLoadingTop] = React.useState(false);
   const [loadingReleases, setLoadingReleases] = React.useState(false);
   const [loadingCategories, setLoadingCategories] = React.useState(false);
+  
+  // Error states and UI enhancements
+  const [errors, setErrors] = React.useState<{[key: string]: string}>({});
+  const [showQuickActions, setShowQuickActions] = React.useState(false);
 
   React.useEffect(() => {
     console.log('Dashboard loaded, token:', !!token);
@@ -32,385 +39,638 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    // Set dynamic greeting based on time
+    // Set dynamic greeting based on time with emoji
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good morning');
-    else if (hour < 18) setGreeting('Good afternoon');
-    else setGreeting('Good evening');
+    if (hour < 6) setGreeting('Late night vibes 🌙');
+    else if (hour < 12) setGreeting('Good morning ☀️');
+    else if (hour < 17) setGreeting('Good afternoon 🌞');
+    else if (hour < 21) setGreeting('Good evening 🌅');
+    else setGreeting('Good night 🌟');
 
-    // Fetch user profile
+    // Enhanced error handling function
+    const handleApiError = (error: any, section: string) => {
+      console.error(`Failed to load ${section}:`, error);
+      setErrors(prev => ({ ...prev, [section]: `Failed to load ${section}. Please try again.` }));
+    };
+
+    // Fetch user profile with enhanced error handling
     setLoadingProfile(true);
     fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(data => {
         console.log('User profile loaded:', data.display_name);
         setUser(data);
+        setErrors(prev => ({ ...prev, profile: '' }));
       })
-      .catch((error) => {
-        console.error('Failed to load user profile:', error);
-        setUser(null);
-      })
+      .catch((error) => handleApiError(error, 'profile'))
       .finally(() => setLoadingProfile(false));
 
     // Fetch featured playlists
     setLoadingPlaylists(true);
-    fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=8', {
+    fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=12', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
-      .then(data => setPlaylists(data.playlists?.items ?? []))
-      .catch(() => setPlaylists([]))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setPlaylists(data.playlists?.items ?? []);
+        setErrors(prev => ({ ...prev, playlists: '' }));
+      })
+      .catch((error) => handleApiError(error, 'playlists'))
       .finally(() => setLoadingPlaylists(false));
 
     // Fetch recently played tracks
     setLoadingRecently(true);
-    fetch('https://api.spotify.com/v1/me/player/recently-played?limit=10', {
+    fetch('https://api.spotify.com/v1/me/player/recently-played?limit=12', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
-      .then(data => setRecentlyPlayed(data.items ?? []))
-      .catch(() => setRecentlyPlayed([]))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setRecentlyPlayed(data.items ?? []);
+        setErrors(prev => ({ ...prev, recently: '' }));
+      })
+      .catch((error) => handleApiError(error, 'recently played'))
       .finally(() => setLoadingRecently(false));
 
     // Fetch user's top tracks
     setLoadingTop(true);
-    fetch('https://api.spotify.com/v1/me/top/tracks?limit=6&time_range=short_term', {
+    fetch('https://api.spotify.com/v1/me/top/tracks?limit=8&time_range=short_term', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
-      .then(data => setTopTracks(data.items ?? []))
-      .catch(() => setTopTracks([]))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setTopTracks(data.items ?? []);
+        setErrors(prev => ({ ...prev, top: '' }));
+      })
+      .catch((error) => handleApiError(error, 'top tracks'))
       .finally(() => setLoadingTop(false));
 
     // Fetch new releases
     setLoadingReleases(true);
-    fetch('https://api.spotify.com/v1/browse/new-releases?limit=6', {
+    fetch('https://api.spotify.com/v1/browse/new-releases?limit=8', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
-      .then(data => setNewReleases(data.albums?.items ?? []))
-      .catch(() => setNewReleases([]))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setNewReleases(data.albums?.items ?? []);
+        setErrors(prev => ({ ...prev, releases: '' }));
+      })
+      .catch((error) => handleApiError(error, 'new releases'))
       .finally(() => setLoadingReleases(false));
 
     // Fetch browse categories
     setLoadingCategories(true);
-    fetch('https://api.spotify.com/v1/browse/categories?limit=8', {
+    fetch('https://api.spotify.com/v1/browse/categories?limit=12', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
-      .then(data => setCategories(data.categories?.items ?? []))
-      .catch(() => setCategories([]))
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setCategories(data.categories?.items ?? []);
+        setErrors(prev => ({ ...prev, categories: '' }));
+      })
+      .catch((error) => handleApiError(error, 'categories'))
       .finally(() => setLoadingCategories(false));
   }, [token, navigate]);
 
+  // Enhanced loading skeleton component
+  const LoadingSkeleton = ({ className }: { className?: string }) => (
+    <div className={`animate-pulse bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg ${className}`} />
+  );
+
+  // Error state component
+  const ErrorMessage = ({ message }: { message: string }) => (
+    <div className="music-card border-red-500/20 bg-red-900/10">
+      <div className="flex items-center gap-3">
+        <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <p className="text-red-300 flex-1">{message}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto py-8 px-6">
-      {/* Dynamic Greeting */}
-      <div className="mb-6">
-        <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
-          {greeting}
-          {user?.display_name ? `, ${user.display_name} 👋` : ''}
-        </h1>
-        <p className="text-muted-dark text-lg">What do you want to listen to today?</p>
+    <div className="dashboard-compact max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Enhanced Welcome Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-spotify-green/20 via-green-900/20 to-emerald-900/20 border border-spotify-green/20">
+        <div className="absolute inset-0 pattern-bg opacity-30"></div>
+        <div className="relative p-6 sm:p-8">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-3 bg-gradient-to-r from-white via-green-100 to-spotify-green bg-clip-text text-transparent">
+            {greeting}
+            {user?.display_name && (
+              <span className="block text-2xl sm:text-3xl lg:text-4xl font-semibold text-white/90 mt-2">
+                Welcome back, {user.display_name}!
+              </span>
+            )}
+          </h1>
+          <p className="text-lg sm:text-xl text-white/80 mb-6 max-w-2xl">
+            Ready to discover your next favorite song? Let's dive into your personalized music journey.
+          </p>
+          
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-2">
+            <button 
+              onClick={() => navigate('/search')} 
+              className="main-action-btn btn-spotify flex items-center gap-1.5 text-sm px-3 py-2 group"
+            >
+              <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search Music
+            </button>
+            <button 
+              onClick={() => setShowQuickActions(!showQuickActions)}
+              className="main-action-btn btn-ghost-dark flex items-center gap-1.5 text-sm px-3 py-2"
+            >
+              <svg className={`w-3.5 h-3.5 transition-transform ${showQuickActions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              Quick Actions
+            </button>
+          </div>
+
+          {/* Expandable Quick Actions */}
+          {showQuickActions && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 animate-fadeIn">
+              <a href="#recently" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
+                <svg className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Recent</span>
+              </a>
+              <a href="#playlists" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
+                <svg className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                <span>Playlists</span>
+              </a>
+              <a href="#top" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
+                <svg className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                <span>Top Tracks</span>
+              </a>
+              <a href="#browse" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
+                <svg className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span>Browse</span>
+              </a>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Quick Search */}
-      <div className="mb-8">
-        <div
-          role="button"
-          aria-label="Open search"
-          onClick={() => navigate('/search')}
-          className="flex items-center gap-3 search-input-dark hover-lift cursor-text"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-muted-dark">
-            <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <input
-            readOnly
-            placeholder="Search for songs, artists, or podcasts"
-            className="bg-transparent flex-1 outline-none placeholder:text-muted-dark"
-          />
-          <span className="hidden sm:block text-xs text-muted-dark">Tap to search</span>
-        </div>
-        {/* Quick-action chips */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => navigate('/search')} className="chip">Search</button>
-          <a href="#playlists" className="chip">Playlists</a>
-          <a href="#browse" className="chip">Browse</a>
-          <a href="#top" className="chip">Top tracks</a>
-        </div>
-      </div>
-
-      {/* User Profile Card */}
+      {/* Enhanced User Profile Stats Card */}
       {loadingProfile ? (
-        <div className="flex items-center space-x-6 mb-8 music-card">
-          <div className="shrink-0 rounded-full shimmer" style={{ width: 72, height: 72 }} />
-          <div className="flex-1 space-y-2">
-            <div className="h-5 w-48 shimmer rounded" />
-            <div className="h-4 w-72 shimmer rounded" />
-          </div>
-          <div className="w-16 h-8 shimmer rounded" />
-        </div>
-      ) : user ? (
-        <div className="flex items-center space-x-6 mb-8 music-card">
-          <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
-            <img src={user.images?.[0]?.url} alt="Profile avatar" style={{ width: 72, height: 72 }} className="object-cover rounded-full" />
-            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-spotify-green rounded-full border-2 border-dark-bg"></div>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white">{user.display_name ?? user.id}</h2>
-            <p className="text-muted-dark">{user.email}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-2 h-2 bg-spotify-green rounded-full"></div>
-              <span className="text-sm text-spotify-green">Premium User</span>
+        <div className="music-card">
+          <div className="flex items-center space-x-6">
+            <LoadingSkeleton className="w-20 h-20 rounded-full" />
+            <div className="flex-1 space-y-3">
+              <LoadingSkeleton className="h-6 w-48" />
+              <LoadingSkeleton className="h-4 w-32" />
+              <LoadingSkeleton className="h-4 w-24" />
+            </div>
+            <div className="space-y-2">
+              <LoadingSkeleton className="h-8 w-16" />
+              <LoadingSkeleton className="h-4 w-12" />
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-muted-dark">Followers</div>
-            <div className="text-xl font-bold text-white">{user.followers?.total || 0}</div>
+        </div>
+      ) : errors.profile ? (
+        <ErrorMessage message={errors.profile} />
+      ) : user ? (
+        <div className="music-card hover-lift group">
+          <div className="profile-content flex items-center space-x-4">
+            <div className="relative shrink-0">
+              <img 
+                src={user.images?.[0]?.url || '/default-avatar.png'} 
+                alt="Profile" 
+                className="profile-img w-14 h-14 rounded-full object-cover border-2 border-spotify-green/50 group-hover:border-spotify-green transition-all"
+              />
+              <div className="verification-badge absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-spotify-green rounded-full border-2 border-dark-bg flex items-center justify-center">
+                <svg className="verification-icon w-2 h-2 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h2 className="profile-title text-xl font-bold text-white mb-1">{user.display_name || user.id}</h2>
+              <p className="text-muted-dark text-sm mb-2">{user.email}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="status-dot w-1.5 h-1.5 bg-spotify-green rounded-full animate-pulse"></div>
+                  <span className="status-text text-xs text-spotify-green font-medium">Premium Active</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-dark">
+                  <svg className="status-icon w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2m5-8a3 3 0 110-6 3 3 0 010 6z" />
+                  </svg>
+                  <span>{user.followers?.total || 0} followers</span>
+                </div>
+              </div>
+            </div>
+            <div className="text-right hidden sm:block">
+              <div className="follower-stats text-2xl font-bold text-spotify-green">{user.followers?.total || 0}</div>
+              <div className="follower-label text-xs text-muted-dark">Followers</div>
+            </div>
           </div>
         </div>
       ) : null}
 
-      {/* Continue Listening (Recently Played) */}
-      <div className="mb-8" id="continue">
-        <div className="section-header mb-4">
-          <h3 className="section-title">Continue listening</h3>
+      {/* Continue Listening Section */}
+      <section id="recently" className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-white">Continue listening</h3>
+          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+            View all
+          </button>
         </div>
+        
         {loadingRecently ? (
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-28 sm:w-32 md:w-36 music-card">
-                <div className="w-full aspect-square rounded-lg shimmer mb-3" />
-                <div className="h-4 w-24 shimmer rounded mb-2" />
-                <div className="h-3 w-20 shimmer rounded" />
+              <div key={i} className="space-y-3">
+                <LoadingSkeleton className="aspect-square rounded-lg" />
+                <LoadingSkeleton className="h-4 w-32" />
+                <LoadingSkeleton className="h-3 w-24" />
               </div>
             ))}
           </div>
+        ) : errors.recently ? (
+          <ErrorMessage message={errors.recently} />
         ) : recentlyPlayed.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {recentlyPlayed.slice(0, 10).map((item, index) => (
-              <div key={index} className="flex-shrink-0 w-28 sm:w-32 md:w-36 music-card group cursor-pointer">
-                <div className="relative">
-                  <img src={item.track.album?.images?.[0]?.url} alt={`${item.track.name} cover`} className="w-full aspect-square object-cover rounded-lg mb-3" />
-                  <button 
-                    onClick={() => play(item.track)}
-                    aria-label={`Play ${item.track.name}`}
-                    className="absolute bottom-2 right-2 w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                    </svg>
-                  </button>
+          <div className="flex flex-wrap gap-4 justify-start">
+            {recentlyPlayed.slice(0, 12).map((item, index) => (
+              <div key={index} className="group cursor-pointer flex-shrink-0">
+                <div className="relative mb-3">
+                  <img 
+                    src={item.track.album?.images?.[0]?.url} 
+                    alt={`${item.track.name} cover`} 
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <button 
+                      onClick={() => play(item.track)}
+                      className="play-btn-small w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
+                      aria-label={`Play ${item.track.name}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <h4 className="font-semibold text-white truncate">{item.track.name}</h4>
-                <p className="text-muted-dark text-sm truncate">{item.track.artists[0]?.name}</p>
+                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                  {item.track.name}
+                </h4>
+                <p className="cover-text text-muted-dark text-sm truncate">
+                  {item.track.artists[0]?.name}
+                </p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="music-card text-muted-dark">No recent plays yet. Try the search above to find something new.</div>
-        )}
-      </div>
-
-      {/* Your Top Tracks */}
-      {(
-        <div className="mb-8" id="top">
-          <div className="section-header mb-4">
-            <h3 className="section-title">Your top tracks this month</h3>
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <p className="text-muted-dark text-lg mb-4">No recent plays yet</p>
+            <button 
+              onClick={() => navigate('/search')}
+              className="btn-spotify"
+            >
+              Discover Music
+            </button>
           </div>
-          {loadingTop ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="track-item-dark p-3 rounded-lg">
-                  <div className="w-full flex items-center gap-4">
-                    <div className="h-5 w-6 shimmer rounded" />
-                    <div className="w-8 h-8 rounded shimmer" />
-                    <div className="flex-1">
-                      <div className="h-4 w-48 shimmer rounded mb-2" />
-                      <div className="h-3 w-32 shimmer rounded" />
-                    </div>
-                    <div className="h-8 w-24 shimmer rounded" />
+        )}
+      </section>
+
+      {/* Top Tracks Section */}
+      <section id="top" className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-white">Your top tracks this month</h3>
+          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+            View all
+          </button>
+        </div>
+
+        {loadingTop ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="music-card">
+                <div className="flex items-center gap-4">
+                  <LoadingSkeleton className="w-6 h-6" />
+                  <LoadingSkeleton className="w-12 h-12 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <LoadingSkeleton className="h-4 w-48" />
+                    <LoadingSkeleton className="h-3 w-32" />
                   </div>
+                  <LoadingSkeleton className="w-20 h-8" />
                 </div>
-              ))}
-            </div>
-          ) : topTracks.length > 0 ? (
-            <div className="space-y-2">
-              {topTracks.slice(0, 5).map((track, index) => (
-                <div key={track.id} className="track-item-dark group flex items-center gap-4 p-3 rounded-lg">
-                  <div className="track-ranking text-lg w-6">{index + 1}</div>
-                  <img src={track.album?.images?.[0]?.url} alt={`${track.name} cover`} className="w-8 h-8 md:w-10 md:h-10 rounded object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-white truncate">{track.name}</h4>
-                    <p className="text-muted-dark text-sm truncate">{track.artists[0]?.name}</p>
+              </div>
+            ))}
+          </div>
+        ) : errors.top ? (
+          <ErrorMessage message={errors.top} />
+        ) : topTracks.length > 0 ? (
+          <div className="space-y-2">
+            {topTracks.slice(0, 8).map((track, index) => (
+              <div key={track.id} className="group music-card hover:bg-white/5 cursor-pointer">
+                <div className="track-row flex items-center gap-3">
+                  <div className="w-8 text-center">
+                    <span className="text-lg font-bold text-muted-dark group-hover:text-white transition-colors">
+                      {index + 1}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button className="btn-ghost-dark p-2 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Like track">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2"/>
+                  <img 
+                    src={track.album?.images?.[0]?.url} 
+                    alt={`${track.name} cover`} 
+                    className="album-img-small w-10 h-10 rounded object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                      {track.name}
+                    </h4>
+                    <p className="text-muted-dark text-sm truncate">
+                      {track.artists.map((artist: any) => artist.name).join(', ')}
+                    </p>
+                  </div>
+                  <div className="track-actions flex items-center gap-2">
+                    <button 
+                      className="action-btn-small opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-white/10 rounded-full"
+                      aria-label="Like track"
+                    >
+                      <svg className="w-3.5 h-3.5 text-muted-dark hover:text-spotify-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                     </button>
-                    <div className="text-sm text-muted-dark">
+                    <span className="duration-text text-xs text-muted-dark min-w-0">
                       {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
-                    </div>
+                    </span>
                     <button 
                       onClick={() => play(track)}
-                      className="btn-spotify text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="play-btn-text opacity-0 group-hover:opacity-100 transition-opacity btn-spotify text-xs px-3 py-1.5"
                     >
                       Play
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="music-card text-muted-dark">No top tracks yet. Play more music to see your stats here.</div>
-          )}
-        </div>
-      )}
-
-      {/* Featured Playlists */}
-      <div className="mb-8" id="playlists">
-        <div className="section-header mb-4">
-          <h3 className="section-title">Featured Playlists</h3>
-        </div>
-        {loadingPlaylists ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="playlist-card">
-                <div className="cover-img shimmer" />
-                <div className="p-4">
-                  <div className="h-4 w-32 shimmer rounded mb-2" />
-                  <div className="h-3 w-24 shimmer rounded" />
-                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-            {playlists.map(pl => (
-              <Link key={pl.id} to={`/playlist/${pl.id}`} className="playlist-card group cursor-pointer">
-                <div className="relative">
-                  <img src={pl.images?.[0]?.url} alt={`${pl.name} cover`} className="cover-img" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // Play playlist logic
-                    }}
-                    className="absolute bottom-4 right-4 w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:scale-110"
-                    aria-label={`Play ${pl.name}`}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                    </svg>
-                  </button>
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <p className="text-muted-dark text-lg mb-4">No top tracks yet</p>
+            <p className="text-muted-dark mb-6">Play more music to see your personalized stats</p>
+            <button 
+              onClick={() => navigate('/search')}
+              className="btn-spotify"
+            >
+              Start Listening
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Featured Playlists Section */}
+      <section id="playlists" className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-white">Featured playlists</h3>
+          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+            View all
+          </button>
+        </div>
+
+        {loadingPlaylists ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <LoadingSkeleton className="aspect-square rounded-lg" />
+                <LoadingSkeleton className="h-4 w-32" />
+                <LoadingSkeleton className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        ) : errors.playlists ? (
+          <ErrorMessage message={errors.playlists} />
+        ) : playlists.length > 0 ? (
+          <div className="flex flex-wrap gap-4 justify-start">
+            {playlists.map((playlist) => (
+              <Link
+                key={playlist.id}
+                to={`/playlist/${playlist.id}`}
+                className="group cursor-pointer flex-shrink-0"
+              >
+                <div className="relative mb-3">
+                  <img 
+                    src={playlist.images?.[0]?.url} 
+                    alt={`${playlist.name} cover`} 
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Play playlist logic would go here
+                      }}
+                      className="play-btn-small w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
+                      aria-label={`Play ${playlist.name}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="p-4">
-                  <h4 className="font-bold text-white truncate">{pl.name}</h4>
-                  <p className="text-muted-dark text-sm truncate mt-1">{pl.description || 'Playlist'}</p>
-                </div>
+                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                  {playlist.name}
+                </h4>
+                <p className="cover-text text-muted-dark text-sm truncate">
+                  {playlist.description || `${playlist.tracks?.total || 0} songs`}
+                </p>
               </Link>
             ))}
           </div>
+        ) : (
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <p className="text-muted-dark text-lg mb-4">No playlists available</p>
+            <button 
+              onClick={() => navigate('/search')}
+              className="btn-spotify"
+            >
+              Discover Playlists
+            </button>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* New Releases */}
-      <div className="mb-8">
-        <div className="section-header mb-4">
-          <h3 className="section-title">New releases for you</h3>
+      {/* New Releases Section */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-white">New releases for you</h3>
+          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+            View all
+          </button>
         </div>
+
         {loadingReleases ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="playlist-card">
-                <div className="cover-img shimmer" />
-                <div className="p-3">
-                  <div className="h-4 w-28 shimmer rounded mb-2" />
-                  <div className="h-3 w-20 shimmer rounded" />
-                </div>
+              <div key={i} className="space-y-3">
+                <LoadingSkeleton className="aspect-square rounded-lg" />
+                <LoadingSkeleton className="h-4 w-32" />
+                <LoadingSkeleton className="h-3 w-24" />
               </div>
             ))}
           </div>
+        ) : errors.releases ? (
+          <ErrorMessage message={errors.releases} />
         ) : newReleases.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-            {newReleases.map(album => (
-              <div key={album.id} className="playlist-card group cursor-pointer">
-                <div className="relative">
-                  <img src={album.images?.[0]?.url} alt={`${album.name} cover`} className="cover-img" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <button className="absolute bottom-2 right-2 w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:scale-110" aria-label={`Play ${album.name}`}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                    </svg>
-                  </button>
+          <div className="flex flex-wrap gap-4 justify-start">
+            {newReleases.map((album) => (
+              <div key={album.id} className="group cursor-pointer flex-shrink-0">
+                <div className="relative mb-3">
+                  <img 
+                    src={album.images?.[0]?.url} 
+                    alt={`${album.name} cover`} 
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <button 
+                      onClick={() => {
+                        // Play album logic would go here
+                      }}
+                      className="play-btn-small w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
+                      aria-label={`Play ${album.name}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="p-3">
-                  <h4 className="font-semibold text-white truncate text-sm">{album.name}</h4>
-                  <p className="text-muted-dark text-xs truncate mt-1">{album.artists[0]?.name}</p>
-                </div>
+                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                  {album.name}
+                </h4>
+                <p className="cover-text text-muted-dark text-sm truncate">
+                  {album.artists[0]?.name}
+                </p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="music-card text-muted-dark">No new releases right now. Check back later.</div>
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m3 5.197a1 1 0 001-1v-1m-1 1v1z" />
+            </svg>
+            <p className="text-muted-dark text-lg mb-4">No new releases available</p>
+            <button 
+              onClick={() => navigate('/search')}
+              className="btn-spotify"
+            >
+              Explore Music
+            </button>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* Browse Categories */}
-      <div className="mb-6" id="browse">
-        <div className="section-header mb-4">
-          <h3 className="section-title">Browse all</h3>
+      {/* Browse Categories Section */}
+      <section id="browse" className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-white">Browse all</h3>
+          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+            View all
+          </button>
         </div>
+
         {loadingCategories ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-32 rounded-lg shimmer" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <LoadingSkeleton key={i} className="h-32 rounded-lg" />
             ))}
           </div>
+        ) : errors.categories ? (
+          <ErrorMessage message={errors.categories} />
         ) : categories.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {categories.map(category => (
-              <div 
-                key={category.id} 
-                className="relative h-32 rounded-lg overflow-hidden cursor-pointer group hover:scale-105 transition-transform"
-                style={{
-                  background: `linear-gradient(135deg, ${
-                    ['#1e3a8a', '#dc2626', '#059669', '#7c2d12', '#5b21b6', '#be185d', '#0369a1', '#ea580c'][
-                      Math.floor(Math.random() * 8)
-                    ]
-                  }, ${
-                    ['#3b82f6', '#ef4444', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#0ea5e9', '#f59e0b'][
-                      Math.floor(Math.random() * 8)
-                    ]
-                  })`
-                }}
-              >
-                <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                  <h4 className="font-bold text-white text-lg">{category.name}</h4>
-                  {category.icons?.[0] && (
-                    <img 
-                      src={category.icons[0].url} 
-                      alt={category.name}
-                      className="absolute bottom-2 right-2 w-16 h-16 object-cover rounded-lg transform rotate-12 opacity-80"
-                    />
-                  )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.map((category, index) => {
+              const gradients = [
+                'from-purple-500 to-pink-500',
+                'from-blue-500 to-cyan-500',
+                'from-green-500 to-teal-500',
+                'from-orange-500 to-red-500',
+                'from-indigo-500 to-purple-500',
+                'from-pink-500 to-rose-500',
+                'from-cyan-500 to-blue-500',
+                'from-teal-500 to-green-500'
+              ];
+              const gradient = gradients[index % gradients.length];
+              
+              return (
+                <div 
+                  key={category.id} 
+                  className={`relative h-32 rounded-lg overflow-hidden cursor-pointer group hover:scale-105 transition-all duration-300 bg-gradient-to-br ${gradient}`}
+                >
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <h4 className="font-bold text-white text-lg leading-tight">
+                      {category.name}
+                    </h4>
+                    {category.icons?.[0] && (
+                      <img 
+                        src={category.icons[0].url} 
+                        alt={category.name}
+                        className="category-img absolute bottom-2 right-2 w-12 h-12 object-cover rounded-lg transform rotate-12 opacity-80 group-hover:rotate-6 group-hover:scale-110 transition-all"
+                      />
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
-          <div className="music-card text-muted-dark">No categories to show.</div>
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <p className="text-muted-dark text-lg mb-4">No categories available</p>
+            <button 
+              onClick={() => navigate('/search')}
+              className="btn-spotify"
+            >
+              Start Exploring
+            </button>
+          </div>
         )}
-      </div>
+      </section>
+
+      {/* Bottom spacing for player */}
+      <div className="h-24"></div>
     </div>
   );
 };

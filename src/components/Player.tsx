@@ -53,11 +53,11 @@ const Player: React.FC = () => {
     <div className="music-player-bar">
       {/* Track Info */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
-    <div className="relative">
+        <div className="relative">
           <img 
             src={current.album.images?.[0]?.url} 
             alt="art" 
-            className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded object-cover ${playing ? 'playing-animation' : ''}`} 
+            className={`player-img w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded object-cover ${playing ? 'playing-animation' : ''}`} 
           />
           {playing && (
             <div className="absolute inset-0 bg-spotify-green/20 rounded"></div>
@@ -67,7 +67,7 @@ const Player: React.FC = () => {
           <div className="font-medium text-white truncate text-sm">{current.name}</div>
           <div className="text-muted-dark truncate text-xs">{current.artists?.[0]?.name}</div>
         </div>
-        <button className="btn-ghost-dark p-1.5 hidden sm:block">
+        <button className="player-btn btn-ghost-dark p-1.5 hidden sm:block">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
@@ -77,19 +77,19 @@ const Player: React.FC = () => {
       {/* Playback Controls */}
       <div className="flex flex-col items-center gap-2 flex-1 max-w-lg">
         <div className="flex items-center gap-3">
-          <button onClick={previous} className="btn-ghost-dark p-1.5" title="Previous">
+          <button onClick={previous} className="player-btn btn-ghost-dark p-1.5" title="Previous">
             <Icon name="prev" />
           </button>
           {playing ? (
-            <button onClick={pause} className="btn-spotify w-8 h-8 p-0 justify-center" title="Pause">
+            <button onClick={pause} className="player-main-btn btn-spotify w-8 h-8 p-0 justify-center" title="Pause">
               <Icon name="pause" />
             </button>
           ) : (
-            <button onClick={resume} className="btn-spotify w-8 h-8 p-0 justify-center" title="Play">
+            <button onClick={resume} className="player-main-btn btn-spotify w-8 h-8 p-0 justify-center" title="Play">
               <Icon name="play" />
             </button>
           )}
-          <button onClick={next} className="btn-ghost-dark p-1.5" title="Next">
+          <button onClick={next} className="player-btn btn-ghost-dark p-1.5" title="Next">
             <Icon name="next" />
           </button>
         </div>
@@ -119,7 +119,7 @@ const Player: React.FC = () => {
 
       {/* Volume & Additional Controls */}
       <div className="flex items-center gap-3 min-w-0 flex-1 justify-end">
-        <button className="btn-ghost-dark p-1.5 hidden lg:block">
+        <button className="player-btn btn-ghost-dark p-1.5 hidden lg:block">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M9 18V5l12-2v13M9 13l12-2" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
@@ -143,7 +143,7 @@ const Player: React.FC = () => {
           />
           <div className="text-xs text-white font-mono w-8 text-center">{Math.round(vol * 100)}</div>
         </div>
-        <button className="btn-ghost-dark p-1.5 hidden md:block">
+        <button className="player-btn btn-ghost-dark p-1.5 hidden md:block">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M6 4h4v4H6zM14 4h4v4h-4zM6 14h4v4H6zM14 14h4v4h-4z" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
