@@ -13,57 +13,100 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900 antialiased;
+    /* Use an explicit gradient and color values instead of @apply of gradient stop utilities
+       because some Tailwind utility classes (from-*, via-*, to-*) cannot be used with @apply.
+    */
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+    color: #0f172a; /* slate-900 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
 
   a {
-    @apply text-sky-600 hover:text-sky-500;
+    color: #0ea5e9; /* sky-500 */
   }
 }
 
 /* Reusable layout helpers */
 .app-container {
-  @apply min-h-screen flex flex-col;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Component styles */
 @layer components {
   .card {
-    @apply bg-white/80 backdrop-blur-md rounded-xl shadow-md border border-gray-100 p-4;
+    background-color: rgba(255,255,255,0.8);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+    border: 1px solid rgba(226,232,240,0.6);
+    padding: 1rem;
   }
 
   .glass {
-    @apply bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl;
+    background-color: rgba(255,255,255,0.3);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
   }
 
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-300;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #0369a1; /* sky-800-ish */
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 6px 12px rgba(3,105,161,0.15);
   }
+  .btn-primary:hover { background-color: #0ea5e9; }
+  .btn-primary:focus { outline: 2px solid rgba(14,165,233,0.25); }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 bg-transparent text-slate-700 hover:bg-slate-100 rounded-md;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    background: transparent;
+    color: #334155; /* slate-700 */
+    border-radius: 8px;
   }
+  .btn-ghost:hover { background-color: rgba(241,245,249,0.8); }
 
   .search-input {
-    @apply w-full px-4 py-2 rounded-lg border border-gray-200 bg-white/60 focus:ring-2 focus:ring-sky-200 placeholder:text-slate-400;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e6e9ef;
+    background-color: rgba(255,255,255,0.6);
   }
+  .search-input::placeholder { color: #94a3b8; }
 
   .track-item {
-    @apply flex items-center gap-4 p-2 hover:bg-slate-50 rounded-md cursor-pointer transition-colors;
+    display:flex; align-items:center; gap:1rem; padding:0.5rem; border-radius:8px; transition: background-color .15s ease;
   }
+  .track-item:hover { background-color: #f8fafc; }
 
   .player-bar {
-    @apply fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(980px,95%)] bg-white/90 backdrop-blur-md border border-gray-200 rounded-full shadow-lg px-4 py-2 flex items-center gap-4;
+    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    width: min(980px, 95%);
+    background-color: rgba(255,255,255,0.9);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(226,232,240,0.8);
+    border-radius: 9999px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+    padding: 0.5rem 1rem; display:flex; align-items:center; gap:1rem;
   }
 }
 
 /* Small utility additions */
 @layer utilities {
-  .muted { @apply text-slate-500; }
-  .clickable { @apply cursor-pointer; }
+  .muted { color: #64748b; }
+  .clickable { cursor: pointer; }
 }
 
 /* Custom scrollbar for modern touch */
