@@ -3,7 +3,12 @@
 
 @layer base {
   :root {
-    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-bg: rgba(0, 0, 0, 0.6);
+    --spotify-green: #1db954;
+    --dark-bg: #121212;
+    --card-bg: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
   }
 
   html, body, #root {
@@ -11,68 +16,240 @@
   }
 
   body {
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
-    color: #0f172a;
+    background: linear-gradient(135deg, #121212 0%, #1e1e1e 50%, #2a2a2a 100%);
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    font-family: 'Circular', 'Helvetica Neue', Arial, sans-serif;
   }
 
-  a { color: #0ea5e9; }
+  a { color: var(--spotify-green); }
 }
 
 .app-container { min-height: 100vh; display:flex; flex-direction:column; }
 
 @layer utilities {
-  .card {
-    background-color: rgba(255,255,255,0.8);
-    backdrop-filter: blur(6px);
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(15,23,42,0.06);
-    border: 1px solid rgba(226,232,240,0.6);
-    padding: 1rem;
+  .music-card {
+    background: linear-gradient(145deg, #1e1e1e 0%, #2a2a2a 100%);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  .music-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    border-color: var(--spotify-green);
   }
 
-  .glass {
-    background-color: rgba(255,255,255,0.3);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 12px;
+  .playlist-card {
+    background: linear-gradient(145deg, #1e1e1e 0%, #2a2a2a 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .playlist-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .playlist-card:hover::before { opacity: 1; }
+  .playlist-card:hover { transform: scale(1.05); }
+
+  .btn-spotify {
+    display: inline-flex; align-items: center; gap: 0.5rem; 
+    padding: 0.75rem 1.5rem; background: var(--spotify-green); 
+    color: #000; font-weight: 600; border-radius: 50px;
+    box-shadow: 0 4px 16px rgba(29, 185, 84, 0.3);
+    transition: all 0.2s ease;
+  }
+  .btn-spotify:hover { 
+    background: #1ed760; 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4);
   }
 
-  .btn-primary {
-    display: inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem;
-    background-color:#0369a1; color:white; border-radius:8px; box-shadow:0 6px 12px rgba(3,105,161,0.15);
+  .btn-ghost-dark { 
+    display: inline-flex; align-items: center; gap: 0.5rem; 
+    padding: 0.5rem 1rem; background: rgba(255,255,255,0.1); 
+    color: var(--text-primary); border-radius: 50px;
+    transition: all 0.2s ease;
   }
-  .btn-primary:hover { background-color:#0ea5e9; }
-  .btn-primary:focus { outline:2px solid rgba(14,165,233,0.25); }
-
-  .btn-ghost { display:inline-flex; align-items:center; gap:0.5rem; padding:0.375rem 0.75rem; background:transparent; color:#334155; border-radius:8px; }
-  .btn-ghost:hover { background-color: rgba(241,245,249,0.8); }
-
-  .search-input { width:100%; padding:0.5rem 1rem; border-radius:10px; border:1px solid #e6e9ef; background-color:rgba(255,255,255,0.6); }
-  .search-input::placeholder { color:#94a3b8; }
-
-  .track-item { display:flex; align-items:center; gap:1rem; padding:0.5rem; border-radius:8px; transition: background-color .15s ease; }
-  .track-item:hover { background-color:#f8fafc; }
-
-  .player-bar {
-    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
-    width: min(980px, 95%);
-    background-color: rgba(255,255,255,0.9);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(226,232,240,0.8);
-    border-radius: 9999px;
-    box-shadow: 0 10px 30px rgba(2,6,23,0.08);
-    padding: 0.5rem 1rem; display:flex; align-items:center; gap:1rem;
+  .btn-ghost-dark:hover { 
+    background: rgba(255,255,255,0.2); 
+    transform: translateY(-1px);
   }
 
-  .muted { color: #64748b; }
-  .clickable { cursor: pointer; }
+  .search-input-dark { 
+    width: 100%; padding: 1rem 1.5rem; border-radius: 50px; 
+    border: 2px solid rgba(255,255,255,0.1); 
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+  .search-input-dark:focus {
+    border-color: var(--spotify-green);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
+  }
+  .search-input-dark::placeholder { color: var(--text-secondary); }
+
+  .track-item-dark { 
+    display: flex; align-items: center; gap: 1rem; 
+    padding: 1rem; border-radius: 12px; 
+    transition: all 0.2s ease; cursor: pointer;
+  }
+  .track-item-dark:hover { 
+    background: rgba(255,255,255,0.1); 
+    transform: translateX(4px);
+  }
+
+  .music-player-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, #181818 0%, #1e1e1e 100%);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; gap: 1.5rem;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.3);
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .progress-bar::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--spotify-green);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
+  }
+
+  .volume-slider {
+    width: 80px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--spotify-green);
+    cursor: pointer;
+  }
+
+  .text-spotify { color: var(--spotify-green); }
+  .text-muted-dark { color: var(--text-secondary); }
+  .bg-dark { background-color: var(--dark-bg); }
+  .bg-card { background-color: var(--card-bg); }
 }
 
-/* Custom scrollbar for modern touch */
-*::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 9999px; }
+/* Custom scrollbar for dark theme */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-thumb { 
+  background: rgba(255,255,255,0.2); 
+  border-radius: 6px; 
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 *::-webkit-scrollbar-track { background: transparent; }
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(29, 185, 84, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(29, 185, 84, 0.5); }
+}
+
+.playing-animation {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar for horizontal sections */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: var(--card-bg);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #535353;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #727272;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Top tracks ranking styles */
+.track-ranking {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Gradient backgrounds for categories */
+.category-gradient-1 { background: linear-gradient(135deg, #1e3a8a, #3b82f6); }
+.category-gradient-2 { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.category-gradient-3 { background: linear-gradient(135deg, #059669, #10b981); }
+.category-gradient-4 { background: linear-gradient(135deg, #7c2d12, #f97316); }
+.category-gradient-5 { background: linear-gradient(135deg, #5b21b6, #8b5cf6); }
+.category-gradient-6 { background: linear-gradient(135deg, #be185d, #ec4899); }
+.category-gradient-7 { background: linear-gradient(135deg, #0369a1, #0ea5e9); }
+.category-gradient-8 { background: linear-gradient(135deg, #ea580c, #f59e0b); }
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Enhanced card effects */
+.music-card-enhanced {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+}
+
+.music-card-enhanced:hover {
+  border-color: rgba(29, 185, 84, 0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  transform: translateY(-4px);
+}
 

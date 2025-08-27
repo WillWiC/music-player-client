@@ -50,13 +50,53 @@ const Player: React.FC = () => {
 
 
   return (
-    <div className="player-bar">
-      <img src={current.album.images?.[0]?.url} alt="art" className="w-14 h-14 rounded-md" />
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-slate-900 truncate">{current.name}</div>
-        <div className="text-sm text-slate-600 truncate">{current.artists?.[0]?.name}</div>
-        <div className="mt-2 flex items-center gap-3">
-          <div className="text-xs muted">{formatTime(localPos)}</div>
+    <div className="music-player-bar">
+      {/* Track Info */}
+      <div className="flex items-center gap-4 min-w-0 flex-1">
+        <div className="relative">
+          <img 
+            src={current.album.images?.[0]?.url} 
+            alt="art" 
+            className={`w-16 h-16 rounded-lg ${playing ? 'playing-animation' : ''}`} 
+          />
+          {playing && (
+            <div className="absolute inset-0 bg-spotify-green/20 rounded-lg"></div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-white truncate text-sm">{current.name}</div>
+          <div className="text-muted-dark truncate text-xs">{current.artists?.[0]?.name}</div>
+        </div>
+        <button className="btn-ghost-dark p-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Playback Controls */}
+      <div className="flex flex-col items-center gap-2 flex-1 max-w-lg">
+        <div className="flex items-center gap-4">
+          <button onClick={previous} className="btn-ghost-dark p-2" title="Previous">
+            <Icon name="prev" />
+          </button>
+          {playing ? (
+            <button onClick={pause} className="btn-spotify w-10 h-10 p-0 justify-center" title="Pause">
+              <Icon name="pause" />
+            </button>
+          ) : (
+            <button className="btn-spotify w-10 h-10 p-0 justify-center" title="Play">
+              <Icon name="play" />
+            </button>
+          )}
+          <button onClick={next} className="btn-ghost-dark p-2" title="Next">
+            <Icon name="next" />
+          </button>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="flex items-center gap-3 w-full">
+          <div className="text-xs text-muted-dark font-mono">{formatTime(localPos)}</div>
           <input
             ref={progressRef}
             type="range"
@@ -71,30 +111,23 @@ const Player: React.FC = () => {
               setIsSeeking(false);
               await seek(localPos);
             }}
-            className="w-full"
+            className="progress-bar flex-1"
           />
-          <div className="text-xs muted">{formatTime(durationMs)}</div>
+          <div className="text-xs text-muted-dark font-mono">{formatTime(durationMs)}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button onClick={previous} className="btn-ghost" title="Previous">
-          <Icon name="prev" />
+      {/* Volume & Additional Controls */}
+      <div className="flex items-center gap-4 min-w-0 flex-1 justify-end">
+        <button className="btn-ghost-dark p-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18V5l12-2v13M9 13l12-2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
         </button>
-        {playing ? (
-          <button onClick={pause} className="btn-primary" title="Pause">
-            <Icon name="pause" />
-          </button>
-        ) : (
-          <button className="btn-primary" title="Play">
-            <Icon name="play" />
-          </button>
-        )}
-        <button onClick={next} className="btn-ghost" title="Next">
-          <Icon name="next" />
-        </button>
-
         <div className="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-muted-dark">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
           <input
             type="range"
             min={0}
@@ -106,9 +139,14 @@ const Player: React.FC = () => {
               setVol(v);
               setVolume(v).catch(() => {});
             }}
-            className="w-24"
+            className="volume-slider"
           />
         </div>
+        <button className="btn-ghost-dark p-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M6 4h4v4H6zM14 4h4v4h-4zM6 14h4v4H6zM14 14h4v4h-4z" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
+        </button>
       </div>
     </div>
   );
