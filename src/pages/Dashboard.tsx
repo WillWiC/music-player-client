@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { token } = useAuth();
-  const { play } = usePlayer();
+  const { play, pause, current, playing } = usePlayer();
   const navigate = useNavigate();
   
   // State management
@@ -68,25 +68,42 @@ const Dashboard: React.FC = () => {
       .catch((error) => handleApiError(error, 'profile'))
       .finally(() => setLoadingProfile(false));
 
-    // Fetch featured playlists
+    // Fetch user's playlists (more reliable than featured playlists)
     setLoadingPlaylists(true);
-    fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=12', {
+    fetch('https://api.spotify.com/v1/me/playlists?limit=12', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        console.log('User playlists response status:', res.status);
+        if (!res.ok) {
+          // Fallback to featured playlists if user playlists fail
+          console.log('User playlists failed, trying featured playlists...');
+          return fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=12', {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then(fallbackRes => {
+            if (!fallbackRes.ok) throw new Error(`Featured playlists also failed: HTTP ${fallbackRes.status}`);
+            return fallbackRes.json();
+          }).then(fallbackData => ({
+            items: fallbackData.playlists?.items || []
+          }));
+        }
         return res.json();
       })
       .then(data => {
-        setPlaylists(data.playlists?.items ?? []);
+        console.log('Playlists data:', data);
+        console.log('Playlists items:', data.items);
+        setPlaylists(data.items ?? []);
         setErrors(prev => ({ ...prev, playlists: '' }));
       })
-      .catch((error) => handleApiError(error, 'playlists'))
+      .catch((error) => {
+        console.error('Playlists error:', error);
+        handleApiError(error, 'playlists');
+      })
       .finally(() => setLoadingPlaylists(false));
 
-    // Fetch recently played tracks
+    // Fetch recently played tracks with duplicate elimination
     setLoadingRecently(true);
-    fetch('https://api.spotify.com/v1/me/player/recently-played?limit=12', {
+    fetch('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
@@ -94,7 +111,21 @@ const Dashboard: React.FC = () => {
         return res.json();
       })
       .then(data => {
-        setRecentlyPlayed(data.items ?? []);
+        // Remove duplicates based on track ID
+        const uniqueTracks = [];
+        const seenTrackIds = new Set();
+        
+        if (data.items) {
+          for (const item of data.items) {
+            if (!seenTrackIds.has(item.track.id)) {
+              seenTrackIds.add(item.track.id);
+              uniqueTracks.push(item);
+              if (uniqueTracks.length >= 12) break; // Limit to 12 unique tracks
+            }
+          }
+        }
+        
+        setRecentlyPlayed(uniqueTracks);
         setErrors(prev => ({ ...prev, recently: '' }));
       })
       .catch((error) => handleApiError(error, 'recently played'))
@@ -319,22 +350,35 @@ const Dashboard: React.FC = () => {
         ) : recentlyPlayed.length > 0 ? (
           <div className="flex flex-wrap gap-4 justify-start">
             {recentlyPlayed.slice(0, 12).map((item, index) => (
-              <div key={index} className="group cursor-pointer flex-shrink-0">
-                <div className="relative mb-3">
+              <div key={`${item.track.id}-${index}`} className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200">
+                <div className="relative mb-3 overflow-hidden rounded-lg">
                   <img 
                     src={item.track.album?.images?.[0]?.url} 
                     alt={`${item.track.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
                     <button 
-                      onClick={() => play(item.track)}
-                      className="play-btn-small w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
-                      aria-label={`Play ${item.track.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (current?.id === item.track.id && playing) {
+                          pause();
+                        } else {
+                          play(item.track);
+                        }
+                      }}
+                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
+                      aria-label={current?.id === item.track.id && playing ? `Pause ${item.track.name}` : `Play ${item.track.name}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                      </svg>
+                      {current?.id === item.track.id && playing ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-black"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -393,7 +437,7 @@ const Dashboard: React.FC = () => {
         ) : topTracks.length > 0 ? (
           <div className="space-y-2">
             {topTracks.slice(0, 8).map((track, index) => (
-              <div key={track.id} className="group music-card hover:bg-white/5 cursor-pointer">
+              <div key={track.id} className="group music-card hover:bg-white/5 cursor-pointer p-4 rounded-lg transition-all duration-200">
                 <div className="track-row flex items-center gap-3">
                   <div className="w-8 text-center">
                     <span className="text-lg font-bold text-muted-dark group-hover:text-white transition-colors">
@@ -426,10 +470,16 @@ const Dashboard: React.FC = () => {
                       {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                     </span>
                     <button 
-                      onClick={() => play(track)}
+                      onClick={() => {
+                        if (current?.id === track.id && playing) {
+                          pause();
+                        } else {
+                          play(track);
+                        }
+                      }}
                       className="play-btn-text opacity-0 group-hover:opacity-100 transition-opacity btn-spotify text-xs px-3 py-1.5"
                     >
-                      Play
+                      {current?.id === track.id && playing ? 'Pause' : 'Play'}
                     </button>
                   </div>
                 </div>
@@ -453,10 +503,10 @@ const Dashboard: React.FC = () => {
         )}
       </section>
 
-      {/* Featured Playlists Section */}
+      {/* Your Playlists Section */}
       <section id="playlists" className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white">Featured playlists</h3>
+          <h3 className="text-2xl font-bold text-white">Your playlists</h3>
           <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
             View all
           </button>
@@ -473,32 +523,50 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
         ) : errors.playlists ? (
-          <ErrorMessage message={errors.playlists} />
+          <div className="music-card text-center py-12">
+            <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-red-400 text-lg mb-4">Failed to load playlists</p>
+            <p className="text-muted-dark mb-4">{errors.playlists}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="btn-spotify"
+            >
+              Try Again
+            </button>
+          </div>
         ) : playlists.length > 0 ? (
           <div className="flex flex-wrap gap-4 justify-start">
             {playlists.map((playlist) => (
               <Link
                 key={playlist.id}
                 to={`/playlist/${playlist.id}`}
-                className="group cursor-pointer flex-shrink-0"
+                className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200"
               >
-                <div className="relative mb-3">
+                <div className="relative mb-3 overflow-hidden rounded-lg">
                   <img 
-                    src={playlist.images?.[0]?.url} 
+                    src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
                     alt={`${playlist.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==') {
+                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                      }
+                    }}
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
                     <button 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // Play playlist logic would go here
+                        console.log('Play playlist clicked:', playlist.name, playlist.id);
                       }}
-                      className="play-btn-small w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
+                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
                       aria-label={`Play ${playlist.name}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
                       </svg>
                     </button>
@@ -518,12 +586,13 @@ const Dashboard: React.FC = () => {
             <svg className="w-16 h-16 text-muted-dark mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
             </svg>
-            <p className="text-muted-dark text-lg mb-4">No playlists available</p>
+            <p className="text-muted-dark text-lg mb-4">No playlists found</p>
+            <p className="text-muted-dark mb-6">Create your first playlist on Spotify to see it here</p>
             <button 
-              onClick={() => navigate('/search')}
+              onClick={() => window.open('https://open.spotify.com', '_blank')}
               className="btn-spotify"
             >
-              Discover Playlists
+              Open Spotify
             </button>
           </div>
         )}
@@ -553,22 +622,23 @@ const Dashboard: React.FC = () => {
         ) : newReleases.length > 0 ? (
           <div className="flex flex-wrap gap-4 justify-start">
             {newReleases.map((album) => (
-              <div key={album.id} className="group cursor-pointer flex-shrink-0">
-                <div className="relative mb-3">
+              <div key={album.id} className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200">
+                <div className="relative mb-3 overflow-hidden rounded-lg">
                   <img 
                     src={album.images?.[0]?.url} 
                     alt={`${album.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
                     <button 
-                      onClick={() => {
-                        // Play album logic would go here
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Play album:', album.name);
                       }}
-                      className="play-btn-small w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform shadow-lg"
+                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
                       aria-label={`Play ${album.name}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
                       </svg>
                     </button>
