@@ -32,14 +32,14 @@ const Dashboard: React.FC = () => {
   
   // Sidebar state for mobile
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [showQuickActions, setShowQuickActions] = React.useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
   const [showLogoutNotification, setShowLogoutNotification] = React.useState(false);
   
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
   const [recentlyStartIndex, setRecentlyStartIndex] = React.useState(0);
-  const tracksPerView = 6;
+  const tracksPerView = 20;
+  const recentlyPerView = 5;
   // Removed unused showProfileDropdown state after layout overhaul
 
   // Helper function to format display name
@@ -80,17 +80,17 @@ const Dashboard: React.FC = () => {
   };
 
   const handleNextRecently = () => {
-    const maxStartIndex = Math.max(0, recentlyPlayed.length - tracksPerView);
-    setRecentlyStartIndex(prev => Math.min(prev + tracksPerView, maxStartIndex));
+    const maxStartIndex = Math.max(0, recentlyPlayed.length - recentlyPerView);
+    setRecentlyStartIndex(prev => Math.min(prev + recentlyPerView, maxStartIndex));
   };
 
   const handlePrevRecently = () => {
-    setRecentlyStartIndex(prev => Math.max(prev - tracksPerView, 0));
+    setRecentlyStartIndex(prev => Math.max(prev - recentlyPerView, 0));
   };
 
   const canGoNext = topTracksStartIndex + tracksPerView < topTracks.length;
   const canGoPrev = topTracksStartIndex > 0;
-  const canGoNextRecently = recentlyStartIndex + tracksPerView < recentlyPlayed.length;
+  const canGoNextRecently = recentlyStartIndex + recentlyPerView < recentlyPlayed.length;
   const canGoPrevRecently = recentlyStartIndex > 0;
 
   // Handle logout
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
             if (!seenTrackIds.has(item.track.id)) {
               seenTrackIds.add(item.track.id);
               uniqueTracks.push(item);
-              if (uniqueTracks.length >= 12) break;
+              if (uniqueTracks.length >= 20) break;
             }
           }
         }
@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
 
     // Fetch user's top tracks
     setLoadingTop(true);
-    fetch('https://api.spotify.com/v1/me/top/tracks?limit=8&time_range=short_term', {
+    fetch('https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=short_term', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
@@ -457,50 +457,46 @@ const Dashboard: React.FC = () => {
               
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                <a href="#recently" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl font-bold text-green-400 leading-none">♪</span>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-white">{recentlyPlayed.length}</div>
-                      <div className="text-xs text-gray-400 font-medium">Recent Plays</div>
+                      <div className="text-sm text-gray-400 font-medium">Recent Plays</div>
                     </div>
                   </div>
-                </div>
-                <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </a>
+                <a href="#playlists" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl font-bold text-purple-400 leading-none">♫</span>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-white">{playlists.length}</div>
-                      <div className="text-xs text-gray-400 font-medium">Playlists</div>
+                      <div className="text-sm text-gray-400 font-medium">Playlists</div>
                     </div>
                   </div>
-                </div>
-                <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </a>
+                <a href="#top" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl font-bold text-yellow-400 leading-none">★</span>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-white">{topTracks.length}</div>
-                      <div className="text-xs text-gray-400 font-medium">Top Tracks</div>
+                      <div className="text-sm text-gray-400 font-medium">Top Tracks</div>
                     </div>
                   </div>
-                </div>
-                <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </a>
+                <a href="#releases" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl font-bold text-blue-400 leading-none">◆</span>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-white">{newReleases.length}</div>
-                      <div className="text-xs text-gray-400 font-medium">New Releases</div>
+                      <div className="text-sm text-gray-400 font-medium">New Releases</div>
                     </div>
                   </div>
-                </div>
+                </a>
               </div>
               
               {/* Action Buttons */}
@@ -514,61 +510,7 @@ const Dashboard: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <button 
-                  onClick={() => setShowQuickActions(!showQuickActions)}
-                  className="flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-2xl transition-all duration-300 border border-white/20 hover:border-white/40 backdrop-blur-sm group"
-                >
-                  <span>Quick Actions</span>
-                  <svg className={`w-5 h-5 transition-transform duration-300 ${showQuickActions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
               </div>
-              
-              {/* Quick Actions Panel */}
-              {showQuickActions && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 animate-slideDown">
-                  <a href="#recently" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-green-400">Recent</span>
-                      <div className="text-xs text-gray-400">{recentlyPlayed.length} tracks</div>
-                    </div>
-                  </a>
-                  <a href="#playlists" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-purple-400">Playlists</span>
-                      <div className="text-xs text-gray-400">{playlists.length} collections</div>
-                    </div>
-                  </a>
-                  <a href="#top" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-yellow-400">Top</span>
-                      <div className="text-xs text-gray-400">{topTracks.length} favorites</div>
-                    </div>
-                  </a>
-                  <a href="#releases" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-blue-400">New</span>
-                      <div className="text-xs text-gray-400">{newReleases.length} albums</div>
-                    </div>
-                  </a>
-                  <a href="#categories" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-pink-400">Genre</span>
-                      <div className="text-xs text-gray-400">{categories.length} categories</div>
-                    </div>
-                  </a>
-                  <button 
-                    onClick={() => navigate('/search')}
-                    className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl group-hover:scale-110 transition-transform text-green-400">Find</span>
-                      <div className="text-xs text-gray-400">Find anything</div>
-                    </div>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           {/* Continue Listening Section */}
@@ -580,11 +522,8 @@ const Dashboard: React.FC = () => {
                 <p className="text-gray-400 text-sm">Pick up where you left off</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
-                  <span className="text-green-400 text-xs font-medium">{recentlyPlayed.length} tracks</span>
-                </div>
                 {/* Navigation Arrows */}
-                {recentlyPlayed.length > tracksPerView && (
+                {recentlyPlayed.length > recentlyPerView && (
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={handlePrevRecently}
@@ -621,8 +560,8 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-6 gap-3">
-                {Array.from({ length: tracksPerView }).map((_, i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {Array.from({ length: recentlyPerView }).map((_, i) => (
                   <div key={i} className="space-y-2">
                     <LoadingSkeleton className="aspect-square rounded-lg" />
                     <LoadingSkeleton className="h-3 w-full" />
@@ -633,8 +572,8 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-              <div className="grid grid-cols-6 gap-3">
-                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + tracksPerView).map((item, index) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
                   <div key={`${item.track.id}-${index}`} className="group cursor-pointer">
                     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
@@ -708,13 +647,10 @@ const Dashboard: React.FC = () => {
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Your Top Tracks</h2>
+                <h2 className="text-2xl font-bold text-white mb-1">Your Top 10 Tracks</h2>
                 <p className="text-gray-400 text-sm">Your most played songs this month</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 rounded-full border border-yellow-500/20">
-                  <span className="text-yellow-400 text-xs font-medium">{topTracks.length} favorites</span>
-                </div>
                 {/* Navigation Arrows */}
                 {topTracks.length > tracksPerView && (
                   <div className="flex items-center gap-1">
@@ -753,7 +689,7 @@ const Dashboard: React.FC = () => {
             
             {/* Top Tracks Section */}
             {loadingTop ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="space-y-3">
                 {Array.from({ length: tracksPerView }).map((_, i) => (
                   <div key={i} className="bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm p-4">
                     <div className="flex items-center gap-4">
@@ -871,9 +807,6 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
                 <p className="text-gray-400 text-sm">Your personal music collections</p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20">
-                <span className="text-purple-400 text-xs font-medium">{playlists.length} collections</span>
-              </div>
             </div>
             
             {/* Playlists Section */}
@@ -949,9 +882,6 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-white mb-1">New Album Releases</h2>
                 <p className="text-gray-400 text-sm">Fresh music from your favorite artists</p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-full border border-blue-500/20">
-                <span className="text-blue-400 text-xs font-medium">{newReleases.length} albums</span>
-              </div>
             </div>
             
             {/* New Releases Section */}
@@ -1025,9 +955,6 @@ const Dashboard: React.FC = () => {
               <div>
                 <h2 className="text-2xl font-bold text-white mb-1">Browse by Genre</h2>
                 <p className="text-gray-400 text-sm">Discover music by mood and genre</p>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-500/10 rounded-full border border-pink-500/20">
-                <span className="text-pink-400 text-xs font-medium">{categories.length} categories</span>
               </div>
             </div>
             
