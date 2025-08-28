@@ -3,10 +3,11 @@ import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useNavigate } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
+import Sidebar from '../components/Sidebar';
 import '../index.css';
 
 const Dashboard: React.FC = () => {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
   
@@ -28,12 +29,17 @@ const Dashboard: React.FC = () => {
   
   // Error states and UI enhancements
   const [errors, setErrors] = React.useState<{[key: string]: string}>({});
+  
+  // Sidebar state for mobile
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showQuickActions, setShowQuickActions] = React.useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
+  const [showLogoutNotification, setShowLogoutNotification] = React.useState(false);
   
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
   const [recentlyStartIndex, setRecentlyStartIndex] = React.useState(0);
-  const tracksPerView = 4;
+  const tracksPerView = 6;
   // Removed unused showProfileDropdown state after layout overhaul
 
   // Helper function to format display name
@@ -53,6 +59,14 @@ const Dashboard: React.FC = () => {
     }
     
     return displayName;
+  };
+
+  // Helper function to decode HTML entities
+  const decodeHtmlEntities = (text: string) => {
+    if (!text) return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
   };
 
   // Navigation functions for horizontal scrolling
@@ -78,6 +92,21 @@ const Dashboard: React.FC = () => {
   const canGoPrev = topTracksStartIndex > 0;
   const canGoNextRecently = recentlyStartIndex + tracksPerView < recentlyPlayed.length;
   const canGoPrevRecently = recentlyStartIndex > 0;
+
+  // Handle logout
+  const handleLogout = () => {
+    // Show logout notification
+    setShowLogoutNotification(true);
+    
+    // Call the auth context logout function
+    logout();
+    
+    // Hide notification after 2 seconds and redirect
+    setTimeout(() => {
+      setShowLogoutNotification(false);
+      navigate('/');
+    }, 2000);
+  };
 
   React.useEffect(() => {
     console.log('Dashboard loaded, token:', !!token);
@@ -224,7 +253,7 @@ const Dashboard: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       if (!target.closest('.profile-trigger') && !target.closest('.profile-dropdown')) {
-
+        setShowProfileDropdown(false);
       }
     };
 
@@ -250,10 +279,40 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex flex-col pb-24">
-      {/* Sidebar space for desktop */}
-      <div className="flex-1 w-full">
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-16">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+      {/* Sidebar */}
+      <Sidebar 
+        className="w-72 lg:flex flex-col fixed left-0 top-0 h-full z-40" 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-72 pb-24">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden fixed top-4 left-4 z-30 bg-black/80 backdrop-blur-sm text-white p-3 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        
+        {/* Logout Notification */}
+        {showLogoutNotification && (
+          <div className="fixed top-4 right-4 bg-green-500 text-black px-6 py-3 rounded-lg shadow-lg z-50 animate-slideIn">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Successfully logged out!</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Content Container */}
+        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-10">
           {/* Debug Device Status */}
           {process.env.NODE_ENV === 'development' && (
             <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-4 text-sm backdrop-blur-sm">
@@ -294,12 +353,85 @@ const Dashboard: React.FC = () => {
                 </div>
                 {/* Enhanced Profile Section */}
                 {user && (
-                  <div className="flex items-center gap-4">
-                    <img src={user.images?.[0]?.url || '/default-avatar.png'} alt="Profile" className="w-16 h-16 rounded-full border-2 border-spotify-green shadow-lg" />
-                    <div>
-                      <div className="text-white text-xl font-bold">{formatDisplayName(user.display_name || user.id)}</div>
-                      <div className="text-green-400 text-sm font-medium">Premium Member</div>
+                  <div className="relative">
+                    <div 
+                      className="flex items-center gap-4 cursor-pointer profile-trigger"
+                      onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                    >
+                      <img src={user.images?.[0]?.url || '/default-avatar.png'} alt="Profile" className="w-16 h-16 rounded-full border-2 border-spotify-green shadow-lg" />
+                      <div>
+                        <div className="text-white text-xl font-bold">{formatDisplayName(user.display_name || user.id)}</div>
+                        <div className="text-green-400 text-sm font-medium">Premium Member</div>
+                      </div>
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showProfileDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
+                    
+                    {/* Profile Dropdown */}
+                    {showProfileDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-56 bg-black/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl z-50 profile-dropdown">
+                        <div className="p-2">
+                          <button 
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              // Add theme toggle functionality here
+                              console.log('Theme clicked');
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-xl transition-colors text-left"
+                          >
+                            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <span>Theme</span>
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              // Add settings functionality here
+                              console.log('Settings clicked');
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-xl transition-colors text-left"
+                          >
+                            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Settings</span>
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              // Add account functionality here
+                              console.log('Account clicked');
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-xl transition-colors text-left"
+                          >
+                            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>Account</span>
+                          </button>
+                          
+                          <div className="border-t border-white/10 my-2"></div>
+                          
+                          <button 
+                            onClick={() => {
+                              setShowProfileDropdown(false);
+                              handleLogout();
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-left"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>Logout</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -328,7 +460,7 @@ const Dashboard: React.FC = () => {
                 <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-green-400">♪</span>
+                      <span className="text-2xl font-bold text-green-400 leading-none">♪</span>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-white">{recentlyPlayed.length}</div>
@@ -339,7 +471,7 @@ const Dashboard: React.FC = () => {
                 <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-purple-400">♫</span>
+                      <span className="text-2xl font-bold text-purple-400 leading-none">♫</span>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-white">{playlists.length}</div>
@@ -350,7 +482,7 @@ const Dashboard: React.FC = () => {
                 <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-yellow-400">★</span>
+                      <span className="text-2xl font-bold text-yellow-400 leading-none">★</span>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-white">{topTracks.length}</div>
@@ -361,7 +493,7 @@ const Dashboard: React.FC = () => {
                 <div className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-blue-400">◆</span>
+                      <span className="text-2xl font-bold text-blue-400 leading-none">◆</span>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-white">{newReleases.length}</div>
@@ -377,7 +509,6 @@ const Dashboard: React.FC = () => {
                   onClick={() => navigate('/search')} 
                   className="flex items-center gap-3 px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group"
                 >
-                  <span className="text-lg">Search</span>
                   <span>Discover Music</span>
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -387,7 +518,6 @@ const Dashboard: React.FC = () => {
                   onClick={() => setShowQuickActions(!showQuickActions)}
                   className="flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-2xl transition-all duration-300 border border-white/20 hover:border-white/40 backdrop-blur-sm group"
                 >
-                  <span className="text-lg">Actions</span>
                   <span>Quick Actions</span>
                   <svg className={`w-5 h-5 transition-transform duration-300 ${showQuickActions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -397,62 +527,44 @@ const Dashboard: React.FC = () => {
               
               {/* Quick Actions Panel */}
               {showQuickActions && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 animate-slideDown">
-                  <a href="#recently" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-green-400">Recent</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">Recent</div>
-                        <div className="text-xs text-gray-400">{recentlyPlayed.length} tracks</div>
-                      </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 animate-slideDown">
+                  <a href="#recently" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-green-400">Recent</span>
+                      <div className="text-xs text-gray-400">{recentlyPlayed.length} tracks</div>
                     </div>
                   </a>
-                  <a href="#playlists" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-purple-400">Lists</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">Playlists</div>
-                        <div className="text-xs text-gray-400">{playlists.length} collections</div>
-                      </div>
+                  <a href="#playlists" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 text-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-purple-400">Playlists</span>
+                      <div className="text-xs text-gray-400">{playlists.length} collections</div>
                     </div>
                   </a>
-                  <a href="#top" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-yellow-400">Top</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">Top Hits</div>
-                        <div className="text-xs text-gray-400">{topTracks.length} favorites</div>
-                      </div>
+                  <a href="#top" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 text-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-yellow-400">Top</span>
+                      <div className="text-xs text-gray-400">{topTracks.length} favorites</div>
                     </div>
                   </a>
-                  <a href="#releases" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-blue-400">New</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">New Releases</div>
-                        <div className="text-xs text-gray-400">{newReleases.length} albums</div>
-                      </div>
+                  <a href="#releases" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 text-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-blue-400">New</span>
+                      <div className="text-xs text-gray-400">{newReleases.length} albums</div>
                     </div>
                   </a>
-                  <a href="#categories" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-300 text-center backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-pink-400">Genre</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">Genres</div>
-                        <div className="text-xs text-gray-400">{categories.length} categories</div>
-                      </div>
+                  <a href="#categories" className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-300 text-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-pink-400">Genre</span>
+                      <div className="text-xs text-gray-400">{categories.length} categories</div>
                     </div>
                   </a>
                   <button 
                     onClick={() => navigate('/search')}
-                    className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm"
+                    className="group p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 text-center backdrop-blur-sm"
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="text-2xl group-hover:scale-110 transition-transform text-green-400">Find</span>
-                      <div>
-                        <div className="text-sm font-semibold text-white mb-1">Search</div>
-                        <div className="text-xs text-gray-400">Find anything</div>
-                      </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xl group-hover:scale-110 transition-transform text-green-400">Find</span>
+                      <div className="text-xs text-gray-400">Find anything</div>
                     </div>
                   </button>
                 </div>
@@ -460,45 +572,45 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           {/* Continue Listening Section */}
-          <section id="recently" className="space-y-8">
+          <section id="recently" className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">Continue Listening</h2>
-                <p className="text-gray-400">Pick up where you left off</p>
+                <h2 className="text-2xl font-bold text-white mb-1">Continue Listening</h2>
+                <p className="text-gray-400 text-sm">Pick up where you left off</p>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20">
-                  <span className="text-green-400 text-sm font-medium">{recentlyPlayed.length} tracks</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
+                  <span className="text-green-400 text-xs font-medium">{recentlyPlayed.length} tracks</span>
                 </div>
                 {/* Navigation Arrows */}
                 {recentlyPlayed.length > tracksPerView && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button 
                       onClick={handlePrevRecently}
                       disabled={!canGoPrevRecently}
-                      className={`p-2 rounded-lg border transition-all duration-300 ${
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
                         canGoPrevRecently 
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                       title="Previous tracks"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
                     <button 
                       onClick={handleNextRecently}
                       disabled={!canGoNextRecently}
-                      className={`p-2 rounded-lg border transition-all duration-300 ${
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
                         canGoNextRecently 
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                       title="Next tracks"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -509,10 +621,10 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-6 gap-3">
                 {Array.from({ length: tracksPerView }).map((_, i) => (
-                  <div key={i} className="space-y-4">
-                    <LoadingSkeleton className="aspect-square rounded-md" />
+                  <div key={i} className="space-y-2">
+                    <LoadingSkeleton className="aspect-square rounded-lg" />
                     <LoadingSkeleton className="h-3 w-full" />
                     <LoadingSkeleton className="h-2 w-3/4" />
                   </div>
@@ -521,10 +633,10 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-6 gap-3">
                 {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + tracksPerView).map((item, index) => (
                   <div key={`${item.track.id}-${index}`} className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/20 transition-all duration-300 hover:scale-101 backdrop-blur-sm">
+                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
                           src={item.track.album?.images?.[0]?.url} 
@@ -547,25 +659,25 @@ const Dashboard: React.FC = () => {
                                 alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
                               }
                             }}
-                            className="w-12 h-12 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                            className="w-8 h-8 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
                             {currentTrack?.id === item.track.id && isPlaying ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-black"/>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-white"/>
                               </svg>
                             ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
                               </svg>
                             )}
                           </button>
                         </div>
                       </div>
-                      <div className="p-4">
-                        <h4 className="text-white font-medium text-sm truncate group-hover:text-green-400 transition-colors leading-tight mb-1">
+                      <div className="p-2">
+                        <h4 className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight">
                           {item.track.name}
                         </h4>
-                        <p className="text-gray-400 text-xs truncate leading-tight">
+                        <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
                           {item.track.artists?.[0]?.name}
                         </p>
                       </div>
@@ -574,17 +686,17 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg mb-4 font-medium">No recent plays yet</p>
-                <p className="text-gray-500 text-sm mb-6">Start listening to see your recently played tracks here</p>
+                <p className="text-gray-400 text-base mb-3 font-medium">No recent plays yet</p>
+                <p className="text-gray-500 text-sm mb-4">Start listening to see your recently played tracks here</p>
                 <button 
                   onClick={() => navigate('/search')}
-                  className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Discover Music
                 </button>
@@ -592,45 +704,45 @@ const Dashboard: React.FC = () => {
             )}
           </section>
           {/* Top Tracks Section */}
-          <section id="top" className="space-y-8">
+          <section id="top" className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">Your Top Tracks</h2>
-                <p className="text-gray-400">Your most played songs this month</p>
+                <h2 className="text-2xl font-bold text-white mb-1">Your Top Tracks</h2>
+                <p className="text-gray-400 text-sm">Your most played songs this month</p>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 rounded-full border border-yellow-500/20">
-                  <span className="text-yellow-400 text-sm font-medium">{topTracks.length} favorites</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 rounded-full border border-yellow-500/20">
+                  <span className="text-yellow-400 text-xs font-medium">{topTracks.length} favorites</span>
                 </div>
                 {/* Navigation Arrows */}
                 {topTracks.length > tracksPerView && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button 
                       onClick={handlePrevTracks}
                       disabled={!canGoPrev}
-                      className={`p-2 rounded-lg border transition-all duration-300 ${
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
                         canGoPrev 
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                       title="Previous tracks"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
                     <button 
                       onClick={handleNextTracks}
                       disabled={!canGoNext}
-                      className={`p-2 rounded-lg border transition-all duration-300 ${
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
                         canGoNext 
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                       title="Next tracks"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -641,7 +753,7 @@ const Dashboard: React.FC = () => {
             
             {/* Top Tracks Section */}
             {loadingTop ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array.from({ length: tracksPerView }).map((_, i) => (
                   <div key={i} className="bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm p-4">
                     <div className="flex items-center gap-4">
@@ -658,54 +770,75 @@ const Dashboard: React.FC = () => {
             ) : errors.top ? (
               <ErrorMessage message={errors.top} />
             ) : topTracks.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="space-y-3">
                 {topTracks.slice(topTracksStartIndex, topTracksStartIndex + tracksPerView).map((track, index) => {
                   const globalIndex = topTracksStartIndex + index;
                   return (
-                    <div key={track.id} className="group cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-yellow-500/30 transition-all duration-300 backdrop-blur-sm">
-                      <div className="p-4 space-y-4">
-                        {/* Rank and Album Cover */}
-                        <div className="flex items-center gap-4">
+                    <div 
+                      key={track.id} 
+                      className="group cursor-pointer bg-white/3 hover:bg-white/8 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden"
+                    >
+                      <div className="flex items-center gap-4 p-4">
+                        {/* Rank */}
+                        <div className="flex-shrink-0">
                           <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-black font-bold text-sm shadow-lg">
                             {globalIndex + 1}
                           </div>
+                        </div>
+                        
+                        {/* Album Cover */}
+                        <div className="flex-shrink-0 relative">
                           <img 
                             src={track.album?.images?.[0]?.url} 
                             alt={`${track.name} cover`} 
-                            className="w-16 h-16 rounded-lg object-cover shadow-lg"
+                            className="w-14 h-14 rounded-xl object-cover shadow-lg"
                           />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
                         </div>
                         
                         {/* Track Info */}
-                        <div className="space-y-2">
-                          <h4 className="text-white font-semibold text-sm truncate group-hover:text-yellow-400 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-semibold text-sm truncate group-hover:text-yellow-400 transition-colors mb-1">
                             {track.name}
                           </h4>
                           <p className="text-gray-400 text-xs truncate">
                             {track.artists?.map((artist) => artist.name).join(', ') || 'Unknown Artist'}
                           </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400 font-mono">
-                              {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
-                            </span>
-                            <button 
-                              onClick={async () => {
-                                try {
-                                  if (currentTrack?.id === track.id && isPlaying) {
-                                    await pause();
-                                  } else {
-                                    await play(track);
-                                  }
-                                } catch (error) {
-                                  console.error('Play/Pause error:', error);
-                                  alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
+                        </div>
+                        
+                        {/* Duration & Actions */}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-xs text-gray-400 font-mono hidden sm:block">
+                            {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
+                          </span>
+                          
+                          {/* Play Button */}
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                if (currentTrack?.id === track.id && isPlaying) {
+                                  await pause();
+                                } else {
+                                  await play(track);
                                 }
-                              }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-2 bg-green-500 hover:bg-green-400 text-black text-xs font-semibold rounded-lg"
-                            >
-                              {currentTrack?.id === track.id && isPlaying ? 'Pause' : 'Play'}
-                            </button>
-                          </div>
+                              } catch (error) {
+                                console.error('Play/Pause error:', error);
+                                alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
+                              }
+                            }}
+                            className="w-10 h-10 bg-yellow-500/20 hover:bg-yellow-500 text-yellow-400 hover:text-black rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 border border-yellow-500/30 hover:border-yellow-500"
+                          >
+                            {currentTrack?.id === track.id && isPlaying ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"/>
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M8 5v14l11-7z" fill="currentColor"/>
+                              </svg>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -713,17 +846,17 @@ const Dashboard: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg mb-4 font-medium">No top tracks yet</p>
-                <p className="text-gray-500 text-sm mb-6">Play more music to see your personalized stats</p>
+                <p className="text-gray-400 text-base mb-3 font-medium">No top tracks yet</p>
+                <p className="text-gray-500 text-sm mb-4">Play more music to see your personalized stats</p>
                 <button 
                   onClick={() => navigate('/search')}
-                  className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Start Listening
                 </button>
@@ -731,25 +864,25 @@ const Dashboard: React.FC = () => {
             )}
           </section>
           {/* Your Playlists Section */}
-          <section id="playlists" className="space-y-8">
+          <section id="playlists" className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">Your Playlists</h2>
-                <p className="text-gray-400">Your personal music collections</p>
+                <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
+                <p className="text-gray-400 text-sm">Your personal music collections</p>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full border border-purple-500/20">
-                <span className="text-purple-400 text-sm font-medium">{playlists.length} collections</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20">
+                <span className="text-purple-400 text-xs font-medium">{playlists.length} collections</span>
               </div>
             </div>
             
             {/* Playlists Section */}
             {loadingPlaylists ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-6">
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <div key={i} className="space-y-1">
-                    <LoadingSkeleton className="aspect-square rounded-md" />
-                    <LoadingSkeleton className="h-2 w-full" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <LoadingSkeleton className="aspect-square rounded-lg" />
+                    <LoadingSkeleton className="h-3 w-full" />
                     <LoadingSkeleton className="h-2 w-3/4" />
                   </div>
                 ))}
@@ -757,10 +890,10 @@ const Dashboard: React.FC = () => {
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {playlists.map((playlist) => (
                   <div key={playlist.id} className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/20 transition-all duration-300 hover:scale-101 backdrop-blur-sm">
+                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
                           src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
@@ -770,20 +903,20 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <button 
-                            className="w-6 h-6 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                            className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
                             </svg>
                           </button>
                         </div>
                       </div>
-                      <div className="p-1">
+                      <div className="p-2">
                         <h3 className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight">
                           {playlist.name}
                         </h3>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
-                          {playlist.description || `${playlist.tracks.total} tracks`}
+                          {playlist.description ? decodeHtmlEntities(playlist.description) : `${playlist.tracks.total} tracks`}
                         </p>
                       </div>
                     </div>
@@ -791,17 +924,17 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg mb-4 font-medium">No playlists found</p>
-                <p className="text-gray-500 text-sm mb-6">Create your first playlist on Spotify to see it here</p>
+                <p className="text-gray-400 text-base mb-3 font-medium">No playlists found</p>
+                <p className="text-gray-500 text-sm mb-4">Create your first playlist on Spotify to see it here</p>
                 <button 
                   onClick={() => window.open('https://open.spotify.com', '_blank')}
-                  className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Open Spotify
                 </button>
@@ -809,25 +942,25 @@ const Dashboard: React.FC = () => {
             )}
           </section>
           {/* New Releases Section */}
-          <section className="space-y-8">
+          <section className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">New Releases</h2>
-                <p className="text-gray-400">Fresh music from your favorite artists</p>
+                <h2 className="text-2xl font-bold text-white mb-1">New Album Releases</h2>
+                <p className="text-gray-400 text-sm">Fresh music from your favorite artists</p>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                <span className="text-blue-400 text-sm font-medium">{newReleases.length} albums</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-full border border-blue-500/20">
+                <span className="text-blue-400 text-xs font-medium">{newReleases.length} albums</span>
               </div>
             </div>
             
             {/* New Releases Section */}
             {loadingReleases ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-6">
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <div key={i} className="space-y-1">
-                    <LoadingSkeleton className="aspect-square rounded-md" />
-                    <LoadingSkeleton className="h-2 w-full" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <LoadingSkeleton className="aspect-square rounded-lg" />
+                    <LoadingSkeleton className="h-3 w-full" />
                     <LoadingSkeleton className="h-2 w-3/4" />
                   </div>
                 ))}
@@ -835,10 +968,10 @@ const Dashboard: React.FC = () => {
             ) : errors.releases ? (
               <ErrorMessage message={errors.releases} />
             ) : newReleases.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {newReleases.map((album) => (
                   <div key={album.id} className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-blue-500/20 transition-all duration-300 hover:scale-101 backdrop-blur-sm">
+                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
                           src={album.images?.[0]?.url} 
@@ -848,15 +981,15 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <button 
-                            className="w-6 h-6 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                            className="w-8 h-8 bg-blue-500 hover:bg-blue-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
                             </svg>
                           </button>
                         </div>
                       </div>
-                      <div className="p-1">
+                      <div className="p-2">
                         <h4 className="text-white font-medium text-xs truncate group-hover:text-blue-400 transition-colors leading-tight">
                           {album.name}
                         </h4>
@@ -869,16 +1002,16 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m3 5.197a1 1 0 001-1v-1m-1 1v1z" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg mb-4 font-medium">No new releases available</p>
+                <p className="text-gray-400 text-base mb-3 font-medium">No new releases available</p>
                 <button 
                   onClick={() => navigate('/search')}
-                  className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Explore Music
                 </button>
@@ -886,29 +1019,29 @@ const Dashboard: React.FC = () => {
             )}
           </section>
           {/* Browse Categories Section */}
-          <section id="browse" className="space-y-8">
+          <section id="browse" className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">Browse by Genre</h2>
-                <p className="text-gray-400">Discover music by mood and genre</p>
+                <h2 className="text-2xl font-bold text-white mb-1">Browse by Genre</h2>
+                <p className="text-gray-400 text-sm">Discover music by mood and genre</p>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-pink-500/10 rounded-full border border-pink-500/20">
-                <span className="text-pink-400 text-sm font-medium">{categories.length} categories</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-500/10 rounded-full border border-pink-500/20">
+                <span className="text-pink-400 text-xs font-medium">{categories.length} categories</span>
               </div>
             </div>
             
             {/* Categories Section */}
             {loadingCategories ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-4">
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <LoadingSkeleton key={i} className="h-16 rounded-md" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <LoadingSkeleton key={i} className="h-14 rounded-lg" />
                 ))}
               </div>
             ) : errors.categories ? (
               <ErrorMessage message={errors.categories} />
             ) : categories.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                 {categories.map((category, index) => {
                   const gradients = [
                     'from-purple-500 to-pink-500',
@@ -924,9 +1057,9 @@ const Dashboard: React.FC = () => {
                   return (
                     <div 
                       key={category.id} 
-                      className={`relative h-16 rounded-md overflow-hidden cursor-pointer group hover:scale-101 transition-all duration-300 bg-gradient-to-br ${gradient} shadow-lg`}
+                      className={`relative h-14 rounded-lg overflow-hidden cursor-pointer group hover:scale-102 transition-all duration-300 bg-gradient-to-br ${gradient} shadow-lg`}
                     >
-                      <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
+                      <div className="absolute inset-0 p-2 flex flex-col justify-between">
                         <h4 className="font-bold text-white text-xs leading-tight drop-shadow-lg">
                           {category.name}
                         </h4>
@@ -934,7 +1067,7 @@ const Dashboard: React.FC = () => {
                           <img 
                             src={category.icons[0].url} 
                             alt={category.name}
-                            className="absolute bottom-0.5 right-0.5 w-5 h-5 object-cover rounded-sm transform rotate-12 opacity-80 group-hover:rotate-6 group-hover:scale-110 transition-all shadow-lg"
+                            className="absolute bottom-1 right-1 w-4 h-4 object-cover rounded-sm transform rotate-12 opacity-80 group-hover:rotate-6 group-hover:scale-110 transition-all shadow-lg"
                           />
                         )}
                       </div>
@@ -944,16 +1077,16 @@ const Dashboard: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                 </div>
-                <p className="text-gray-400 text-lg mb-4 font-medium">No categories available</p>
+                <p className="text-gray-400 text-base mb-3 font-medium">No categories available</p>
                 <button 
                   onClick={() => navigate('/search')}
-                  className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Start Exploring
                 </button>
