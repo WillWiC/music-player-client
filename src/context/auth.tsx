@@ -1,91 +1,191 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { User } from '../types/spotify';
 
-type AuthContextType = {
+interface AuthContextType {
   token: string | null;
-  setToken: (t: string | null, expiresInSec?: number) => void;
+  user: User | null;
+  login: () => void;
   logout: () => void;
-};
+  isLoading: boolean;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setTokenState] = useState<string | null>(() => {
-    const t = localStorage.getItem('spotify_token');
-    const exp = localStorage.getItem('spotify_token_expiry');
-    if (t && exp) {
-      const expiry = parseInt(exp, 10);
-      if (Date.now() > expiry) {
-        localStorage.removeItem('spotify_token');
-        localStorage.removeItem('spotify_token_expiry');
-        return null;
-      }
-      return t;
-    }
-    return t;
-  });
-  const [refreshToken, setRefreshToken] = useState<string | null>(() => localStorage.getItem('spotify_refresh_token'));
-  const refreshTimeoutRef = React.useRef<number | null>(null);
+export { AuthContext };
 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch user data when token is available
   useEffect(() => {
-    if (token) localStorage.setItem('spotify_token', token);
-    else {
-      localStorage.removeItem('spotify_token');
-      localStorage.removeItem('spotify_token_expiry');
+    if (token) {
+      fetch('https://api.spotify.com/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(response => response.json())
+      .then(userData => {
+        setUser(userData);
+      })
+      .catch(error => {
+        console.error('Error fetching user data:', error);
+      });
+    } else {
+      setUser(null);
     }
   }, [token]);
 
   useEffect(() => {
-    if (refreshToken) localStorage.setItem('spotify_refresh_token', refreshToken);
-    else localStorage.removeItem('spotify_refresh_token');
-  }, [refreshToken]);
+    // Check for authorization code in URL (from Spotify OAuth redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const storedState = localStorage.getItem('spotify_auth_state');
+    const codeVerifier = localStorage.getItem('spotify_code_verifier');
 
-  const scheduleRefresh = (expiresInSec?: number) => {
-    // schedule a refresh 60s before expiry
-    if (!expiresInSec) return;
-    const ms = Math.max(0, expiresInSec * 1000 - 60000);
-    if (refreshTimeoutRef.current) window.clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      // call server to refresh
-      const AUTH_SERVER = import.meta.env.VITE_AUTH_SERVER || 'http://localhost:3001';
-      if (!refreshToken) return;
-      fetch(`${AUTH_SERVER.replace(/\/$/, '')}/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.access_token) {
-            setTokenState(data.access_token);
-            if (data.expires_in) {
-              const expiry = Date.now() + data.expires_in * 1000;
-              localStorage.setItem('spotify_token_expiry', String(expiry));
-              scheduleRefresh(data.expires_in);
-            }
-          }
-        })
-        .catch(() => {});
-    }, ms);
-  };
-
-  const setToken = (t: string | null, expiresInSec?: number, refreshTokenArg?: string | null) => {
-    setTokenState(t);
-    if (t && expiresInSec) {
-      const expiry = Date.now() + expiresInSec * 1000;
-      localStorage.setItem('spotify_token_expiry', String(expiry));
-      scheduleRefresh(expiresInSec);
+    if (code && state && state === storedState && codeVerifier) {
+      // Exchange code for token
+      exchangeCodeForToken(code, codeVerifier);
+      
+      // Clean up URL and localStorage
+      window.history.replaceState({}, document.title, window.location.pathname);
+      localStorage.removeItem('spotify_auth_state');
+      localStorage.removeItem('spotify_code_verifier');
+    } else {
+      // Check for stored token
+      const storedToken = localStorage.getItem('spotify_token');
+      if (storedToken) {
+        setToken(storedToken);
+      }
     }
-    if (refreshTokenArg) setRefreshToken(refreshTokenArg);
+    
+    setIsLoading(false);
+  }, []);
+
+  // Helper function to generate random string
+  const generateRandomString = (length: number) => {
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const values = crypto.getRandomValues(new Uint8Array(length));
+    return values.reduce((acc, x) => acc + possible[x % possible.length], '');
   };
-  const logout = () => setTokenState(null);
+
+  // Helper function to generate code challenge
+  const generateCodeChallenge = async (codeVerifier: string) => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  };
+
+  // Exchange authorization code for access token
+  const exchangeCodeForToken = async (code: string, codeVerifier: string) => {
+    const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+    const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || window.location.origin;
+
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: REDIRECT_URI,
+      code_verifier: codeVerifier,
+    });
+
+    try {
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange code for token');
+      }
+
+      const data = await response.json();
+      setToken(data.access_token);
+      localStorage.setItem('spotify_token', data.access_token);
+      
+      // Store refresh token if provided
+      if (data.refresh_token) {
+        localStorage.setItem('spotify_refresh_token', data.refresh_token);
+      }
+    } catch (error) {
+      console.error('Error exchanging code for token:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const login = async () => {
+    const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+    const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || window.location.origin;
+    const SCOPES = [
+      'user-read-private',
+      'user-read-email',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-currently-playing',
+      'user-read-recently-played',
+      'user-top-read',
+      'playlist-read-private',
+      'playlist-read-collaborative',
+      'streaming'
+    ].join(' ');
+
+    // Generate PKCE parameters
+    const codeVerifier = generateRandomString(64);
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    const state = generateRandomString(16);
+
+    // Store state and code verifier for later verification
+    localStorage.setItem('spotify_auth_state', state);
+    localStorage.setItem('spotify_code_verifier', codeVerifier);
+
+    const authUrl = `https://accounts.spotify.com/authorize?` +
+      `client_id=${CLIENT_ID}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+      `scope=${encodeURIComponent(SCOPES)}&` +
+      `code_challenge_method=S256&` +
+      `code_challenge=${codeChallenge}&` +
+      `state=${state}`;
+
+    window.location.href = authUrl;
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('spotify_token');
+    localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_auth_state');
+    localStorage.removeItem('spotify_code_verifier');
+  };
+
+  const value = {
+    token,
+    user,
+    login,
+    logout,
+    isLoading
+  };
 
   return (
-    <AuthContext.Provider value={{ token, setToken, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 };

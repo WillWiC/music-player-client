@@ -1,68 +1,36 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
-import Callback from './pages/Callback';
 import Dashboard from './pages/Dashboard';
-import Search from './pages/Search';
-import Playlist from './pages/Playlist';
-import { AuthProvider, useAuth } from './context/auth.tsx';
-import { PlayerProvider } from './context/player.tsx';
-import Header from './components/Header.tsx';
-import Sidebar from './components/Sidebar.tsx';
-import Player from './components/Player.tsx';
+import Player from './components/Player';
+import { AuthProvider, useAuth } from './context/auth';
+import { PlayerProvider } from './context/player';
 
 const AppContent: React.FC = () => {
   const { token } = useAuth();
-  const location = useLocation();
   
-  // Don't show header/player on login or callback pages
-  const isAuthPage = location.pathname === '/' || location.pathname === '/callback';
-  const showLayout = token && !isAuthPage;
-
   return (
-    <div className="app-container min-h-screen flex flex-col">
-      {/* Mobile header only */}
-      {showLayout && (
-        <div className="md:hidden">
-          <Header />
-        </div>
-      )}
-      <div className="flex flex-1 w-full">
-        {/* Sidebar for desktop */}
-        {showLayout && (
-          <div className="hidden md:block">
-            <Sidebar />
-          </div>
-        )}
-        {/* Main content */}
-        <main className={`flex-1 w-full ${showLayout ? 'p-4 sm:p-6 pb-20' : ''}`}>
-          <div className={showLayout ? 'max-w-7xl mx-auto' : ''}>
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/callback" element={<Callback />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/playlist/:id" element={<Playlist />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-      {showLayout && <Player />}
+    <div className="App">
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+      {/* Show player only when user is authenticated */}
+      {token && <Player />}
     </div>
   );
 };
 
-const App: React.FC = () => {
+function App() {
   return (
     <AuthProvider>
       <PlayerProvider>
-        <BrowserRouter>
+        <Router>
           <AppContent />
-        </BrowserRouter>
+        </Router>
       </PlayerProvider>
     </AuthProvider>
   );
-};
+}
 
 export default App;
-
