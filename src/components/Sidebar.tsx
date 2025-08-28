@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/auth';
+
 
 const Sidebar: React.FC = () => {
-  const { token } = useAuth();
+  // const { token } = useAuth();
   const location = useLocation();
 
   const navLinks = [
