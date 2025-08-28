@@ -35,7 +35,7 @@
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.1);
-    padding: 1.5rem;
+    padding: 0;
     transition: all 0.3s ease;
   }
   .music-card:hover {
@@ -744,8 +744,9 @@
   
   /* Text sizing compact */
   .profile-title {
-    font-size: 1.25rem !important; /* 20px - was 24px */
-    line-height: 1.75rem !important;
+    font-size: 1.5rem !important; /* 24px - increased from 20px */
+    line-height: 2rem !important; /* increased line height */
+    margin-bottom: 0.75rem !important; /* added bottom margin */
   }
   
   .duration-text {
@@ -759,7 +760,8 @@
   
   /* Spacing compact */
   .profile-content {
-    gap: 1rem !important; /* 16px - was 24px */
+    gap: 0.5rem !important; /* 8px - reduced from 16px */
+    padding: 0.25rem !important; /* reduced from 0.5rem */
   }
   
   .track-row {
@@ -769,51 +771,527 @@
   .track-actions {
     gap: 0.5rem !important; /* 8px - was 12px */
   }
-  
-  /* Quick action compact */
-  .quick-action-compact {
-    padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
+}
+
+/* Profile section specific spacing */
+.profile-content * {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.profile-content p, .profile-content h2, .profile-content span {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0.9 !important;
+}
+
+.profile-content .profile-title {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.profile-content .status-text {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-block !important;
+}
+
+.profile-content span.status-text {
+  margin: 0 !important;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.profile-content .flex.flex-col {
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.profile-content .flex.items-center {
+  margin: 0 !important;
+}
+
+/* Override the 8px margin specifically */
+.profile-content .flex.items-center.justify-between {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+}
+
+.status-text, .follower-label {
+  font-size: 0.875rem !important; /* slightly larger status text */
+}
+
+.follower-stats {
+  margin-bottom: 0.25rem !important;
+}
+
+/* Quick action compact */
+.quick-action-compact {
+  padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
+}
+
+.quick-action-compact svg {
+  width: 1rem !important; /* 16px - was 20px */
+  height: 1rem !important;
+}
+
+/* Main action buttons compact */
+.main-action-btn svg {
+  width: 0.875rem !important; /* 14px - was 16px */
+  height: 0.875rem !important;
+}
+
+.main-action-btn {
+  gap: 0.5rem !important; /* 8px - was 12px */
+  font-size: 0.875rem !important; /* 14px */
+  padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
+}
+
+/* Follower stats compact */
+.follower-stats {
+  font-size: 1.5rem !important; /* 24px - was 32px */
+}
+
+.follower-label {
+  font-size: 0.75rem !important; /* 12px - was 14px */
+}
+
+/* Status indicators compact */
+.status-dot {
+  width: 0.375rem !important; /* 6px - was 8px */
+  height: 0.375rem !important;
+}
+
+.status-text {
+  font-size: 0.75rem !important; /* 12px - was 14px */
+}
+
+.status-icon {
+  width: 0.75rem !important; /* 12px - was 16px */
+  height: 0.75rem !important;
+}
+
+/* Profile section specific spacing overrides */
+.profile-content p {
+  margin-bottom: 0.75rem !important;
+  line-height: 1.5 !important;
+}
+
+.profile-content .flex.items-center {
+  margin-top: 0.5rem !important;
+}
+
+.follower-stats {
+  margin-bottom: 0.25rem !important;
+}
+
+/* Enhanced Welcome Section Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
-  
-  .quick-action-compact svg {
-    width: 1rem !important; /* 16px - was 20px */
-    height: 1rem !important;
-  }
-  
-  /* Main action buttons compact */
-  .main-action-btn svg {
-    width: 0.875rem !important; /* 14px - was 16px */
-    height: 0.875rem !important;
-  }
-  
-  .main-action-btn {
-    gap: 0.5rem !important; /* 8px - was 12px */
-    font-size: 0.875rem !important; /* 14px */
-    padding: 0.5rem 0.75rem !important; /* 8px 12px - was 12px 16px */
-  }
-  
-  /* Follower stats compact */
-  .follower-stats {
-    font-size: 1.5rem !important; /* 24px - was 32px */
-  }
-  
-  .follower-label {
-    font-size: 0.75rem !important; /* 12px - was 14px */
-  }
-  
-  /* Status indicators compact */
-  .status-dot {
-    width: 0.375rem !important; /* 6px - was 8px */
-    height: 0.375rem !important;
-  }
-  
-  .status-text {
-    font-size: 0.75rem !important; /* 12px - was 14px */
-  }
-  
-  .status-icon {
-    width: 0.75rem !important; /* 12px - was 16px */
-    height: 0.75rem !important;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Enhanced Profile Dropdown Styling */
+.profile-dropdown {
+  animation: slideDown 0.2s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Enhanced Quick Action Cards */
+.quick-action-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient Text Enhancement */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Enhanced Button Styles */
+.btn-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-enhanced:hover::before {
+  left: 100%;
+}
+
+/* Stats Card Enhancements */
+.stats-card {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stats-card:hover::before {
+  opacity: 1;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Casual Friendly Enhancements */
+/* Soft, friendly color palette */
+:root {
+  --casual-purple: #8b5cf6;
+  --casual-pink: #ec4899;
+  --casual-blue: #3b82f6;
+  --casual-green: #10b981;
+  --casual-orange: #f59e0b;
+  --casual-red: #ef4444;
+  --warm-gray: #6b7280;
+  --soft-white: #f8fafc;
+  --friendly-bg: rgba(139, 92, 246, 0.1);
+  --cozy-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+}
+
+/* Friendly button styles */
+.btn-casual {
+  background: linear-gradient(135deg, var(--casual-purple), var(--casual-pink));
+  border: none;
+  border-radius: 25px;
+  padding: 12px 24px;
+  color: white;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--cozy-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-casual:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-casual:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Friendly secondary button */
+.btn-casual-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btn-casual-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--casual-purple);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.2);
+}
+
+/* Friendly card styles */
+.card-casual {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.12));
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-casual::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--casual-purple), var(--casual-pink), var(--casual-blue));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-casual:hover::before {
+  opacity: 1;
+}
+
+.card-casual:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Playful icon animations */
+.icon-bounce {
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.icon-bounce:hover {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Friendly text styles */
+.text-casual-primary {
+  background: linear-gradient(135deg, var(--casual-purple), var(--casual-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.text-casual-soft {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Cozy welcome section */
+.welcome-casual {
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.15) 0%, 
+    rgba(236, 72, 153, 0.1) 25%,
+    rgba(59, 130, 246, 0.1) 50%,
+    rgba(16, 185, 129, 0.1) 75%,
+    rgba(245, 158, 11, 0.1) 100%);
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-casual::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+/* Friendly stats cards */
+.stats-casual {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-casual::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent);
+  border-radius: 50%;
+  transform: translate(20px, -20px);
+  transition: all 0.3s ease;
+}
+
+.stats-casual:hover::after {
+  transform: translate(10px, -10px) scale(1.5);
+}
+
+.stats-casual:hover {
+  transform: translateY(-3px) scale(1.02);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+}
+
+/* Playful quick actions */
+.quick-action-casual {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-casual::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+  transition: all 0.4s ease;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.quick-action-casual:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.quick-action-casual:hover {
+  transform: translateY(-3px) rotate(2deg);
+  border-color: var(--casual-purple);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.25);
+}
+
+/* Friendly profile dropdown */
+.profile-casual {
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.2);
+}
+
+.profile-casual .menu-item {
+  transition: all 0.2s ease;
+  border-radius: 12px;
+  margin: 2px 0;
+}
+
+.profile-casual .menu-item:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.1));
+  transform: translateX(4px);
+}
+
+/* Soft loading animations */
+.loading-casual {
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.1) 0%, 
+    rgba(139, 92, 246, 0.3) 50%, 
+    rgba(139, 92, 246, 0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer-casual 2s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer-casual {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Friendly scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+.section-casual {
+  scroll-margin-top: 100px;
+}
+
+/* Casual emoji support */
+.emoji-large {
+  font-size: 1.5em;
+  margin-right: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Playful hover effects for music cards */
+.music-card-casual {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.music-card-casual:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(139, 92, 246, 0.2);
+}
+
+.music-card-casual::after {
+  content: '♪';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--casual-purple);
+  font-size: 14px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateY(10px);
+}
+
+.music-card-casual:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}

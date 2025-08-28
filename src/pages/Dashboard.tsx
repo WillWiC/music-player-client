@@ -28,6 +28,7 @@ const Dashboard: React.FC = () => {
   // Error states and UI enhancements
   const [errors, setErrors] = React.useState<{[key: string]: string}>({});
   const [showQuickActions, setShowQuickActions] = React.useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
 
   React.useEffect(() => {
     console.log('Dashboard loaded, token:', !!token);
@@ -180,6 +181,19 @@ const Dashboard: React.FC = () => {
       .finally(() => setLoadingCategories(false));
   }, [token, navigate]);
 
+  // Separate useEffect for click-outside handling
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.profile-trigger') && !target.closest('.profile-dropdown')) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Enhanced loading skeleton component
   const LoadingSkeleton = ({ className }: { className?: string }) => (
     <div className={`animate-pulse bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg ${className}`} />
@@ -216,138 +230,315 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       
-      {/* Enhanced Welcome Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-spotify-green/20 via-green-900/20 to-emerald-900/20 border border-spotify-green/20">
-        <div className="absolute inset-0 pattern-bg opacity-30"></div>
-        <div className="relative p-6 sm:p-8">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-3 bg-gradient-to-r from-white via-green-100 to-spotify-green bg-clip-text text-transparent">
-            {greeting}
-            {user?.display_name && (
-              <span className="block text-2xl sm:text-3xl lg:text-4xl font-semibold text-white/90 mt-2">
-                Welcome back, {user.display_name}!
-              </span>
+      {/* Industry-Standard Enhanced Welcome Section */}
+      <div className="welcome-casual relative overflow-hidden backdrop-blur-sm">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 pattern-bg opacity-10"></div>
+        
+        <div className="relative p-8 sm:p-10 lg:p-12">
+          {/* Header Section */}
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full border border-spotify-green/30 backdrop-blur-sm">
+                  <div className="w-2 h-2 bg-spotify-green rounded-full animate-pulse"></div>
+                  <span className="text-spotify-green text-sm font-medium">✨ Live Dashboard</span>
+                </div>
+                <div className="text-sm text-white/60 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                  📅 {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </div>
+              </div>
+              
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-casual-primary mb-3">
+                <span className="emoji-large">{greeting.includes('morning') ? '🌅' : greeting.includes('afternoon') ? '☀️' : greeting.includes('evening') ? '🌅' : '🌙'}</span>
+                {greeting.replace(/[🌙☀️🌞🌅🌟]/g, '').trim()}
+              </h1>
+              
+              {user?.display_name && (
+                <div className="flex items-center gap-3 mb-4">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white/90">
+                    Hey there, <span className="text-casual-primary">{user.display_name}</span>! 👋
+                  </h2>
+                  <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full border border-yellow-500/30 backdrop-blur-sm">
+                    <span className="text-lg">⭐</span>
+                    <span className="text-sm font-medium text-yellow-300">Premium Vibes</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Enhanced Profile Section */}
+            {user && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="profile-trigger flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 transition-all duration-300 group border border-white/20 hover:border-casual-purple backdrop-blur-sm"
+                >
+                  <div className="relative">
+                    <img 
+                      src={user.images?.[0]?.url || '/default-avatar.png'} 
+                      alt="Profile" 
+                      className="w-12 h-12 rounded-full object-cover border-3 border-casual-purple/50 group-hover:border-casual-purple transition-all duration-300"
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-dark-bg animate-pulse"></div>
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <div className="text-white text-sm font-semibold">{user.display_name || user.id}</div>
+                    <div className="text-casual-purple text-xs flex items-center gap-1">
+                      <span>👤</span> Your Profile
+                    </div>
+                  </div>
+                  <svg className={`w-5 h-5 text-white/70 transition-transform duration-300 icon-bounce ${showProfileDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Enhanced Dropdown Menu */}
+                {showProfileDropdown && (
+                  <div className="profile-casual profile-dropdown absolute top-full right-0 mt-3 w-80 overflow-hidden z-50 animate-slideDown">
+                    {/* Profile Header */}
+                    <div className="p-5 bg-gradient-to-r from-casual-purple/20 to-casual-pink/20 border-b border-white/10">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <img 
+                            src={user.images?.[0]?.url || '/default-avatar.png'} 
+                            alt="Profile" 
+                            className="w-16 h-16 rounded-full object-cover border-3 border-casual-purple/50"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-dark-bg"></div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-bold text-lg truncate">{user.display_name || user.id}</h3>
+                          <p className="text-white/60 text-sm">{user.email || user.id}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-casual-purple text-sm font-medium bg-casual-purple/20 px-3 py-1 rounded-full border border-casual-purple/30">✨ Premium</span>
+                            <span className="text-white/50 text-sm">🎵 {user.followers?.total || 0} followers</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Quick Stats */}
+                    <div className="p-4 border-b border-white/10">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="stats-casual text-center">
+                          <div className="text-casual-purple font-bold text-xl">{recentlyPlayed.length}</div>
+                          <div className="text-white/60 text-xs">🎵 Recent Tracks</div>
+                        </div>
+                        <div className="stats-casual text-center">
+                          <div className="text-casual-pink font-bold text-xl">{topTracks.length}</div>
+                          <div className="text-white/60 text-xs">⭐ Top Tracks</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Menu Items */}
+                    <div className="p-3">
+                      <button className="menu-item w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white transition-colors text-sm group">
+                        <span className="text-lg">👤</span>
+                        <span>Account Settings</span>
+                        <svg className="w-4 h-4 ml-auto opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <button className="menu-item w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white transition-colors text-sm group">
+                        <span className="text-lg">📊</span>
+                        <span>Listening Stats</span>
+                        <svg className="w-4 h-4 ml-auto opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <button className="menu-item w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white transition-colors text-sm group">
+                        <span className="text-lg">⚙️</span>
+                        <span>Preferences</span>
+                        <svg className="w-4 h-4 ml-auto opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <hr className="my-3 border-white/10" />
+                      <button 
+                        onClick={() => {
+                          localStorage.removeItem('spotify_token');
+                          navigate('/');
+                        }}
+                        className="menu-item w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 transition-colors text-sm group"
+                      >
+                        <span className="text-lg">👋</span>
+                        <span>Sign Out</span>
+                        <svg className="w-4 h-4 ml-auto opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </h1>
-          <p className="text-lg sm:text-xl text-white/80 mb-6 max-w-2xl">
-            Ready to discover your next favorite song? Let's dive into your personalized music journey.
-          </p>
+          </div>
+
+          {/* Enhanced Description & Stats */}
+          <div className="mb-8">
+            <p className="text-lg sm:text-xl text-casual-soft mb-6 max-w-3xl leading-relaxed">
+              🎶 Ready to dive into your musical universe? Let's explore new beats, revisit your favorites, 
+              and discover amazing tracks tailored just for you! Your personalized music journey is about to get even better! ✨
+            </p>
+            
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="stats-casual group cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl icon-bounce">🕒</span>
+                  <span className="text-white/60 text-sm font-medium">Recent Vibes</span>
+                </div>
+                <div className="text-2xl font-bold text-casual-purple">{recentlyPlayed.length}</div>
+                <div className="text-xs text-white/50">tracks played recently</div>
+              </div>
+              
+              <div className="stats-casual group cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl icon-bounce">🎵</span>
+                  <span className="text-white/60 text-sm font-medium">My Collection</span>
+                </div>
+                <div className="text-2xl font-bold text-casual-blue">{playlists.length}</div>
+                <div className="text-xs text-white/50">curated playlists</div>
+              </div>
+              
+              <div className="stats-casual group cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl icon-bounce">⭐</span>
+                  <span className="text-white/60 text-sm font-medium">Top Favorites</span>
+                </div>
+                <div className="text-2xl font-bold text-casual-pink">{topTracks.length}</div>
+                <div className="text-xs text-white/50">most loved tracks</div>
+              </div>
+              
+              <div className="stats-casual group cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl icon-bounce">🆕</span>
+                  <span className="text-white/60 text-sm font-medium">Fresh Drops</span>
+                </div>
+                <div className="text-2xl font-bold text-casual-green">{newReleases.length}</div>
+                <div className="text-xs text-white/50">new releases</div>
+              </div>
+            </div>
+          </div>
           
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2">
+          {/* Enhanced Action Buttons */}
+          <div className="flex flex-wrap gap-4 mb-6">
             <button 
               onClick={() => navigate('/search')} 
-              className="main-action-btn btn-spotify flex items-center gap-1.5 text-sm px-3 py-2 group"
+              className="btn-casual flex items-center gap-3 group"
             >
-              <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <span className="text-xl">🔍</span>
+              <span>Discover New Music</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              Search Music
             </button>
+            
             <button 
               onClick={() => setShowQuickActions(!showQuickActions)}
-              className="main-action-btn btn-ghost-dark flex items-center gap-1.5 text-sm px-3 py-2"
+              className="btn-casual-secondary flex items-center gap-3"
             >
-              <svg className={`w-3.5 h-3.5 transition-transform ${showQuickActions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <span className="text-xl">🚀</span>
+              <span>Quick Jump</span>
+              <svg className={`w-5 h-5 transition-transform duration-300 ${showQuickActions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Quick Actions
+            </button>
+            
+            <button className="btn-casual-secondary flex items-center gap-3 group">
+              <span className="text-xl">🎲</span>
+              <span>Surprise Me!</span>
+              <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
             </button>
           </div>
 
-          {/* Expandable Quick Actions */}
+          {/* Enhanced Expandable Quick Actions */}
           {showQuickActions && (
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 animate-fadeIn">
-              <a href="#recently" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
-                <svg className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Recent</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 animate-slideDown">
+              <a href="#recently" className="quick-action-casual group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">🕒</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">Recent Plays</div>
+                    <div className="text-xs text-white/60">{recentlyPlayed.length} tracks</div>
+                  </div>
+                </div>
               </a>
-              <a href="#playlists" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
-                <svg className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                <span>Playlists</span>
+              
+              <a href="#playlists" className="quick-action-casual group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">🎵</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">My Playlists</div>
+                    <div className="text-xs text-white/60">{playlists.length} collections</div>
+                  </div>
+                </div>
               </a>
-              <a href="#top" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
-                <svg className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-                <span>Top Tracks</span>
+              
+              <a href="#top" className="quick-action-casual group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">⭐</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">Top Hits</div>
+                    <div className="text-xs text-white/60">{topTracks.length} favorites</div>
+                  </div>
+                </div>
               </a>
-              <a href="#browse" className="quick-action-compact quick-action-card group text-xs py-2 px-3">
-                <svg className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <span>Browse</span>
+              
+              <a href="#releases" className="quick-action-casual group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">🆕</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">Fresh Releases</div>
+                    <div className="text-xs text-white/60">{newReleases.length} albums</div>
+                  </div>
+                </div>
               </a>
+              
+              <a href="#categories" className="quick-action-casual group">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">🎭</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">Browse Genres</div>
+                    <div className="text-xs text-white/60">{categories.length} categories</div>
+                  </div>
+                </div>
+              </a>
+              
+              <button 
+                onClick={() => navigate('/search')}
+                className="quick-action-casual group"
+              >
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-3xl icon-bounce">🔍</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white mb-1">Search & Explore</div>
+                    <div className="text-xs text-white/60">Find anything</div>
+                  </div>
+                </div>
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Enhanced User Profile Stats Card */}
-      {loadingProfile ? (
-        <div className="music-card">
-          <div className="flex items-center space-x-6">
-            <LoadingSkeleton className="w-20 h-20 rounded-full" />
-            <div className="flex-1 space-y-3">
-              <LoadingSkeleton className="h-6 w-48" />
-              <LoadingSkeleton className="h-4 w-32" />
-              <LoadingSkeleton className="h-4 w-24" />
-            </div>
-            <div className="space-y-2">
-              <LoadingSkeleton className="h-8 w-16" />
-              <LoadingSkeleton className="h-4 w-12" />
-            </div>
-          </div>
-        </div>
-      ) : errors.profile ? (
-        <ErrorMessage message={errors.profile} />
-      ) : user ? (
-        <div className="music-card hover-lift group">
-          <div className="profile-content flex items-center space-x-4">
-            <div className="relative shrink-0">
-              <img 
-                src={user.images?.[0]?.url || '/default-avatar.png'} 
-                alt="Profile" 
-                className="profile-img w-14 h-14 rounded-full object-cover border-2 border-spotify-green/50 group-hover:border-spotify-green transition-all"
-              />
-              <div className="verification-badge absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-spotify-green rounded-full border-2 border-dark-bg flex items-center justify-center">
-                <svg className="verification-icon w-2 h-2 text-black" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h2 className="profile-title text-xl font-bold text-white mb-1">{user.display_name || user.id}</h2>
-              <p className="text-muted-dark text-sm mb-2">{user.email}</p>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="status-dot w-1.5 h-1.5 bg-spotify-green rounded-full animate-pulse"></div>
-                  <span className="status-text text-xs text-spotify-green font-medium">Premium Active</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-dark">
-                  <svg className="status-icon w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2m5-8a3 3 0 110-6 3 3 0 010 6z" />
-                  </svg>
-                  <span>{user.followers?.total || 0} followers</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-right hidden sm:block">
-              <div className="follower-stats text-2xl font-bold text-spotify-green">{user.followers?.total || 0}</div>
-              <div className="follower-label text-xs text-muted-dark">Followers</div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {/* Continue Listening Section */}
-      <section id="recently" className="space-y-6">
+      <section id="recently" className="section-casual space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white">Continue listening</h3>
-          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+          <h3 className="text-2xl font-bold text-casual-primary flex items-center gap-2">
+            <span className="text-3xl">🕒</span>
+            Continue listening
+          </h3>
+          <button className="text-casual-soft hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/10 hover:border-casual-purple/30">
             View all
           </button>
         </div>
@@ -437,10 +628,13 @@ const Dashboard: React.FC = () => {
       </section>
 
       {/* Top Tracks Section */}
-      <section id="top" className="space-y-6">
+      <section id="top" className="section-casual space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white">Your top tracks this month</h3>
-          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+          <h3 className="text-2xl font-bold text-casual-primary flex items-center gap-2">
+            <span className="text-3xl">⭐</span>
+            Your top tracks this month
+          </h3>
+          <button className="text-casual-soft hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/10 hover:border-casual-purple/30">
             View all
           </button>
         </div>
@@ -543,10 +737,13 @@ const Dashboard: React.FC = () => {
       </section>
 
       {/* Your Playlists Section */}
-      <section id="playlists" className="space-y-6">
+      <section id="playlists" className="section-casual space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white">Your playlists</h3>
-          <button className="text-muted-dark hover:text-white text-sm font-medium transition-colors">
+          <h3 className="text-2xl font-bold text-casual-primary flex items-center gap-2">
+            <span className="text-3xl">🎵</span>
+            Your playlists
+          </h3>
+          <button className="text-casual-soft hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/10 hover:border-casual-purple/30">
             View all
           </button>
         </div>
