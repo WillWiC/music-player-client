@@ -221,9 +221,11 @@ const Dashboard: React.FC = () => {
                 </p>
               )}
             </div>
-          )}
-          {/* Modern Welcome Header */}
-          <div className="relative overflow-hidden mb-8">
+
+            )}
+            
+{/* Modern Welcome Header */}
+<div className="relative overflow-hidden mb-8">
             {/* Glassmorphism background */}
             <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-3xl border border-white/10"></div>
             <div className="relative p-8 lg:p-16 flex flex-col md:flex-row md:items-center md:gap-12">
@@ -777,5 +779,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+}
 
-          )}
+export default Dashboard;
