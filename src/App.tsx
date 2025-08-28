@@ -8,6 +8,7 @@ import Playlist from './pages/Playlist';
 import { AuthProvider, useAuth } from './context/auth.tsx';
 import { PlayerProvider } from './context/player.tsx';
 import Header from './components/Header.tsx';
+import Sidebar from './components/Sidebar.tsx';
 import Player from './components/Player.tsx';
 
 const AppContent: React.FC = () => {
@@ -19,19 +20,33 @@ const AppContent: React.FC = () => {
   const showLayout = token && !isAuthPage;
 
   return (
-    <div className="app-container">
-      {showLayout && <Header />}
-      <main className={`flex-1 w-full ${showLayout ? 'p-4 sm:p-6 pb-20' : ''}`}>
-        <div className={showLayout ? 'max-w-6xl mx-auto' : ''}>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/callback" element={<Callback />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/playlist/:id" element={<Playlist />} />
-          </Routes>
+    <div className="app-container min-h-screen flex flex-col">
+      {/* Mobile header only */}
+      {showLayout && (
+        <div className="md:hidden">
+          <Header />
         </div>
-      </main>
+      )}
+      <div className="flex flex-1 w-full">
+        {/* Sidebar for desktop */}
+        {showLayout && (
+          <div className="hidden md:block">
+            <Sidebar />
+          </div>
+        )}
+        {/* Main content */}
+        <main className={`flex-1 w-full ${showLayout ? 'p-4 sm:p-6 pb-20' : ''}`}>
+          <div className={showLayout ? 'max-w-7xl mx-auto' : ''}>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/callback" element={<Callback />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/playlist/:id" element={<Playlist />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
       {showLayout && <Player />}
     </div>
   );
