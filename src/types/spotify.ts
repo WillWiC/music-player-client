@@ -13,6 +13,7 @@ export interface Album {
   id: string;
   name: string;
   images?: Image[];
+  artists: Artist[];
 }
 
 export interface Track {
@@ -28,4 +29,29 @@ export interface Playlist {
   id: string;
   name: string;
   images?: Image[];
+  description?: string;
+  tracks: {
+    total: number;
+  };
+}
+
+export interface User {
+  id: string;
+  display_name: string;
+  email?: string;
+  images?: Image[];
+  followers?: {
+    total: number;
+  };
+}
+
+export interface RecentlyPlayedItem {
+  track: Track;
+  played_at: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icons?: Image[];
 }

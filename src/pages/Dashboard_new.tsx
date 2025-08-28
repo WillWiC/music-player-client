@@ -1,8 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
-import { useNavigate } from 'react-router-dom';
-import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { token } = useAuth();
@@ -10,12 +9,12 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   
   // State management
-  const [user, setUser] = React.useState<User | null>(null);
-  const [playlists, setPlaylists] = React.useState<Playlist[]>([]);
-  const [recentlyPlayed, setRecentlyPlayed] = React.useState<RecentlyPlayedItem[]>([]);
-  const [topTracks, setTopTracks] = React.useState<Track[]>([]);
-  const [newReleases, setNewReleases] = React.useState<Album[]>([]);
-  const [categories, setCategories] = React.useState<Category[]>([]);
+  const [user, setUser] = React.useState<any | null>(null);
+  const [playlists, setPlaylists] = React.useState<any[]>([]);
+  const [recentlyPlayed, setRecentlyPlayed] = React.useState<any[]>([]);
+  const [topTracks, setTopTracks] = React.useState<any[]>([]);
+  const [newReleases, setNewReleases] = React.useState<any[]>([]);
+  const [categories, setCategories] = React.useState<any[]>([]);
   const [greeting, setGreeting] = React.useState('Good evening');
   
   // Enhanced loading states
@@ -49,7 +48,7 @@ const Dashboard: React.FC = () => {
     else setGreeting('Good night');
 
     // Enhanced error handling function
-    const handleApiError = (error: unknown, section: string) => {
+    const handleApiError = (error: any, section: string) => {
       console.error(`Failed to load ${section}:`, error);
       setErrors(prev => ({ ...prev, [section]: `Failed to load ${section}. Please try again.` }));
     };
@@ -508,22 +507,22 @@ const Dashboard: React.FC = () => {
           </div>
           
           {loadingRecently ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <LoadingSkeleton className="aspect-square rounded-xl" />
-                  <LoadingSkeleton className="h-3 w-full" />
-                  <LoadingSkeleton className="h-2 w-3/4" />
+                <div key={i} className="space-y-3">
+                  <LoadingSkeleton className="aspect-square rounded-2xl" />
+                  <LoadingSkeleton className="h-4 w-32" />
+                  <LoadingSkeleton className="h-3 w-24" />
                 </div>
               ))}
             </div>
           ) : errors.recently ? (
             <ErrorMessage message={errors.recently} />
           ) : recentlyPlayed.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
               {recentlyPlayed.slice(0, 12).map((item, index) => (
                 <div key={`${item.track.id}-${index}`} className="group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
                     <div className="aspect-square relative">
                       <img 
                         src={item.track.album?.images?.[0]?.url} 
@@ -546,26 +545,26 @@ const Dashboard: React.FC = () => {
                               alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
                             }
                           }}
-                          className="w-10 h-10 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                          className="w-14 h-14 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                         >
                           {current?.id === item.track.id && playing ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                               <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-black"/>
                             </svg>
                           ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                               <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
                             </svg>
                           )}
                         </button>
                       </div>
                     </div>
-                    <div className="p-3">
-                      <h4 className="text-white font-semibold text-xs truncate group-hover:text-green-400 transition-colors">
+                    <div className="p-4">
+                      <h4 className="text-white font-semibold text-sm truncate group-hover:text-green-400 transition-colors">
                         {item.track.name}
                       </h4>
                       <p className="text-gray-400 text-xs truncate mt-1">
-                        {item.track.artists?.[0]?.name}
+                        {item.track.artists[0]?.name}
                       </p>
                     </div>
                   </div>
@@ -586,338 +585,6 @@ const Dashboard: React.FC = () => {
                 className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
               >
                 Discover Music
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Top Tracks Section */}
-        <section id="top" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-3xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                <span className="text-xl">⭐</span>
-              </div>
-              Your top tracks this month
-            </h3>
-            <button className="text-gray-400 hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 hover:border-yellow-500/30">
-              View all
-            </button>
-          </div>
-
-          {loadingTop ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm p-3">
-                  <div className="flex items-center gap-3">
-                    <LoadingSkeleton className="w-5 h-5" />
-                    <LoadingSkeleton className="w-10 h-10 rounded-lg" />
-                    <div className="flex-1 space-y-1">
-                      <LoadingSkeleton className="h-3 w-32" />
-                      <LoadingSkeleton className="h-2 w-24" />
-                    </div>
-                    <LoadingSkeleton className="w-16 h-6" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : errors.top ? (
-            <ErrorMessage message={errors.top} />
-          ) : topTracks.length > 0 ? (
-            <div className="space-y-3">
-              {topTracks.slice(0, 8).map((track, index) => (
-                <div key={track.id} className="group cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-yellow-500/30 transition-all duration-300 backdrop-blur-sm">
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-black font-bold text-xs shadow-lg">
-                      {index + 1}
-                    </div>
-                    <img 
-                      src={track.album?.images?.[0]?.url} 
-                      alt={`${track.name} cover`} 
-                      className="w-10 h-10 rounded-lg object-cover shadow-lg"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-semibold text-sm truncate group-hover:text-yellow-400 transition-colors">
-                        {track.name}
-                      </h4>
-                      <p className="text-gray-400 text-xs truncate">
-                        {track.artists?.map((artist) => artist.name).join(', ') || 'Unknown Artist'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 font-mono min-w-[2.5rem] text-right">
-                        {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
-                      </span>
-                      <button 
-                        onClick={async () => {
-                          try {
-                            if (current?.id === track.id && playing) {
-                              await pause();
-                            } else {
-                              await play(track);
-                            }
-                          } catch (error) {
-                            console.error('Play/Pause error:', error);
-                            alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 bg-green-500 hover:bg-green-400 text-black text-xs font-semibold rounded-lg"
-                      >
-                        {current?.id === track.id && playing ? 'Pause' : 'Play'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-lg mb-4 font-medium">No top tracks yet</p>
-              <p className="text-gray-500 text-sm mb-6">Play more music to see your personalized stats</p>
-              <button 
-                onClick={() => navigate('/search')}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
-              >
-                Start Listening
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Your Playlists Section */}
-        <section id="playlists" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-3xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                <span className="text-xl">📚</span>
-              </div>
-              Your playlists
-            </h3>
-            <button className="text-gray-400 hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 hover:border-purple-500/30">
-              View all
-            </button>
-          </div>
-
-          {loadingPlaylists ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <LoadingSkeleton className="aspect-square rounded-xl" />
-                  <LoadingSkeleton className="h-3 w-full" />
-                  <LoadingSkeleton className="h-2 w-3/4" />
-                </div>
-              ))}
-            </div>
-          ) : errors.playlists ? (
-            <ErrorMessage message={errors.playlists} />
-          ) : playlists.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {playlists.map((playlist) => (
-                <div key={playlist.id} className="group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-purple-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                    <div className="aspect-square relative">
-                      <img 
-                        src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
-                        alt={`${playlist.name} cover`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button 
-                          className="w-10 h-10 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <h3 className="text-white font-semibold text-xs truncate group-hover:text-purple-400 transition-colors">
-                        {playlist.name}
-                      </h3>
-                      <p className="text-gray-400 text-xs truncate mt-1">
-                        {playlist.description || `${playlist.tracks.total} tracks`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-lg mb-4 font-medium">No playlists found</p>
-              <p className="text-gray-500 text-sm mb-6">Create your first playlist on Spotify to see it here</p>
-              <button 
-                onClick={() => window.open('https://open.spotify.com', '_blank')}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
-              >
-                Open Spotify
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* New Releases Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-3xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <span className="text-xl">🆕</span>
-              </div>
-              New releases for you
-            </h3>
-            <button className="text-gray-400 hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 hover:border-blue-500/30">
-              View all
-            </button>
-          </div>
-
-          {loadingReleases ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <LoadingSkeleton className="aspect-square rounded-xl" />
-                  <LoadingSkeleton className="h-3 w-full" />
-                  <LoadingSkeleton className="h-2 w-3/4" />
-                </div>
-              ))}
-            </div>
-          ) : errors.releases ? (
-            <ErrorMessage message={errors.releases} />
-          ) : newReleases.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {newReleases.map((album) => (
-                <div key={album.id} className="group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                    <div className="aspect-square relative">
-                      <img 
-                        src={album.images?.[0]?.url} 
-                        alt={`${album.name} cover`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button 
-                          className="w-10 h-10 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <h4 className="text-white font-semibold text-xs truncate group-hover:text-blue-400 transition-colors">
-                        {album.name}
-                      </h4>
-                      <p className="text-gray-400 text-xs truncate mt-1">
-                        {album.artists[0]?.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m3 5.197a1 1 0 001-1v-1m-1 1v1z" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-lg mb-4 font-medium">No new releases available</p>
-              <button 
-                onClick={() => navigate('/search')}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
-              >
-                Explore Music
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Browse Categories Section */}
-        <section id="browse" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-3xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-pink-500/20 rounded-xl flex items-center justify-center">
-                <span className="text-xl">🎭</span>
-              </div>
-              Browse all
-            </h3>
-            <button className="text-gray-400 hover:text-white text-sm font-medium transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 hover:border-pink-500/30">
-              View all
-            </button>
-          </div>
-
-          {loadingCategories ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <LoadingSkeleton key={i} className="h-24 rounded-xl" />
-              ))}
-            </div>
-          ) : errors.categories ? (
-            <ErrorMessage message={errors.categories} />
-          ) : categories.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {categories.map((category, index) => {
-                const gradients = [
-                  'from-purple-500 to-pink-500',
-                  'from-blue-500 to-cyan-500',
-                  'from-green-500 to-teal-500',
-                  'from-orange-500 to-red-500',
-                  'from-indigo-500 to-purple-500',
-                  'from-pink-500 to-rose-500',
-                  'from-cyan-500 to-blue-500',
-                  'from-teal-500 to-green-500'
-                ];
-                const gradient = gradients[index % gradients.length];
-                
-                return (
-                  <div 
-                    key={category.id} 
-                    className={`relative h-24 rounded-xl overflow-hidden cursor-pointer group hover:scale-105 transition-all duration-300 bg-gradient-to-br ${gradient} shadow-lg`}
-                  >
-                    <div className="absolute inset-0 p-3 flex flex-col justify-between">
-                      <h4 className="font-bold text-white text-sm leading-tight drop-shadow-lg">
-                        {category.name}
-                      </h4>
-                      {category.icons?.[0] && (
-                        <img 
-                          src={category.icons[0].url} 
-                          alt={category.name}
-                          className="absolute bottom-1 right-1 w-8 h-8 object-cover rounded-lg transform rotate-12 opacity-80 group-hover:rotate-6 group-hover:scale-110 transition-all shadow-lg"
-                        />
-                      )}
-                    </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-              </div>
-              <p className="text-gray-400 text-lg mb-4 font-medium">No categories available</p>
-              <button 
-                onClick={() => navigate('/search')}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-xl transition-colors"
-              >
-                Start Exploring
               </button>
             </div>
           )}

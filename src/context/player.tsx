@@ -2,6 +2,48 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import type { Track } from '../types/spotify';
 import { useAuth } from './auth';
 
+// Define Spotify Web Playback SDK types
+interface SpotifyApi {
+  Player: new (options: {
+    name: string;
+    getOAuthToken: (cb: (token: string) => void) => void;
+  }) => SpotifyPlayer;
+}
+
+interface SpotifyPlayer {
+  addListener(event: 'ready', listener: (data: { device_id: string }) => void): void;
+  addListener(event: 'not_ready', listener: (data: { device_id: string }) => void): void;
+  addListener(event: 'player_state_changed', listener: (state: SpotifyPlayerState | null) => void): void;
+  connect(): Promise<boolean>;
+  disconnect(): void;
+}
+
+interface SpotifyPlayerState {
+  paused: boolean;
+  position: number;
+  track_window: {
+    current_track: {
+      id: string;
+      name: string;
+      uri: string;
+      duration_ms: number;
+      artists: Array<{ id: string; name: string }>;
+      album: {
+        id: string;
+        name: string;
+        images: Array<{ url: string; height?: number; width?: number }>;
+      };
+    };
+  };
+}
+
+declare global {
+  interface Window {
+    Spotify?: SpotifyApi;
+    onSpotifyWebPlaybackSDKReady?: () => void;
+  }
+}
+
 type PlayerContextType = {
   current: Track | null;
   playing: boolean;
@@ -26,7 +68,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [positionMs, setPositionMs] = useState<number>(0);
   const [durationMs, setDurationMs] = useState<number>(0);
-  const playerRef = useRef<any | null>(null);
+  const playerRef = useRef<SpotifyPlayer | null>(null);
   const posInterval = useRef<number | null>(null);
 
   useEffect(() => {
@@ -34,36 +76,60 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Load Spotify Web Playback SDK if not already present
     const loadSDK = () => {
-      if ((window as any).Spotify) return onSpotifyReady();
+      if (window.Spotify) return onSpotifyReady();
       const script = document.createElement('script');
       script.src = 'https://sdk.scdn.co/spotify-player.js';
       script.async = true;
       document.body.appendChild(script);
-      (window as any).onSpotifyWebPlaybackSDKReady = onSpotifyReady;
+      window.onSpotifyWebPlaybackSDKReady = onSpotifyReady;
     };
 
     const onSpotifyReady = () => {
-      const player = new (window as any).Spotify.Player({
+      if (!window.Spotify) {
+        console.error('Spotify Web Playback SDK not available');
+        return;
+      }
+
+      const player = new window.Spotify.Player({
         name: 'Spotify Lite Player',
         getOAuthToken: (cb: (token: string) => void) => cb(token),
       });
 
-      player.addListener('ready', ({ device_id }: any) => {
+      player.addListener('ready', ({ device_id }) => {
+        console.log('Spotify player ready with device ID:', device_id);
         setDeviceId(device_id);
       });
-      player.addListener('not_ready', ({ device_id }: any) => {
+      
+      player.addListener('not_ready', ({ device_id }) => {
+        console.log('Spotify player not ready, device ID:', device_id);
         if (deviceId === device_id) setDeviceId(null);
       });
-      player.addListener('player_state_changed', (state: any) => {
+      
+      player.addListener('player_state_changed', (state: SpotifyPlayerState | null) => {
         if (!state) return;
+        
         setPlaying(!state.paused);
-        // map track and timing
+        
+        // Map track and timing
         const track = state.track_window?.current_track;
         if (track) {
-          setCurrent({ id: track.id, name: track.name, artists: track.artists?.map((a: any) => ({ id: a.id, name: a.name })), album: { id: track.album.id, name: track.album.name, images: track.album.images }, uri: track.uri });
+          setCurrent({
+            id: track.id,
+            name: track.name,
+            artists: track.artists?.map((a) => ({ id: a.id, name: a.name })),
+            album: {
+              id: track.album.id,
+              name: track.album.name,
+              images: track.album.images || [],
+              artists: [] // Required by Album interface but not available in player state
+            },
+            uri: track.uri,
+            duration_ms: track.duration_ms
+          });
           setDurationMs(track.duration_ms ?? 0);
         }
-        // position (ms)
+        
+        // Position (ms)
         const pos = typeof state.position === 'number' ? state.position : 0;
         setPositionMs(pos);
       });
@@ -125,25 +191,34 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         await callPlayApi(t.uri);
         setPlaying(true);
         console.log('Track should now be playing');
-      } catch (e) {
-        console.error('Play API failed:', e);
-        // Try to get current player state
+      } catch (error) {
+        console.error('Play API failed:', error);
+        
+        // Try to get current player state for debugging
         if (token) {
           try {
             const response = await fetch('https://api.spotify.com/v1/me/player', {
               headers: { Authorization: `Bearer ${token}` }
             });
+            
             if (response.status === 200) {
               const playerState = await response.json();
               console.log('Current player state:', playerState);
             } else if (response.status === 204) {
               console.log('No active device found. Please open Spotify and start playing a song first.');
+            } else {
+              console.log('Player state check failed with status:', response.status);
             }
           } catch (stateError) {
             console.error('Failed to get player state:', stateError);
           }
         }
+        
+        // Re-throw the error so calling code can handle it
+        throw error;
       }
+    } else {
+      throw new Error('Track URI is not available');
     }
   };
 
@@ -151,7 +226,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     console.log('Pause function called');
     console.log('Token available:', !!token);
     
-    if (!token) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     try {
       const response = await fetch('https://api.spotify.com/v1/me/player/pause', { 
         method: 'PUT', 
@@ -164,59 +242,155 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         console.error('Pause failed with status:', response.status);
         if (response.status === 404) {
-          console.log('No active device found. Please open Spotify and start playing a song first.');
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else if (response.status === 403) {
+          throw new Error('Spotify Premium is required for playback control.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Pause failed: ${response.status} - ${errorText}`);
         }
       }
-    } catch (e) {
-      console.error('Pause failed:', e);
+    } catch (error) {
+      console.error('Pause failed:', error);
+      throw error;
     }
   };
 
   const resume = async () => {
-    if (!token) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     try {
-      await fetch('https://api.spotify.com/v1/me/player/play', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
-      setPlaying(true);
-    } catch (e) {
-      console.warn('Resume failed', e);
+      const response = await fetch('https://api.spotify.com/v1/me/player/play', { 
+        method: 'PUT', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (response.ok) {
+        setPlaying(true);
+      } else {
+        if (response.status === 404) {
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else if (response.status === 403) {
+          throw new Error('Spotify Premium is required for playback control.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Resume failed: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Resume failed:', error);
+      throw error;
     }
   };
 
   const seek = async (ms: number) => {
-    if (!token) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     try {
-      const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${Math.max(0, Math.round(ms))}`;
-      await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
-      setPositionMs(Math.max(0, Math.round(ms)));
-    } catch (e) {
-      console.warn('Seek failed', e);
+      const position = Math.max(0, Math.round(ms));
+      const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${position}`;
+      const response = await fetch(url, { 
+        method: 'PUT', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (response.ok) {
+        setPositionMs(position);
+      } else {
+        if (response.status === 404) {
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Seek failed: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Seek failed:', error);
+      throw error;
     }
   };
 
   const next = async () => {
-    if (!token) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     try {
-      await fetch('https://api.spotify.com/v1/me/player/next', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-    } catch (e) {
-      console.warn('Next failed', e);
+      const response = await fetch('https://api.spotify.com/v1/me/player/next', { 
+        method: 'POST', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Next track failed: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Next failed:', error);
+      throw error;
     }
   };
 
   const previous = async () => {
-    if (!token) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     try {
-      await fetch('https://api.spotify.com/v1/me/player/previous', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-    } catch (e) {
-      console.warn('Previous failed', e);
+      const response = await fetch('https://api.spotify.com/v1/me/player/previous', { 
+        method: 'POST', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Previous track failed: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Previous failed:', error);
+      throw error;
     }
   };
 
   const setVolume = async (v: number) => {
-    if (!token || !deviceId) return;
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
+    if (!deviceId) {
+      throw new Error('No active device found');
+    }
+    
     try {
-      await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${Math.round(v * 100)}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
-    } catch (e) {
-      console.warn('Set volume failed', e);
+      const volume = Math.round(Math.max(0, Math.min(100, v * 100)));
+      const response = await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${volume}`, { 
+        method: 'PUT', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No active device found. Please open Spotify and start playing a song first.');
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Set volume failed: ${response.status} - ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Set volume failed:', error);
+      throw error;
     }
   };
 
