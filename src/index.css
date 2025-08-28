@@ -301,20 +301,286 @@
   animation: shimmer 1.5s infinite;
 }
 
-/* Enhanced card effects */
-.music-card-enhanced {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.05);
+/* Enhanced Song Card Styles */
+.song-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 1.25rem !important;
   transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
 }
 
-.music-card-enhanced:hover {
-  border-color: rgba(29, 185, 84, 0.3);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+.song-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(45deg, transparent 0%, rgba(29, 185, 84, 0.1) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.song-card:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%);
+  border-color: rgba(29, 185, 84, 0.4);
   transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 4px 16px rgba(29, 185, 84, 0.2);
+}
+
+.song-card:hover::before {
+  opacity: 1;
+}
+
+/* Enhanced Image Container */
+.song-image-container {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  margin-bottom: 1rem !important;
+}
+
+.song-image-container img {
+  transition: transform 0.4s ease;
+}
+
+.song-image-container:hover img {
+  transform: scale(1.08);
+}
+
+/* Enhanced Song Text */
+.song-title {
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.3 !important;
+  margin-bottom: 0.5rem !important;
+  letter-spacing: -0.02em;
+}
+
+.song-artist {
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  opacity: 0.8;
+  letter-spacing: 0.01em;
+}
+
+/* Enhanced Play Button */
+.song-play-button {
+  background: linear-gradient(135deg, #1ed760 0%, #1db954 100%) !important;
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.4) !important;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.song-play-button:hover {
+  background: linear-gradient(135deg, #1ed760 0%, #1db954 100%) !important;
+  transform: scale(1.15) !important;
+  box-shadow: 0 6px 24px rgba(29, 185, 84, 0.6) !important;
+}
+
+/* Enhanced Top Track Cards */
+.top-track-card {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1rem 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.top-track-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #1ed760 0%, #1db954 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.top-track-card:hover {
+  background: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
+  border-color: rgba(29, 185, 84, 0.3);
+  transform: translateX(8px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.top-track-card:hover::before {
+  opacity: 1;
+}
+
+/* Enhanced Track Ranking */
+.track-ranking-number {
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  background: linear-gradient(135deg, #1ed760 0%, #1db954 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  width: 2rem !important;
+  text-align: center !important;
+}
+
+/* Enhanced Playlist Cards */
+.playlist-card-enhanced {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 1rem !important;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  width: 140px !important;
+  flex-shrink: 0;
+}
+
+.playlist-card-enhanced::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at center, rgba(29, 185, 84, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.playlist-card-enhanced:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.1) 100%);
+  border-color: rgba(29, 185, 84, 0.5);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3), 0 8px 24px rgba(29, 185, 84, 0.2);
+}
+
+.playlist-card-enhanced:hover::after {
+  opacity: 1;
+}
+
+/* Playlist Image Container */
+.playlist-image-container {
+  position: relative;
+  width: 100%;
+  height: 110px !important;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.playlist-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+.playlist-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.playlist-card-enhanced:hover .playlist-overlay {
+  opacity: 1;
+}
+
+.playlist-play-btn {
+  width: 40px !important;
+  height: 40px !important;
+  background: #1db954;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: black;
+}
+
+.playlist-play-btn:hover {
+  transform: scale(1.1);
+}
+
+.playlist-content {
+  padding: 0 0.25rem;
+}
+
+.playlist-title {
+  font-size: 0.875rem !important;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-description {
+  font-size: 0.75rem !important;
+  color: #b3b3b3;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Enhanced Album Cards */
+.album-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 1.25rem !important;
+  transition: all 0.35s ease;
+  backdrop-filter: blur(8px);
+}
+
+.album-card:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(29, 185, 84, 0.4);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.25), 0 6px 20px rgba(29, 185, 84, 0.15);
+}
+
+/* Responsive padding adjustments */
+@media (max-width: 640px) {
+  .song-card {
+    padding: 1rem !important;
+  }
+  
+  .playlist-card-enhanced {
+    padding: 0.75rem !important;
+    width: 120px !important;
+  }
+  
+  .playlist-image-container {
+    height: 90px !important;
+  }
+  
+  .top-track-card {
+    padding: 0.875rem 1rem !important;
+  }
+}
+
+/* Glass morphism effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth transitions for all interactive elements */
+.interactive-element {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Quick action cards */

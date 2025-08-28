@@ -350,12 +350,12 @@ const Dashboard: React.FC = () => {
         ) : recentlyPlayed.length > 0 ? (
           <div className="flex flex-wrap gap-4 justify-start">
             {recentlyPlayed.slice(0, 12).map((item, index) => (
-              <div key={`${item.track.id}-${index}`} className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200">
-                <div className="relative mb-3 overflow-hidden rounded-lg">
+              <div key={`${item.track.id}-${index}`} className="song-card group cursor-pointer flex-shrink-0 interactive-element">
+                <div className="song-image-container relative">
                   <img 
                     src={item.track.album?.images?.[0]?.url} 
                     alt={`${item.track.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
+                    className="cover-img rounded-lg block"
                   />
                   <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
                     <button 
@@ -367,7 +367,7 @@ const Dashboard: React.FC = () => {
                           play(item.track);
                         }
                       }}
-                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
+                      className="song-play-button w-12 h-12 rounded-full flex items-center justify-center transform transition-all duration-200 z-20"
                       aria-label={current?.id === item.track.id && playing ? `Pause ${item.track.name}` : `Play ${item.track.name}`}
                     >
                       {current?.id === item.track.id && playing ? (
@@ -382,10 +382,10 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                <h4 className="song-title text-white truncate group-hover:text-spotify-green transition-colors">
                   {item.track.name}
                 </h4>
-                <p className="cover-text text-muted-dark text-sm truncate">
+                <p className="song-artist text-muted-dark truncate">
                   {item.track.artists[0]?.name}
                 </p>
               </div>
@@ -435,38 +435,36 @@ const Dashboard: React.FC = () => {
         ) : errors.top ? (
           <ErrorMessage message={errors.top} />
         ) : topTracks.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {topTracks.slice(0, 8).map((track, index) => (
-              <div key={track.id} className="group music-card hover:bg-white/5 cursor-pointer p-4 rounded-lg transition-all duration-200">
-                <div className="track-row flex items-center gap-3">
-                  <div className="w-8 text-center">
-                    <span className="text-lg font-bold text-muted-dark group-hover:text-white transition-colors">
-                      {index + 1}
-                    </span>
+              <div key={track.id} className="top-track-card group cursor-pointer interactive-element">
+                <div className="track-row flex items-center gap-4">
+                  <div className="track-ranking-number">
+                    {index + 1}
                   </div>
                   <img 
                     src={track.album?.images?.[0]?.url} 
                     alt={`${track.name} cover`} 
-                    className="album-img-small w-10 h-10 rounded object-cover"
+                    className="album-img-small w-12 h-12 rounded-lg object-cover shadow-lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
+                    <h4 className="song-title text-white truncate group-hover:text-spotify-green transition-colors">
                       {track.name}
                     </h4>
-                    <p className="text-muted-dark text-sm truncate">
+                    <p className="song-artist text-muted-dark truncate">
                       {track.artists.map((artist: any) => artist.name).join(', ')}
                     </p>
                   </div>
-                  <div className="track-actions flex items-center gap-2">
+                  <div className="track-actions flex items-center gap-3">
                     <button 
-                      className="action-btn-small opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-white/10 rounded-full"
+                      className="action-btn-small opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full"
                       aria-label="Like track"
                     >
-                      <svg className="w-3.5 h-3.5 text-muted-dark hover:text-spotify-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-muted-dark hover:text-spotify-green transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                     </button>
-                    <span className="duration-text text-xs text-muted-dark min-w-0">
+                    <span className="duration-text text-xs text-muted-dark min-w-0 font-mono">
                       {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                     </span>
                     <button 
@@ -477,7 +475,7 @@ const Dashboard: React.FC = () => {
                           play(track);
                         }
                       }}
-                      className="play-btn-text opacity-0 group-hover:opacity-100 transition-opacity btn-spotify text-xs px-3 py-1.5"
+                      className="play-btn-text opacity-0 group-hover:opacity-100 transition-opacity btn-spotify text-xs px-4 py-2 font-semibold"
                     >
                       {current?.id === track.id && playing ? 'Pause' : 'Play'}
                     </button>
@@ -537,18 +535,18 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         ) : playlists.length > 0 ? (
-          <div className="flex flex-wrap gap-4 justify-start">
+          <div className="flex flex-wrap gap-6 justify-start">
             {playlists.map((playlist) => (
               <Link
                 key={playlist.id}
                 to={`/playlist/${playlist.id}`}
-                className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200"
+                className="playlist-card-enhanced group cursor-pointer block"
               >
-                <div className="relative mb-3 overflow-hidden rounded-lg">
+                <div className="playlist-image-container">
                   <img 
                     src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
                     alt={`${playlist.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
+                    className="playlist-img w-full h-full object-cover rounded-lg"
                     onError={(e) => {
                       const target = e.currentTarget;
                       if (target.src !== 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==') {
@@ -556,14 +554,14 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   />
-                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
+                  <div className="playlist-overlay">
                     <button 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Play playlist clicked:', playlist.name, playlist.id);
                       }}
-                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
+                      className="playlist-play-btn"
                       aria-label={`Play ${playlist.name}`}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -572,12 +570,14 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
-                  {playlist.name}
-                </h4>
-                <p className="cover-text text-muted-dark text-sm truncate">
-                  {playlist.description || `${playlist.tracks?.total || 0} songs`}
-                </p>
+                <div className="playlist-content">
+                  <h3 className="playlist-title">
+                    {playlist.name}
+                  </h3>
+                  <p className="playlist-description">
+                    {playlist.description || `${playlist.tracks.total} tracks`}
+                  </p>
+                </div>
               </Link>
             ))}
           </div>
@@ -620,22 +620,22 @@ const Dashboard: React.FC = () => {
         ) : errors.releases ? (
           <ErrorMessage message={errors.releases} />
         ) : newReleases.length > 0 ? (
-          <div className="flex flex-wrap gap-4 justify-start">
+          <div className="flex flex-wrap gap-6 justify-start">
             {newReleases.map((album) => (
-              <div key={album.id} className="group cursor-pointer flex-shrink-0 p-3 rounded-lg hover:bg-white/5 transition-all duration-200">
-                <div className="relative mb-3 overflow-hidden rounded-lg">
+              <div key={album.id} className="playlist-card-enhanced group cursor-pointer">
+                <div className="playlist-image-container">
                   <img 
                     src={album.images?.[0]?.url} 
                     alt={`${album.name} cover`} 
-                    className="cover-img rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl block"
+                    className="playlist-img w-full h-full object-cover rounded-lg"
                   />
-                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
+                  <div className="playlist-overlay">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         console.log('Play album:', album.name);
                       }}
-                      className="w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 shadow-lg z-20"
+                      className="playlist-play-btn"
                       aria-label={`Play ${album.name}`}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -644,12 +644,14 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <h4 className="cover-text font-semibold text-white truncate group-hover:text-spotify-green transition-colors">
-                  {album.name}
-                </h4>
-                <p className="cover-text text-muted-dark text-sm truncate">
-                  {album.artists[0]?.name}
-                </p>
+                <div className="playlist-content">
+                  <h4 className="playlist-title">
+                    {album.name}
+                  </h4>
+                  <p className="playlist-description">
+                    {album.artists[0]?.name}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
