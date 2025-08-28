@@ -82,36 +82,93 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [token]);
 
   const callPlayApi = async (trackUri: string) => {
-    if (!token) return;
+    if (!token) {
+      console.error('No token available for playback');
+      return;
+    }
+    
+    console.log('Calling play API with URI:', trackUri);
+    console.log('Using device ID:', deviceId);
+    
     // Play using Web API on active deviceId
     const targetDevice = deviceId;
     const url = `https://api.spotify.com/v1/me/player/play${targetDevice ? `?device_id=${encodeURIComponent(targetDevice)}` : ''}`;
-    await fetch(url, {
+    
+    const response = await fetch(url, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: [trackUri] }),
     });
+    
+    if (!response.ok) {
+      console.error('Play API failed with status:', response.status);
+      if (response.status === 404) {
+        throw new Error('No active device found. Please open Spotify and start playing a song first, then try again.');
+      } else if (response.status === 403) {
+        throw new Error('Spotify Premium is required for playback control.');
+      } else {
+        const errorText = await response.text();
+        console.error('API Error details:', errorText);
+        throw new Error(`Playback failed: ${response.status}`);
+      }
+    }
   };
 
   const play = async (t: Track) => {
+    console.log('Play function called with track:', t.name);
+    console.log('Device ID:', deviceId);
+    console.log('Token available:', !!token);
+    
     setCurrent(t);
     if (t.uri) {
       try {
         await callPlayApi(t.uri);
         setPlaying(true);
+        console.log('Track should now be playing');
       } catch (e) {
-        console.warn('Play API failed', e);
+        console.error('Play API failed:', e);
+        // Try to get current player state
+        if (token) {
+          try {
+            const response = await fetch('https://api.spotify.com/v1/me/player', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.status === 200) {
+              const playerState = await response.json();
+              console.log('Current player state:', playerState);
+            } else if (response.status === 204) {
+              console.log('No active device found. Please open Spotify and start playing a song first.');
+            }
+          } catch (stateError) {
+            console.error('Failed to get player state:', stateError);
+          }
+        }
       }
     }
   };
 
   const pause = async () => {
+    console.log('Pause function called');
+    console.log('Token available:', !!token);
+    
     if (!token) return;
     try {
-      await fetch('https://api.spotify.com/v1/me/player/pause', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
-      setPlaying(false);
+      const response = await fetch('https://api.spotify.com/v1/me/player/pause', { 
+        method: 'PUT', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      if (response.ok) {
+        setPlaying(false);
+        console.log('Track paused successfully');
+      } else {
+        console.error('Pause failed with status:', response.status);
+        if (response.status === 404) {
+          console.log('No active device found. Please open Spotify and start playing a song first.');
+        }
+      }
     } catch (e) {
-      console.warn('Pause failed', e);
+      console.error('Pause failed:', e);
     }
   };
 

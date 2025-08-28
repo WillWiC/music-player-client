@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { token } = useAuth();
-  const { play, pause, current, playing } = usePlayer();
+  const { play, pause, current, playing, deviceId } = usePlayer();
   const navigate = useNavigate();
   
   // State management
@@ -199,6 +199,23 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-compact max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Debug Device Status */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3 text-sm">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-yellow-200">
+              Device Status: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device connected'}
+            </span>
+          </div>
+          {!deviceId && (
+            <p className="text-yellow-300 text-xs mt-1">
+              💡 Open Spotify app and start playing a song to enable remote control
+            </p>
+          )}
+        </div>
+      )}
+      
       {/* Enhanced Welcome Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-spotify-green/20 via-green-900/20 to-emerald-900/20 border border-spotify-green/20">
         <div className="absolute inset-0 pattern-bg opacity-30"></div>
@@ -348,34 +365,46 @@ const Dashboard: React.FC = () => {
         ) : errors.recently ? (
           <ErrorMessage message={errors.recently} />
         ) : recentlyPlayed.length > 0 ? (
-          <div className="flex flex-wrap gap-4 justify-start">
+          <div className="flex flex-wrap gap-6 justify-start">
             {recentlyPlayed.slice(0, 12).map((item, index) => (
               <div key={`${item.track.id}-${index}`} className="song-card group cursor-pointer flex-shrink-0 interactive-element">
-                <div className="song-image-container relative">
+                <div className="song-image-container">
                   <img 
                     src={item.track.album?.images?.[0]?.url} 
                     alt={`${item.track.name} cover`} 
                     className="cover-img rounded-lg block"
                   />
-                  <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center z-10">
+                  <div className="play-overlay">
                     <button 
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        if (current?.id === item.track.id && playing) {
-                          pause();
-                        } else {
-                          play(item.track);
+                        try {
+                          console.log('Play/Pause clicked for:', item.track.name);
+                          console.log('Current track:', current?.id);
+                          console.log('Target track:', item.track.id);
+                          console.log('Currently playing:', playing);
+                          
+                          if (current?.id === item.track.id && playing) {
+                            console.log('Pausing current track...');
+                            await pause();
+                          } else {
+                            console.log('Playing new track...');
+                            await play(item.track);
+                          }
+                        } catch (error) {
+                          console.error('Play/Pause error:', error);
+                          alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
                         }
                       }}
-                      className="song-play-button w-12 h-12 rounded-full flex items-center justify-center transform transition-all duration-200 z-20"
+                      className="song-play-button w-14 h-14 rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110"
                       aria-label={current?.id === item.track.id && playing ? `Pause ${item.track.name}` : `Play ${item.track.name}`}
                     >
                       {current?.id === item.track.id && playing ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                           <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-black"/>
                         </svg>
                       ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                           <path d="M8 5v14l11-7z" fill="currentColor" className="text-black"/>
                         </svg>
                       )}
@@ -468,11 +497,23 @@ const Dashboard: React.FC = () => {
                       {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                     </span>
                     <button 
-                      onClick={() => {
-                        if (current?.id === track.id && playing) {
-                          pause();
-                        } else {
-                          play(track);
+                      onClick={async () => {
+                        try {
+                          console.log('Top track play/pause clicked for:', track.name);
+                          console.log('Current track:', current?.id);
+                          console.log('Target track:', track.id);
+                          console.log('Currently playing:', playing);
+                          
+                          if (current?.id === track.id && playing) {
+                            console.log('Pausing current track...');
+                            await pause();
+                          } else {
+                            console.log('Playing new track...');
+                            await play(track);
+                          }
+                        } catch (error) {
+                          console.error('Play/Pause error:', error);
+                          alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
                         }
                       }}
                       className="play-btn-text opacity-0 group-hover:opacity-100 transition-opacity btn-spotify text-xs px-4 py-2 font-semibold"
