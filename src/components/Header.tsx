@@ -188,7 +188,7 @@ const Header: React.FC<HeaderProps> = ({
         sx={{ 
           left: { xs: 0, lg: '288px' }, // 288px = 72*4 = w-72
           width: { xs: '100%', lg: 'calc(100% - 288px)' },
-          bgcolor: 'rgba(0, 0, 0, 0.9)',
+          bgcolor: '#000000',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: 'none'
@@ -293,7 +293,7 @@ const Header: React.FC<HeaderProps> = ({
                   left: 0,
                   right: 0,
                   mt: 1,
-                  bgcolor: 'rgba(0, 0, 0, 0.95)',
+                  bgcolor: '#000000',
                   backdropFilter: 'blur(20px)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: 3,
@@ -371,7 +371,7 @@ const Header: React.FC<HeaderProps> = ({
                   onClose={() => setShowProfileDropdown(false)}
                   PaperProps={{
                     sx: {
-                      bgcolor: 'rgba(0, 0, 0, 0.95)',
+                      bgcolor: '#000000',
                       backdropFilter: 'blur(20px)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: 3,

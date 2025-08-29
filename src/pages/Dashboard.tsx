@@ -387,8 +387,7 @@ const Dashboard: React.FC = () => {
       />
       
       {/* Sidebar */}
-      <Sidebar 
-        className="w-72 lg:flex flex-col fixed left-0 top-0 h-full z-40" 
+        <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -449,7 +448,7 @@ const Dashboard: React.FC = () => {
               {/* Main Greeting Section */}
               <div className="text-center lg:text-left max-w-4xl mx-auto lg:mx-0">
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6">
-                  <span className="bg-gradient-to-r from-white via-green-300 to-green-500 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-green-400 via-green-300 to-green-400 bg-clip-text text-transparent">
                     {greeting}
                   </span>
                 </h1>

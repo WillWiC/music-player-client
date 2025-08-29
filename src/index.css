@@ -24,7 +24,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #0a0a0a;
+  background: #000000;
   color: #ffffff;
   overflow-x: hidden;
 }
@@ -40,16 +40,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #404040;
+  background: #1a1a1a;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: #2a2a2a;
 }
 
 /* Glassmorphism effect */
@@ -141,7 +141,7 @@ body {
 
 /* Card styles */
 .card {
-  @apply bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 hover-lift;
+  @apply bg-black/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 hover-lift;
 }
 
 .card-glass {
@@ -150,12 +150,12 @@ body {
 
 /* Input styles */
 .input-modern {
-  @apply bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300;
+  @apply bg-black/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300;
 }
 
 /* Progress bar */
 .progress-bar {
-  @apply w-full h-2 bg-gray-700 rounded-full overflow-hidden;
+  @apply w-full h-2 bg-black rounded-full overflow-hidden;
 }
 
 .progress-fill {
@@ -164,11 +164,11 @@ body {
 
 /* Spotify-like sidebar */
 .sidebar-item {
-  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200 cursor-pointer;
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-black/50 transition-all duration-200 cursor-pointer;
 }
 
 .sidebar-item.active {
-  @apply text-white bg-gray-800/80;
+  @apply text-white bg-black/80;
 }
 
 /* Music card hover effects */
