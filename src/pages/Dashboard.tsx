@@ -625,23 +625,7 @@ const Dashboard: React.FC = () => {
         
         {/* Content Container */}
         <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-10">
-          {/* Debug Device Status */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-4 text-sm backdrop-blur-sm">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
-                <span className="text-amber-200 font-medium">
-                  Device Status: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device connected'}
-                </span>
-              </div>
-              {!deviceId && (
-                <p className="text-amber-300/80 text-xs mt-2 ml-6">
-                  Tip: Open Spotify app and start playing a song to enable remote control
-                </p>
-              )}
-            </div>
-
-            )}
+          {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}
 <div className="relative overflow-hidden mb-8">
@@ -653,9 +637,16 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
-                    <span className="text-green-300 text-sm font-semibold">Live Dashboard</span>
+                    <span className="text-green-300 text-base font-semibold">Live Dashboard</span>
                   </div>
-                  <div className="text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+                  {/* Device Status Indicator */}
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
+                    <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
+                    <span className={`text-base font-semibold ${deviceId ? 'text-yellow-200' : 'text-red-200'}`}>
+                      Device Status: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device connected'}
+                    </span>
+                  </div>
+                  <div className="text-base font-semibold text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
                     {new Date().toLocaleDateString('en-US', { 
                       weekday: 'long', 
                       month: 'short', 
