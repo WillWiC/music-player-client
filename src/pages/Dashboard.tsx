@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -13,6 +13,7 @@ const Dashboard: React.FC = () => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // State management
   const [user, setUser] = React.useState<User | null>(null);
@@ -45,6 +46,14 @@ const Dashboard: React.FC = () => {
   
   // Album view state
   const [currentAlbumId, setCurrentAlbumId] = React.useState<string | null>(null);
+  
+  // Clear album view when component mounts (for home button navigation)
+  React.useEffect(() => {
+    // Clear album view when navigating to dashboard
+    if (location.pathname === '/dashboard' || location.pathname === '/') {
+      setCurrentAlbumId(null);
+    }
+  }, [location.pathname]);
   
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
@@ -374,6 +383,7 @@ const Dashboard: React.FC = () => {
             refreshRecentlyPlayed();
           }, 1000);
         }}
+        onHomeClick={() => setCurrentAlbumId(null)}
       />
       
       {/* Sidebar */}
