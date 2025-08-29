@@ -13,7 +13,8 @@ import {
   PlayArrow,
   ArrowBack,
   MoreHoriz,
-  Pause
+  Pause,
+  AccessTime
 } from '@mui/icons-material';
 import type { Album as AlbumType, Playlist as PlaylistType, Track } from '../types/spotify';
 
@@ -350,8 +351,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             alignItems: 'center',
             color: 'gray',
           }}>
-            {/* Unicode musical note as icon, or you can use a real icon if you import one */}
-            <span role="img" aria-label="duration" style={{ fontSize: '1rem' }}>&#119070;</span>
+            <AccessTime fontSize="small" aria-label="duration" />
           </Box>
         </Box>
         
