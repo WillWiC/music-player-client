@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   login: () => void;
   logout: () => void;
+  clearAll: () => void;
   isLoading: boolean;
 }
 
@@ -29,19 +30,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user data when token is available
   useEffect(() => {
     if (token) {
+      console.log('Validating token and fetching user data...');
       fetch('https://api.spotify.com/v1/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          // Token is invalid, clear it
+          console.log('Token is invalid, clearing auth data...');
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('spotify_token');
+          throw new Error('Invalid token');
+        }
+        return response.json();
+      })
       .then(userData => {
+        console.log('User data fetched successfully:', userData);
         setUser(userData);
       })
       .catch(error => {
         console.error('Error fetching user data:', error);
+        // Clear invalid token
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('spotify_token');
       });
     } else {
+      console.log('No token, clearing user data...');
       setUser(null);
     }
   }, [token]);
@@ -175,11 +193,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('spotify_code_verifier');
   };
 
+  const clearAll = () => {
+    console.log('Clearing all auth data...');
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('spotify_token');
+    localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_auth_state');
+    localStorage.removeItem('spotify_code_verifier');
+    // Also clear any other possible stored data
+    localStorage.clear();
+  };
+
   const value = {
     token,
     user,
     login,
     logout,
+    clearAll,
     isLoading
   };
 

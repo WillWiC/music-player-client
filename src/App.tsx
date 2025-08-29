@@ -12,7 +12,8 @@ const AppContent: React.FC = () => {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
       {/* Show player only when user is authenticated */}

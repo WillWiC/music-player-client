@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/auth';
 
 interface SidebarProps {
   className?: string;
@@ -11,7 +10,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ className = '', isOpen = true, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
 
   const menuItems = [
     {
@@ -144,23 +142,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '', isOpen = true, onClos
           ))}
         </div>
       </div>
-
-      {/* User Section */}
-      {user && (
-        <div className="mt-auto p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5">
-            <img 
-              src={user.images?.[0]?.url || '/default-avatar.png'} 
-              alt="Profile" 
-              className="w-8 h-8 rounded-full"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user.display_name || user.id}</p>
-              <p className="text-gray-400 text-xs">Premium</p>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </>
   );
