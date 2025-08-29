@@ -198,7 +198,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                       height: 32,
                       bgcolor: link.color,
                       '& .MuiSvgIcon-root': {
-                        fontSize: '1rem'
+                        fontSize: '1rem',
+                        color: 'white'
                       }
                     }}
                   >

@@ -1,9 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Box } from '@mui/material';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import MediaView from './components/MediaView';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import Player from './components/Player';
 import { AuthProvider, useAuth } from './context/auth';
 import { PlayerProvider } from './context/player';
@@ -68,6 +71,39 @@ const darkTheme = createTheme({
   },
 });
 
+// Generic MediaPage component that determines type from route
+const MediaPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  
+  if (!id) return null;
+  
+  // Determine type from the current route path
+  const type = location.pathname.startsWith('/album/') ? 'album' : 'playlist';
+  
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#000000' }}>
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)}
+        onHomeClick={() => navigate('/dashboard')}
+      />
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
+        <Box sx={{ flex: 1, overflow: 'auto', pb: 10 }}>
+          <MediaView 
+            id={id} 
+            type={type} 
+            onBack={() => navigate('/dashboard')} 
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
 const AppContent: React.FC = () => {
   const { token } = useAuth();
   
@@ -77,6 +113,8 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/album/:id" element={<MediaPage />} />
+        <Route path="/playlist/:id" element={<MediaPage />} />
       </Routes>
       {/* Show player only when user is authenticated */}
       {token && <Player />}

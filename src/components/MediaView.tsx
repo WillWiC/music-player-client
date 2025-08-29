@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import {
   PlayArrow,
-  Pause,
   ArrowBack,
-  MoreHoriz
+  MoreHoriz,
+  Pause
 } from '@mui/icons-material';
 import type { Album as AlbumType, Playlist as PlaylistType, Track } from '../types/spotify';
 
@@ -31,6 +31,13 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+
+  // Function to decode HTML entities
+  const decodeHtmlEntities = (text: string): string => {
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+  };
 
   useEffect(() => {
     const fetchMediaData = async () => {
@@ -163,7 +170,8 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
       return `${album.album_type?.charAt(0).toUpperCase()}${album.album_type?.slice(1)} • ${releaseYear}`;
     } else {
       const playlist = mediaData as PlaylistType;
-      return playlist.description || 'No description';
+      const description = playlist.description;
+      return description ? decodeHtmlEntities(description) : 'No description';
     }
   };
 
@@ -267,11 +275,11 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             <IconButton 
               onClick={playAllTracks}
               sx={{ 
-                bgcolor: 'green', 
+                bgcolor: '#1db954', 
                 color: 'white',
                 width: 56,
                 height: 56,
-                '&:hover': { bgcolor: 'darkgreen', transform: 'scale(1.05)' }
+                '&:hover': { bgcolor: '#1ed760', transform: 'scale(1.05)' }
               }}
             >
               <PlayArrow sx={{ fontSize: '2rem' }} />
@@ -286,13 +294,70 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
       {/* Tracks List */}
       <Box>
-        <Typography variant="h6" sx={{ mb: 2, color: 'white' }}>
-          Songs
-        </Typography>
+        {/* Table Header */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          padding: '8px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          mb: 1
+        }}>
+          <Typography sx={{ 
+            width: 40, 
+            textAlign: 'center', 
+            color: 'gray',
+            fontSize: '0.9rem',
+            fontWeight: 500
+          }}>
+            #
+          </Typography>
+          
+          <Typography sx={{ 
+            flex: 1,
+            color: 'gray',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            ml: 2
+          }}>
+            Title
+          </Typography>
+          
+          {type === 'playlist' && (
+            <Typography sx={{ 
+              width: 200,
+              color: 'gray',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              textAlign: 'left',
+              mr: 2
+            }}>
+              Album
+            </Typography>
+          )}
+          
+          <Typography sx={{ 
+            width: 100,
+            color: 'gray',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            textAlign: 'left'
+          }}>
+            Date added
+          </Typography>
+          
+          <Box sx={{ width: 60, display: 'flex', justifyContent: 'center' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ color: 'gray' }}>
+              <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM7 4.5V8l3 1.5.5-1L8 7.5V4.5z"/>
+            </svg>
+          </Box>
+        </Box>
         
         {tracks.map((item, index) => {
           const track = getTrackFromItem(item);
           if (!track) return null;
+          
+          const isCurrentTrack = currentTrack?.id === track.id;
+          const isCurrentlyPlaying = isCurrentTrack && isPlaying;
           
           return (
             <Box
@@ -300,68 +365,131 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                padding: 1,
+                padding: '8px 16px',
                 borderRadius: 1,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                cursor: 'pointer'
+                '&:hover': { 
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '& .track-number': { display: 'none' },
+                  '& .play-pause-btn': { display: 'flex' }
+                },
+                cursor: 'pointer',
+                minHeight: '56px'
               }}
               onClick={() => handleTrackPlay(track)}
             >
-              <Typography 
-                sx={{ 
-                  width: 40, 
-                  textAlign: 'center', 
-                  color: 'gray',
-                  fontSize: '0.9rem'
-                }}
-              >
-                {index + 1}
-              </Typography>
-              
-              <CardMedia
-                component="img"
-                image={track.album?.images?.[0]?.url || getImage()}
-                alt={track.name}
-                sx={{ width: 40, height: 40, borderRadius: 1, mr: 2 }}
-              />
-              
-              <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ 
+                width: 40, 
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                {/* Track Number - always visible unless we're hovering */}
                 <Typography 
+                  className="track-number"
                   sx={{ 
-                    color: currentTrack?.id === track.id ? 'green' : 'white',
-                    fontWeight: currentTrack?.id === track.id ? 'bold' : 'normal',
-                    fontSize: '0.9rem'
+                    color: isCurrentTrack ? '#1db954' : 'gray',
+                    fontSize: '0.9rem',
+                    fontWeight: isCurrentTrack ? 'bold' : 'normal'
                   }}
-                  noWrap
                 >
-                  {track.name}
+                  {index + 1}
                 </Typography>
-                <Typography 
+                
+                {/* Play/Pause Button - only visible on hover */}
+                <Box 
+                  className="play-pause-btn"
                   sx={{ 
-                    color: 'gray', 
-                    fontSize: '0.8rem'
+                    display: 'none',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    color: isCurrentTrack ? '#1db954' : 'white',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': {
+                      transform: 'scale(1.3)'
+                    }
                   }}
-                  noWrap
                 >
-                  {track.artists?.map((artist: any) => artist.name).join(', ')}
-                </Typography>
+                  {isCurrentlyPlaying ? (
+                    <Pause sx={{ fontSize: 16 }} />
+                  ) : (
+                    <PlayArrow sx={{ fontSize: 16 }} />
+                  )}
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, ml: 2 }}>
+                <CardMedia
+                  component="img"
+                  image={track.album?.images?.[0]?.url || getImage()}
+                  alt={track.name}
+                  sx={{ width: 40, height: 40, borderRadius: 1, mr: 2 }}
+                />
+                
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography 
+                    sx={{ 
+                      color: currentTrack?.id === track.id ? '#1db954' : 'white',
+                      fontWeight: currentTrack?.id === track.id ? 'bold' : 'normal',
+                      fontSize: '1rem',
+                      lineHeight: 1.3
+                    }}
+                    noWrap
+                  >
+                    {track.name}
+                  </Typography>
+                  <Typography 
+                    sx={{ 
+                      color: 'gray', 
+                      fontSize: '0.875rem',
+                      lineHeight: 1.3
+                    }}
+                    noWrap
+                  >
+                    {track.artists?.map((artist: any) => artist.name).join(', ')}
+                  </Typography>
+                </Box>
               </Box>
               
               {type === 'playlist' && (
-                <Typography sx={{ color: 'gray', fontSize: '0.8rem', mr: 2 }}>
+                <Typography sx={{ 
+                  width: 200,
+                  color: 'gray', 
+                  fontSize: '0.875rem',
+                  mr: 2,
+                  textAlign: 'left'
+                }} noWrap>
                   {track.album?.name}
                 </Typography>
               )}
               
-              <Typography sx={{ color: 'gray', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
+              <Typography sx={{ 
+                width: 100,
+                color: 'gray', 
+                fontSize: '0.875rem',
+                textAlign: 'left'
+              }}>
+                {/* Mock date - you can add real date if available */}
+                {new Date().toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
               </Typography>
               
-              {currentTrack?.id === track.id && isPlaying && (
-                <IconButton size="small" sx={{ ml: 1, color: 'green' }}>
-                  <Pause />
-                </IconButton>
-              )}
+              <Box sx={{ 
+                width: 60, 
+                display: 'flex', 
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <Typography sx={{ 
+                  color: 'gray', 
+                  fontSize: '0.875rem', 
+                  fontFamily: 'monospace'
+                }}>
+                  {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
+                </Typography>
+              </Box>
             </Box>
           );
         })}

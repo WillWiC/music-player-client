@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { 
   Box, 
@@ -24,6 +25,7 @@ import {
 } from '@mui/icons-material';
 
 const Player: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     currentTrack, 
     isPlaying, 
@@ -40,6 +42,13 @@ const Player: React.FC = () => {
     toggleShuffle,
     setRepeat
   } = usePlayer();
+
+  // Handle clicking on the track to go to album
+  const handleTrackClick = () => {
+    if (currentTrack?.album?.id) {
+      navigate(`/album/${currentTrack.album.id}`);
+    }
+  };
 
   // Format time in mm:ss
   const formatTime = (ms: number) => {
@@ -152,6 +161,7 @@ const Player: React.FC = () => {
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography 
                 variant="body2" 
+                onClick={handleTrackClick}
                 sx={{ 
                   color: 'text.primary',
                   fontWeight: 600,
@@ -217,9 +227,9 @@ const Player: React.FC = () => {
               onClick={togglePlay}
               sx={{
                 bgcolor: 'primary.main',
-                color: 'black',
-                width: 48,
-                height: 48,
+                color: 'white',
+                width: 40,
+                height: 40,
                 '&:hover': {
                   bgcolor: 'primary.light',
                   transform: 'scale(1.05)'
