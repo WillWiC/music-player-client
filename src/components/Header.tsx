@@ -30,7 +30,8 @@ import {
   AccountCircle,
   PlayArrow,
   Logout,
-  Close
+  Close,
+  Settings
 } from '@mui/icons-material';
 
 interface HeaderProps {
@@ -319,14 +320,19 @@ const Header: React.FC<HeaderProps> = ({
           <Stack direction="row" spacing={1} alignItems="center">
             {user ? (
               <Box sx={{ position: 'relative' }}>
-                <IconButton
+                <Box
                   id="profile-button"
                   onClick={handleProfileClick}
                   sx={{
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: 3
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: 3,
+                    p: 0.5,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.1)'
+                    }
                   }}
                 >
                   <Avatar
@@ -335,7 +341,13 @@ const Header: React.FC<HeaderProps> = ({
                   >
                     <AccountCircle />
                   </Avatar>
-                </IconButton>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'white', fontWeight: 500, ml: 1, userSelect: 'none' }}
+                  >
+                    {user.display_name || 'Profile'}
+                  </Typography>
+                </Box>
 
                 <Menu
                   anchorEl={showProfileDropdown ? document.getElementById('profile-button') : null}
@@ -351,6 +363,38 @@ const Header: React.FC<HeaderProps> = ({
                     }
                   }}
                 >
+                  <MenuItem
+                    onClick={() => {/* TODO: handle account click */}}
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      mb: 0.5,
+                      transition: 'background 0.2s',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.08)',
+                        color: 'white',
+                      }
+                    }}
+                  >
+                    <AccountCircle sx={{ mr: 2, fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 600 }}>Account</Typography>
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {/* TODO: handle settings click */}}
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      mb: 0.5,
+                      transition: 'background 0.2s',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.08)',
+                        color: 'white',
+                      }
+                    }}
+                  >
+                    <Settings sx={{ mr: 2, fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 600 }}>Settings</Typography>
+                  </MenuItem>
                   <MenuItem onClick={handleLogout}>
                     <Logout sx={{ mr: 2, fontSize: 18 }} />
                     <Typography>Logout</Typography>
