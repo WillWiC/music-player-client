@@ -428,10 +428,10 @@ const Dashboard: React.FC = () => {
     // Set dynamic greeting based on time with emoji
     const hour = new Date().getHours();
     if (hour < 6) setGreeting('Late night vibes');
-    else if (hour < 12) setGreeting('Good morning');
-    else if (hour < 17) setGreeting('Good afternoon');
-    else if (hour < 21) setGreeting('Good evening');
-    else setGreeting('Good night');
+    else if (hour < 12) setGreeting('Good Morning');
+    else if (hour < 17) setGreeting('Good Afternoon');
+    else if (hour < 21) setGreeting('Good Evening');
+    else setGreeting('Good Night');
 
     // Enhanced error handling function
     const handleApiError = (error: unknown, section: string) => {
