@@ -111,7 +111,9 @@ const Dashboard: React.FC = () => {
   // Handle scroll event to show/hide scroll to top button
   React.useEffect(() => {
     const handleScroll = () => {
-      setShowScrollToTop(window.scrollY > 200);
+      const shouldShow = window.scrollY > 200;
+      console.log('Scroll position:', window.scrollY, 'Show button:', shouldShow);
+      setShowScrollToTop(shouldShow);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -1022,15 +1024,16 @@ const Dashboard: React.FC = () => {
       {showScrollToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-tr from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group animate-slideIn backdrop-blur-sm border border-green-400/30"
+          className="fixed bottom-32 right-6 z-[100] w-10 h-10 bg-green-500 hover:bg-green-400 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center group animate-slideIn backdrop-blur-sm border border-green-400/50 hover:border-green-300"
           title="Scroll to top"
+          style={{ zIndex: 100 }}
         >
           <svg 
-            className="w-7 h-7 transform group-hover:-translate-y-1 transition-transform duration-200" 
+            className="w-5 h-5 transform group-hover:-translate-y-0.5 transition-transform duration-200" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"
-            strokeWidth={2.5}
+            strokeWidth={2}
           >
             <path 
               strokeLinecap="round" 
