@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import AlbumComponent from '../components/Album';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import '../index.css';
 
@@ -41,6 +42,9 @@ const Dashboard: React.FC = () => {
   
   // Scroll to top button state
   const [showScrollToTop, setShowScrollToTop] = React.useState(false);
+  
+  // Album view state
+  const [currentAlbumId, setCurrentAlbumId] = React.useState<string | null>(null);
   
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
@@ -108,6 +112,17 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  // Function to handle opening album page
+  const openAlbum = (albumId: string) => {
+    setCurrentAlbumId(albumId);
+  };
+
+  // Function to handle track click - either play or open album
+  const handleTrackNameClick = (e: React.MouseEvent, albumId: string) => {
+    e.stopPropagation(); // Prevent triggering the play button
+    openAlbum(albumId);
+  };
+
   // Handle scroll event to show/hide scroll to top button
   React.useEffect(() => {
     const handleScroll = () => {
@@ -122,6 +137,13 @@ const Dashboard: React.FC = () => {
 
   // Function to add a track to locally played tracks immediately
   const addToLocallyPlayed = React.useCallback((track: any) => {
+    // Check if this track is already the most recently played
+    const isAlreadyMostRecent = recentlyPlayed.length > 0 && recentlyPlayed[0]?.track?.id === track.id;
+    if (isAlreadyMostRecent) {
+      console.log('Track is already the most recent, skipping duplicate:', track.name);
+      return;
+    }
+
     const playedItem = {
       track: track,
       played_at: new Date().toISOString(),
@@ -141,7 +163,7 @@ const Dashboard: React.FC = () => {
     });
     
     console.log('Added track to locally played:', track.name);
-  }, []);
+  }, [recentlyPlayed]);
 
   // Function to refresh recently played tracks
   const refreshRecentlyPlayed = React.useCallback(async () => {
@@ -364,6 +386,14 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 lg:ml-72 pb-24 pt-20">
         
+        {/* Show Album page if an album is selected */}
+        {currentAlbumId ? (
+          <AlbumComponent 
+            albumId={currentAlbumId} 
+            onBack={() => setCurrentAlbumId(null)} 
+          />
+        ) : (
+          <>
         {/* Content Container */}
         <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-10">
           {/* Debug Device Status */}
@@ -585,7 +615,10 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-2">
-                        <h4 className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight">
+                        <h4 
+                          className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight cursor-pointer hover:underline"
+                          onClick={(e) => handleTrackNameClick(e, item.track.album?.id || '')}
+                        >
                           {item.track.name}
                         </h4>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
@@ -706,7 +739,10 @@ const Dashboard: React.FC = () => {
                         
                         {/* Track Info */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-semibold text-sm truncate group-hover:text-yellow-400 transition-colors mb-1">
+                          <h4 
+                            className="text-white font-semibold text-sm truncate group-hover:text-yellow-400 transition-colors mb-1 cursor-pointer hover:underline"
+                            onClick={(e) => handleTrackNameClick(e, track.album?.id || '')}
+                          >
                             {track.name}
                           </h4>
                           <p className="text-gray-400 text-xs truncate">
@@ -849,11 +885,11 @@ const Dashboard: React.FC = () => {
             )}
           </section>
           {/* New Releases Section */}
-          <section className="space-y-4">
+          <section id="releases" className="space-y-4">
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">New Album Releases</h2>
+                <h2 className="text-2xl font-bold text-white mb-1">New Song Releases</h2>
                 <p className="text-gray-400 text-sm">Fresh music from your favorite artists</p>
               </div>
             </div>
@@ -885,6 +921,42 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                // Get album tracks first
+                                const tracksResponse = await fetch(`https://api.spotify.com/v1/albums/${album.id}/tracks?limit=1`, {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                  },
+                                });
+                                
+                                if (tracksResponse.ok) {
+                                  const tracksData = await tracksResponse.json();
+                                  const firstTrack = tracksData.items?.[0];
+                                  
+                                  if (firstTrack) {
+                                    // Create a full track object with album info
+                                    const fullTrack = {
+                                      ...firstTrack,
+                                      album: album
+                                    };
+                                    
+                                    await play(fullTrack);
+                                    addToLocallyPlayed(fullTrack);
+                                    console.log('Playing first track from album:', album.name);
+                                  } else {
+                                    alert('No tracks available for this album.');
+                                  }
+                                } else {
+                                  console.error('Failed to fetch album tracks:', tracksResponse.status);
+                                  alert('Unable to load album tracks. Please try again.');
+                                }
+                              } catch (error) {
+                                console.error('Album play error:', error);
+                                alert('Unable to play album. Make sure you have Spotify Premium and the Spotify app is open.');
+                              }
+                            }}
                             className="w-8 h-8 bg-blue-500 hover:bg-blue-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -995,22 +1067,24 @@ const Dashboard: React.FC = () => {
             )}
           </section>
         </div>
+        
+        {/* Scroll to Top Button */}
+        {showScrollToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-32 right-6 z-[100] w-10 h-10 bg-green-500 hover:bg-green-400 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center group animate-slideIn backdrop-blur-sm border border-green-400/50 hover:border-green-300"
+            title="Scroll to top"
+            style={{ zIndex: 100 }}
+          >
+            <KeyboardArrowUpIcon 
+              className="transform group-hover:-translate-y-0.5 transition-transform duration-200"
+              style={{ fontSize: '20px' }}
+            />
+          </button>
+        )}
+        </>
+        )}
       </div>
-      
-      {/* Scroll to Top Button */}
-      {showScrollToTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-32 right-6 z-[100] w-10 h-10 bg-green-500 hover:bg-green-400 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center group animate-slideIn backdrop-blur-sm border border-green-400/50 hover:border-green-300"
-          title="Scroll to top"
-          style={{ zIndex: 100 }}
-        >
-          <KeyboardArrowUpIcon 
-            className="transform group-hover:-translate-y-0.5 transition-transform duration-200"
-            style={{ fontSize: '20px' }}
-          />
-        </button>
-      )}
     </div>
   );
 }

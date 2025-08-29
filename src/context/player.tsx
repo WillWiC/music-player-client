@@ -10,6 +10,8 @@ interface PlayerContextType {
   duration: number;
   volume: number;
   deviceId: string | null;
+  isShuffled: boolean;
+  repeatMode: 'off' | 'context' | 'track';
   togglePlay: () => Promise<void>;
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
@@ -18,6 +20,8 @@ interface PlayerContextType {
   play: (track: Track) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  toggleShuffle: () => Promise<void>;
+  setRepeat: (mode: 'off' | 'context' | 'track') => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -41,8 +45,33 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.5);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [shuffled, setShuffled] = useState(false);
+  const [repeat, setRepeatState] = useState<'off' | 'context' | 'track'>('off');
   
   const positionInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch current playback state from Spotify API
+  const fetchPlaybackState = async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('https://api.spotify.com/v1/me/player', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const state = await response.json();
+        if (state) {
+          setShuffled(state.shuffle_state || false);
+          setRepeatState(state.repeat_state || 'off');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching playback state:', error);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -124,6 +153,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       spotifyPlayer.connect();
       setPlayer(spotifyPlayer);
+      
+      // Fetch initial playback state including shuffle and repeat
+      fetchPlaybackState();
     };
 
     return () => {
@@ -236,6 +268,39 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await previous();
   };
 
+  const toggleShuffle = async () => {
+    if (!token) return;
+
+    try {
+      const newShuffleState = !shuffled;
+      await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${newShuffleState}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      setShuffled(newShuffleState);
+    } catch (error) {
+      console.error('Error toggling shuffle:', error);
+    }
+  };
+
+  const setRepeat = async (mode: 'off' | 'context' | 'track') => {
+    if (!token) return;
+
+    try {
+      await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${mode}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      setRepeatState(mode);
+    } catch (error) {
+      console.error('Error setting repeat mode:', error);
+    }
+  };
+
   const value = {
     player,
     currentTrack: current,
@@ -244,6 +309,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     duration,
     volume,
     deviceId,
+    isShuffled: shuffled,
+    repeatMode: repeat,
     togglePlay,
     nextTrack,
     previousTrack,
@@ -251,7 +318,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setVolume,
     play,
     pause,
-    resume
+    resume,
+    toggleShuffle,
+    setRepeat
   };
 
   return (
