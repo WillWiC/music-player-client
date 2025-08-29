@@ -250,17 +250,23 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
       {/* Media Info */}
       <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
-        <CardMedia
-          component="img"
-          image={getImage()}
-          alt={getTitle()}
-          sx={{ 
-            width: 250, 
-            height: 250, 
-            borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
-          }}
-        />
+        <Box sx={{
+          width: 250,
+          height: 250,
+          borderRadius: 2,
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(30,58,138,0.6) 60%, rgba(0,0,0,0.6) 100%)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <CardMedia
+            component="img"
+            image={getImage()}
+            alt={getTitle()}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </Box>
         <Box sx={{ flex: 1 }}>
           <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
             {getTitle()}
@@ -303,7 +309,18 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           borderBottom: '1px solid rgba(255,255,255,0.1)',
           mb: 1
         }}>
-          <Typography sx={{ 
+          {/* # column */}
+          <Typography sx={{
+            width: 40,
+            color: 'gray',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            textAlign: 'center',
+          }}>
+            #
+          </Typography>
+          {/* Title column */}
+          <Typography sx={{
             flex: 1,
             color: 'gray',
             fontSize: '0.9rem',
@@ -312,14 +329,30 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           }}>
             Title
           </Typography>
-          <Typography sx={{ 
-            width: 100,
+          {/* Album column (only for playlists) */}
+          {type === 'playlist' && (
+            <Typography sx={{
+              width: 200,
+              color: 'gray',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              textAlign: 'left',
+              mr: 2
+            }}>
+              Album
+            </Typography>
+          )}
+          {/* Duration icon column */}
+          <Box sx={{
+            width: 60,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             color: 'gray',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            textAlign: 'left'
           }}>
-          </Typography>
+            {/* Unicode musical note as icon, or you can use a real icon if you import one */}
+            <span role="img" aria-label="duration" style={{ fontSize: '1rem' }}>&#119070;</span>
+          </Box>
         </Box>
         
         {tracks.map((item, index) => {
