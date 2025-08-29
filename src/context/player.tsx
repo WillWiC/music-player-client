@@ -94,6 +94,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       spotifyPlayer.addListener('ready', ({ device_id }: { device_id: string }) => {
         console.log('Ready with Device ID', device_id);
         setDeviceId(device_id);
+        fetchPlaybackState();
       });
 
       // Not Ready
@@ -102,60 +103,83 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setDeviceId(null);
       });
 
+      // Initialization Error
+      spotifyPlayer.addListener('initialization_error', ({ message }: { message: string }) => {
+        console.error('Failed to initialize:', message);
+      });
+
+      // Authentication Error
+      spotifyPlayer.addListener('authentication_error', ({ message }: { message: string }) => {
+        console.error('Failed to authenticate:', message);
+      });
+
+      // Account Error
+      spotifyPlayer.addListener('account_error', ({ message }: { message: string }) => {
+        console.error('Failed to validate Spotify account:', message);
+      });
+
+      // Playback Error
+      spotifyPlayer.addListener('playback_error', ({ message }: { message: string }) => {
+        console.error('Failed to perform playback:', message);
+      });
+
       // Player state changed
       spotifyPlayer.addListener('player_state_changed', (state: SpotifyPlayerState | null) => {
         if (!state) return;
 
+        console.log('Player state changed:', state);
+        
         const track = state.track_window.current_track;
-        setCurrent({
-          id: track.id,
-          name: track.name,
-          artists: track.artists.map(artist => ({ 
-            id: artist.uri.split(':')[2], 
-            name: artist.name,
-            external_urls: { spotify: `https://open.spotify.com/artist/${artist.uri.split(':')[2]}` },
-            href: `https://api.spotify.com/v1/artists/${artist.uri.split(':')[2]}`,
-            type: 'artist' as const,
-            uri: artist.uri
-          })),
-          album: {
-            id: track.album.uri.split(':')[2],
-            name: track.album.name,
-            images: track.album.images.map(img => ({ 
-              url: img.url, 
-              height: null, 
-              width: null 
+        console.log('Current track from player:', track);
+        
+        if (track) {
+          setCurrent({
+            id: track.id,
+            name: track.name,
+            artists: track.artists.map(artist => ({ 
+              id: artist.uri.split(':')[2], 
+              name: artist.name,
+              external_urls: { spotify: `https://open.spotify.com/artist/${artist.uri.split(':')[2]}` },
+              href: `https://api.spotify.com/v1/artists/${artist.uri.split(':')[2]}`,
+              type: 'artist' as const,
+              uri: artist.uri
             })),
-            external_urls: { spotify: `https://open.spotify.com/album/${track.album.uri.split(':')[2]}` },
-            href: `https://api.spotify.com/v1/albums/${track.album.uri.split(':')[2]}`,
-            type: 'album' as const,
-            uri: track.album.uri,
-            album_type: 'album' as const,
-            total_tracks: 0,
-            available_markets: [],
-            release_date: '',
-            release_date_precision: 'day' as const,
-            artists: []
-          },
-          duration_ms: track.duration_ms,
-          explicit: false,
-          external_urls: { spotify: `https://open.spotify.com/track/${track.id}` },
-          href: `https://api.spotify.com/v1/tracks/${track.id}`,
-          preview_url: null,
-          type: 'track' as const,
-          uri: track.uri
-        });
+            album: {
+              id: track.album.uri.split(':')[2],
+              name: track.album.name,
+              images: track.album.images.map(img => ({ 
+                url: img.url, 
+                height: null, 
+                width: null 
+              })),
+              external_urls: { spotify: `https://open.spotify.com/album/${track.album.uri.split(':')[2]}` },
+              href: `https://api.spotify.com/v1/albums/${track.album.uri.split(':')[2]}`,
+              type: 'album' as const,
+              uri: track.album.uri,
+              album_type: 'album' as const,
+              total_tracks: 0,
+              available_markets: [],
+              release_date: '',
+              release_date_precision: 'day' as const,
+              artists: []
+            },
+            duration_ms: track.duration_ms,
+            explicit: false,
+            external_urls: { spotify: `https://open.spotify.com/track/${track.id}` },
+            href: `https://api.spotify.com/v1/tracks/${track.id}`,
+            preview_url: null,
+            type: 'track' as const,
+            uri: track.uri
+          });
+        }
         
         setPlaying(!state.paused);
         setPosition(state.position);
-        setDuration(track.duration_ms);
+        setDuration(track ? track.duration_ms : 0);
       });
 
       spotifyPlayer.connect();
       setPlayer(spotifyPlayer);
-      
-      // Fetch initial playback state including shuffle and repeat
-      fetchPlaybackState();
     };
 
     return () => {
@@ -189,12 +213,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [playing, duration]);
 
   const play = async (track?: Track) => {
-    if (!token || !deviceId) return;
+    if (!token || !deviceId) {
+      console.log('Cannot play: missing token or device ID', { token: !!token, deviceId });
+      return;
+    }
 
     try {
       if (track) {
+        console.log('Playing specific track:', track.name, 'by', track.artists.map(a => a.name).join(', '));
         // Play specific track
-        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -204,7 +232,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             uris: [track.uri]
           })
         });
+        
+        if (!response.ok) {
+          console.error('Failed to play track:', response.status, response.statusText);
+        } else {
+          console.log('Track play request successful');
+        }
       } else if (player) {
+        console.log('Resuming current track');
         // Resume current track
         await player.resume();
       }

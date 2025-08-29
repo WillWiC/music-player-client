@@ -26,9 +26,10 @@ import {
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  onHomeClick?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -39,8 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       id: 'home',
       label: 'Home',
       icon: <Home />,
-      path: '/',
-      isActive: location.pathname === '/'
+      path: '/dashboard',
+      isActive: location.pathname === '/' || location.pathname === '/dashboard'
     },
     {
       id: 'search',
@@ -75,7 +76,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
     }
   ];
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (path: string, isHome: boolean = false) => {
+    if (isHome && onHomeClick) {
+      onHomeClick(); // Clear album view
+    }
     navigate(path);
     if (isMobile && onClose) {
       onClose();
@@ -121,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
           {menuItems.map((item) => (
             <ListItem key={item.id} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => handleNavigation(item.path, item.id === 'home')}
                 sx={{
                   borderRadius: 2,
                   px: 2,
@@ -226,9 +230,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
         keepMounted: true, // Better open performance on mobile
       }}
       sx={{
+        zIndex: 1200, // Lower than player's 9999
         '& .MuiDrawer-paper': {
           border: 'none',
-          boxShadow: 'none'
+          boxShadow: 'none',
+          zIndex: 1200
         }
       }}
     >

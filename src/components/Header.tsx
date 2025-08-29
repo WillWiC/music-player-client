@@ -26,7 +26,6 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Home,
   Search,
   AccountCircle,
   PlayArrow,
@@ -39,15 +38,13 @@ interface HeaderProps {
   searchPlaceholder?: string;
   onMobileMenuToggle?: () => void;
   onTrackPlayed?: (track: Track) => void;
-  onHomeClick?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   onSearch, 
   searchPlaceholder = "Search for songs, artists, or albums...",
   onMobileMenuToggle,
-  onTrackPlayed,
-  onHomeClick
+  onTrackPlayed
 }) => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
@@ -147,13 +144,6 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleHomeClick = () => {
-    if (onHomeClick) {
-      onHomeClick();
-    }
-    navigate('/dashboard');
-  };
-
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
   };
@@ -195,7 +185,7 @@ const Header: React.FC<HeaderProps> = ({
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
-          {/* Left Section - Mobile Menu + Home Button */}
+          {/* Left Section - Mobile Menu */}
           <Stack direction="row" spacing={1.5} alignItems="center">
             {/* Mobile Menu Button */}
             <IconButton
@@ -210,24 +200,6 @@ const Header: React.FC<HeaderProps> = ({
               title="Open Menu"
             >
               <MenuIcon sx={{ color: 'white' }} />
-            </IconButton>
-            
-            {/* Home Button */}
-            <IconButton
-              onClick={handleHomeClick}
-              sx={{ 
-                bgcolor: 'rgba(34, 197, 94, 0.2)',
-                '&:hover': { 
-                  bgcolor: 'rgba(34, 197, 94, 0.3)',
-                  transform: 'scale(1.05)'
-                },
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: 3,
-                transition: 'all 0.3s ease'
-              }}
-              title="Go to Dashboard"
-            >
-              <Home sx={{ color: 'primary.main' }} />
             </IconButton>
           </Stack>
 

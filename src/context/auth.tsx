@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then(userData => {
         console.log('User data fetched successfully:', userData);
         setUser(userData);
+        setIsLoading(false); // Set loading to false on success
       })
       .catch(error => {
         console.error('Error fetching user data:', error);
@@ -57,10 +58,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(null);
         setUser(null);
         localStorage.removeItem('spotify_token');
+        setIsLoading(false); // Set loading to false on error
       });
     } else {
       console.log('No token, clearing user data...');
       setUser(null);
+      setIsLoading(false); // Set loading to false when no token
     }
   }, [token]);
 
@@ -69,10 +72,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
+    const error = urlParams.get('error');
     const storedState = localStorage.getItem('spotify_auth_state');
     const codeVerifier = localStorage.getItem('spotify_code_verifier');
 
+    console.log('Auth initialization:', { 
+      hasCode: !!code, 
+      hasState: !!state, 
+      hasStoredState: !!storedState, 
+      hasCodeVerifier: !!codeVerifier,
+      error: error,
+      stateMatch: state === storedState
+    });
+
+    if (error) {
+      console.error('Spotify authorization error:', error);
+      setIsLoading(false);
+      return;
+    }
+
     if (code && state && state === storedState && codeVerifier) {
+      console.log('Found authorization code, exchanging for token...');
       // Exchange code for token
       exchangeCodeForToken(code, codeVerifier);
       
@@ -80,15 +100,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.history.replaceState({}, document.title, window.location.pathname);
       localStorage.removeItem('spotify_auth_state');
       localStorage.removeItem('spotify_code_verifier');
+    } else if (code) {
+      console.warn('Authorization code found but validation failed:', {
+        hasState: !!state,
+        stateMatch: state === storedState,
+        hasCodeVerifier: !!codeVerifier
+      });
+      setIsLoading(false);
     } else {
       // Check for stored token
       const storedToken = localStorage.getItem('spotify_token');
+      console.log('No authorization code, checking stored token:', { hasStoredToken: !!storedToken });
       if (storedToken) {
         setToken(storedToken);
+        // Note: setIsLoading(false) will be called by the token validation useEffect
+      } else {
+        setIsLoading(false);
       }
     }
-    
-    setIsLoading(false);
   }, []);
 
   // Helper function to generate random string
@@ -112,6 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
     const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || window.location.origin;
 
+    console.log('Exchanging code for token...', { CLIENT_ID: CLIENT_ID ? 'Set' : 'Missing', REDIRECT_URI });
+
     const params = new URLSearchParams({
       client_id: CLIENT_ID,
       grant_type: 'authorization_code',
@@ -129,11 +160,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: params,
       });
 
+      console.log('Token exchange response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to exchange code for token');
+        const errorData = await response.text();
+        console.error('Token exchange failed:', errorData);
+        throw new Error(`Failed to exchange code for token: ${response.status} ${errorData}`);
       }
 
       const data = await response.json();
+      console.log('Token exchange successful:', { access_token: data.access_token ? 'Received' : 'Missing' });
+      
       setToken(data.access_token);
       localStorage.setItem('spotify_token', data.access_token);
       
@@ -141,8 +178,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.refresh_token) {
         localStorage.setItem('spotify_refresh_token', data.refresh_token);
       }
+      
+      console.log('Token stored successfully');
     } catch (error) {
       console.error('Error exchanging code for token:', error);
+      // Clear any stored auth data on error
+      localStorage.removeItem('spotify_auth_state');
+      localStorage.removeItem('spotify_code_verifier');
+    } finally {
       setIsLoading(false);
     }
   };

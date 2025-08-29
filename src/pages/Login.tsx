@@ -16,6 +16,11 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     setIsButtonLoading(true);
     try {
+      console.log('Starting login process...');
+      console.log('Environment variables:', {
+        CLIENT_ID: import.meta.env.VITE_SPOTIFY_CLIENT_ID ? 'Set' : 'Missing',
+        REDIRECT_URI: import.meta.env.VITE_SPOTIFY_REDIRECT_URI || 'Using default'
+      });
       await login();
     } finally {
       setIsButtonLoading(false);

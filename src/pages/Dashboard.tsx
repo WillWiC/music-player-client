@@ -7,10 +7,11 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import AlbumComponent from '../components/Album';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { CircularProgress } from '@mui/material';
 import '../index.css';
 
 const Dashboard: React.FC = () => {
-  const { token } = useAuth();
+  const { token, isLoading } = useAuth();
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,6 +32,9 @@ const Dashboard: React.FC = () => {
   const [loadingReleases, setLoadingReleases] = React.useState(false);
   const [loadingCategories, setLoadingCategories] = React.useState(false);
   
+  // Track the last added track to prevent rapid duplicates
+  const lastAddedRef = React.useRef<{ trackId: string; timestamp: number } | null>(null);
+  
   // Error states and UI enhancements
   const [errors, setErrors] = React.useState<{[key: string]: string}>({});
   
@@ -39,7 +43,6 @@ const Dashboard: React.FC = () => {
   
   // Refresh state for recently played tracks
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [locallyPlayedTracks, setLocallyPlayedTracks] = React.useState<any[]>([]);
   
   // Scroll to top button state
   const [showScrollToTop, setShowScrollToTop] = React.useState(false);
@@ -47,7 +50,7 @@ const Dashboard: React.FC = () => {
   // Album view state
   const [currentAlbumId, setCurrentAlbumId] = React.useState<string | null>(null);
   
-  // Clear album view when component mounts (for home button navigation)
+  // Clear album view when navigating to dashboard (via sidebar or direct navigation)
   React.useEffect(() => {
     // Clear album view when navigating to dashboard
     if (location.pathname === '/dashboard' || location.pathname === '/') {
@@ -144,34 +147,115 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Function to add a track to locally played tracks immediately
-  const addToLocallyPlayed = React.useCallback((track: any) => {
-    // Check if this track is already the most recently played
-    const isAlreadyMostRecent = recentlyPlayed.length > 0 && recentlyPlayed[0]?.track?.id === track.id;
-    if (isAlreadyMostRecent) {
-      console.log('Track is already the most recent, skipping duplicate:', track.name);
+  // Function to add a track to recently played tracks immediately
+  const addToLocallyPlayed = React.useCallback((track: any, source?: string) => {
+    const trackId = track.id || track.track?.id;
+    const trackName = track.name || track.track?.name || 'Unknown';
+    const now = Date.now();
+    
+    if (!trackId) {
+      console.warn('Track has no ID, skipping:', track);
       return;
     }
 
+    // Normalize the track object to ensure consistency
+    const normalizedTrack = track.track ? track.track : track;
+    
+    // More aggressive duplicate prevention - check multiple criteria
+    const isDuplicateByName = recentlyPlayed.some(item => {
+      const existingTrack = item.track;
+      const existingArtist = existingTrack.artists?.[0]?.name || '';
+      const newArtist = normalizedTrack.artists?.[0]?.name || '';
+      const existingName = existingTrack.name?.toLowerCase() || '';
+      const newName = normalizedTrack.name?.toLowerCase() || '';
+      
+      return existingName === newName && existingArtist === newArtist;
+    });
+
+    if (isDuplicateByName) {
+      console.log(`❌ Track ${trackName} by ${normalizedTrack.artists?.[0]?.name} already exists (different ID but same name/artist), skipping addition from source: ${source || 'unknown'}`);
+      return;
+    }
+
+    // Also check if this exact track ID is already at the top
+    const isAlreadyMostRecent = recentlyPlayed.length > 0 && recentlyPlayed[0]?.track?.id === trackId;
+    if (isAlreadyMostRecent) {
+      console.log(`❌ Track ${trackName} (ID: ${trackId}) is already the most recent track, skipping addition from source: ${source || 'unknown'}`);
+      return;
+    }
+    
+    // Check if this track was added very recently (within 2 seconds from ANY source)
+    if (lastAddedRef.current && 
+        lastAddedRef.current.trackId === trackId && 
+        now - lastAddedRef.current.timestamp < 2000) {
+      console.log(`❌ Preventing rapid duplicate addition of track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} (last added ${now - lastAddedRef.current.timestamp}ms ago)`);
+      return;
+    }
+    
+    // Update the last added tracker
+    lastAddedRef.current = { trackId, timestamp: now };
+    
+    console.log(`✅ Adding track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'}`);
+    
     const playedItem = {
-      track: track,
+      track: normalizedTrack,
       played_at: new Date().toISOString(),
       context: null
     };
     
-    setLocallyPlayedTracks(prev => {
-      // Remove if already exists and add to beginning
-      const filtered = prev.filter(item => item.track.id !== track.id);
-      return [playedItem, ...filtered].slice(0, 20); // Keep only last 20
-    });
-    
-    // Also immediately update the recentlyPlayed state
+    // Only manage recentlyPlayed state with aggressive deduplication
     setRecentlyPlayed(prev => {
-      const filtered = prev.filter(item => item.track.id !== track.id);
-      return [playedItem, ...filtered].slice(0, 20);
+      console.log(`📋 Before adding: recentlyPlayed has ${prev.length} tracks`);
+      
+      // Remove any existing instances of this track first (check both ID and name+artist)
+      const withoutCurrent = prev.filter(item => {
+        const itemId = item.track?.id;
+        const itemName = item.track?.name?.toLowerCase() || '';
+        const itemArtist = item.track?.artists?.[0]?.name || '';
+        const newName = normalizedTrack.name?.toLowerCase() || '';
+        const newArtist = normalizedTrack.artists?.[0]?.name || '';
+        
+        const isDuplicateById = itemId === trackId;
+        const isDuplicateByName = itemName === newName && itemArtist === newArtist;
+        const isDuplicate = isDuplicateById || isDuplicateByName;
+        
+        if (isDuplicate) {
+          console.log(`🗑️ Removing existing instance of track: ${item.track?.name} (ID: ${itemId}) - ${isDuplicateById ? 'same ID' : 'same name+artist'}`);
+        }
+        return !isDuplicate;
+      });
+      
+      // Add the new item at the beginning
+      const newList = [playedItem, ...withoutCurrent];
+      
+      // Final deduplication pass - use ID, name, and artist for comprehensive checking
+      const seen = new Set();
+      const seenNameArtist = new Set();
+      const deduped = newList.filter((item, index) => {
+        const id = item.track?.id;
+        const name = item.track?.name?.toLowerCase() || '';
+        const artist = item.track?.artists?.[0]?.name || '';
+        const uniqueKeyById = id;
+        const uniqueKeyByNameArtist = `${name}-${artist}`;
+        
+        if (!id || seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist)) {
+          if (id && (seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist))) {
+            console.log(`🔄 Final deduplication: removing duplicate ${item.track?.name} by ${artist} at index ${index}`);
+          }
+          return false;
+        }
+        seen.add(uniqueKeyById);
+        seenNameArtist.add(uniqueKeyByNameArtist);
+        return true;
+      });
+      
+      const result = deduped.slice(0, 20);
+      console.log(`📋 After adding: recentlyPlayed now has ${result.length} tracks`);
+      
+      return result;
     });
     
-    console.log('Added track to locally played:', track.name);
+    console.log(`✨ Track processed successfully: ${trackName} (ID: ${trackId})`);
   }, [recentlyPlayed]);
 
   // Function to refresh recently played tracks
@@ -191,28 +275,36 @@ const Dashboard: React.FC = () => {
       
       const data = await response.json();
       
-      // Merge locally played tracks with API data
+      // Get API tracks
       const apiTracks = data.items || [];
-      const allTracks = [...locallyPlayedTracks, ...apiTracks];
       
-      // Remove duplicates and sort by played_at timestamp
+      // Only use API tracks for initial load - don't merge with locallyPlayedTracks
+      // because addToLocallyPlayed already manages recentlyPlayed directly
       const uniqueTracks = [];
       const seenTrackIds = new Set();
       
       // Sort by played_at in descending order (most recent first)
-      allTracks.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+      apiTracks.sort((a: RecentlyPlayedItem, b: RecentlyPlayedItem) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
       
-      for (const item of allTracks) {
-        if (!seenTrackIds.has(item.track.id)) {
-          seenTrackIds.add(item.track.id);
+      for (const item of apiTracks) {
+        const trackId = item.track?.id;
+        if (trackId && !seenTrackIds.has(trackId)) {
+          seenTrackIds.add(trackId);
           uniqueTracks.push(item);
           if (uniqueTracks.length >= 20) break;
         }
       }
       
-      setRecentlyPlayed(uniqueTracks);
+      // Only set recentlyPlayed if it's currently empty (initial load)
+      // Otherwise, addToLocallyPlayed manages it directly
+      if (recentlyPlayed.length === 0) {
+        setRecentlyPlayed(uniqueTracks);
+        console.log(`Initial load: Set recently played with ${uniqueTracks.length} tracks from API`);
+      } else {
+        console.log(`Skipping refresh - recentlyPlayed already has ${recentlyPlayed.length} tracks (managed by addToLocallyPlayed)`);
+      }
+      
       setErrors(prev => ({ ...prev, recently: '' }));
-      console.log(`Updated recently played with ${uniqueTracks.length} tracks (${locallyPlayedTracks.length} local, ${apiTracks.length} from API)`);
     } catch (error) {
       console.error('Failed to refresh recently played:', error);
       setErrors(prev => ({ ...prev, recently: 'Failed to refresh recently played tracks' }));
@@ -220,14 +312,21 @@ const Dashboard: React.FC = () => {
       setIsRefreshing(false);
       setLoadingRecently(false);
     }
-  }, [token, isRefreshing, locallyPlayedTracks]);
+  }, [token, isRefreshing, recentlyPlayed.length]);
 
   React.useEffect(() => {
-    console.log('Dashboard loaded, token:', !!token);
+    console.log('Dashboard loaded, token:', !!token, 'isLoading:', isLoading);
     
-    // If user is not authenticated, show limited dashboard content
+    // Don't redirect if still loading (token exchange might be in progress)
+    if (isLoading) {
+      console.log('Auth still loading, waiting...');
+      return;
+    }
+    
+    // If user is not authenticated and not loading, redirect to login
     if (!token) {
-      console.log('No token found, showing limited dashboard...');
+      console.log('No token found and not loading, redirecting to login...');
+      navigate('/login');
       return;
     }
 
@@ -333,7 +432,7 @@ const Dashboard: React.FC = () => {
       })
       .catch((error) => handleApiError(error, 'categories'))
       .finally(() => setLoadingCategories(false));
-  }, [token, navigate]);
+  }, [token, isLoading, navigate]);
 
   // Periodic refresh for recently played tracks
   React.useEffect(() => {
@@ -366,8 +465,30 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
+  // Show loading or redirect if not authenticated
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
+          <p>Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+      {/* Show loading screen while auth is in progress */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="text-center">
+            <CircularProgress size={60} sx={{ color: '#22c55e', mb: 2 }} />
+            <div className="text-white text-xl">Connecting to Spotify...</div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <Header 
         onSearch={(query) => {
@@ -376,20 +497,17 @@ const Dashboard: React.FC = () => {
         }}
         onMobileMenuToggle={() => setSidebarOpen(true)}
         onTrackPlayed={(track: any) => {
-          // Add track to locally played immediately
-          addToLocallyPlayed(track);
-          // Also refresh from API after a short delay to get any other recent activity
-          setTimeout(() => {
-            refreshRecentlyPlayed();
-          }, 1000);
+          // Add track to recently played immediately
+          addToLocallyPlayed(track, 'header-search');
+          // Note: Don't call refreshRecentlyPlayed here as it can cause duplicates
         }}
-        onHomeClick={() => setCurrentAlbumId(null)}
       />
       
       {/* Sidebar */}
-        <Sidebar 
+      <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onHomeClick={() => setCurrentAlbumId(null)}
       />
       
       {/* Main Content */}
@@ -399,7 +517,8 @@ const Dashboard: React.FC = () => {
         {currentAlbumId ? (
           <AlbumComponent 
             albumId={currentAlbumId} 
-            onBack={() => setCurrentAlbumId(null)} 
+            onBack={() => setCurrentAlbumId(null)}
+            onTrackPlay={(track, source) => addToLocallyPlayed(track, source || 'album')}
           />
         ) : (
           <>
@@ -581,9 +700,9 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
-                  <div key={`${item.track.id}-${index}`} className="group cursor-pointer">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item) => (
+                  <div key={item.track.id} className="group cursor-pointer">
                     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
@@ -596,16 +715,20 @@ const Dashboard: React.FC = () => {
                           <button 
                             onClick={async (e) => {
                               e.stopPropagation();
+                              console.log(`🎵 Continue Listening: Clicked play button for track: ${item.track.name} (ID: ${item.track.id})`);
+                              console.log(`🎵 Current track: ${currentTrack?.name} (ID: ${currentTrack?.id}), isPlaying: ${isPlaying}`);
                               try {
                                 if (currentTrack?.id === item.track.id && isPlaying) {
+                                  console.log(`⏸️ Pausing current track`);
                                   await pause();
                                 } else {
+                                  console.log(`▶️ Playing track: ${item.track.name}`);
                                   await play(item.track);
-                                  // Add to locally played tracks immediately
-                                  addToLocallyPlayed(item.track);
+                                  // Note: Don't call addToLocallyPlayed here since this track is already 
+                                  // in the recently played list. Only Top Tracks and Album sections should add tracks.
                                 }
                               } catch (error) {
-                                console.error('Play/Pause error:', error);
+                                console.error('❌ Play/Pause error:', error);
                                 alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
                               }
                             }}
@@ -775,7 +898,7 @@ const Dashboard: React.FC = () => {
                                 } else {
                                   await play(track);
                                   // Add to locally played tracks immediately
-                                  addToLocallyPlayed(track);
+                                  addToLocallyPlayed(track, 'top-tracks');
                                 }
                               } catch (error) {
                                 console.error('Play/Pause error:', error);
@@ -855,6 +978,35 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                // Get playlist tracks first
+                                const tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=1`, {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                  },
+                                });
+                                
+                                if (tracksResponse.ok) {
+                                  const tracksData = await tracksResponse.json();
+                                  const firstTrack = tracksData.items?.[0]?.track;
+                                  
+                                  if (firstTrack) {
+                                    await play(firstTrack);
+                                    addToLocallyPlayed(firstTrack, 'playlist');
+                                    console.log('Playing first track from playlist:', playlist.name);
+                                  } else {
+                                    alert('No tracks available in this playlist.');
+                                  }
+                                } else {
+                                  throw new Error(`Failed to fetch playlist tracks: HTTP ${tracksResponse.status}`);
+                                }
+                              } catch (error) {
+                                console.error('Play error:', error);
+                                alert('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.');
+                              }
+                            }}
                             className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -952,7 +1104,7 @@ const Dashboard: React.FC = () => {
                                     };
                                     
                                     await play(fullTrack);
-                                    addToLocallyPlayed(fullTrack);
+                                    addToLocallyPlayed(fullTrack, 'new-releases');
                                     console.log('Playing first track from album:', album.name);
                                   } else {
                                     alert('No tracks available for this album.');

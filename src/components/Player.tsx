@@ -98,7 +98,9 @@ const Player: React.FC = () => {
           backdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           p: 1.5,
-          zIndex: 50
+          zIndex: 99999,
+          isolation: 'isolate',
+          transform: 'translateZ(0)'
         }}
       >
         <Box sx={{ maxWidth: '1200px', mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -127,7 +129,9 @@ const Player: React.FC = () => {
         backdropFilter: 'blur(20px)',
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         p: 2,
-        zIndex: 50
+        zIndex: 99999,
+        isolation: 'isolate',
+        transform: 'translateZ(0)'
       }}
     >
       <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>

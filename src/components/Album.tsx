@@ -20,9 +20,10 @@ import type { Album as AlbumType, Track } from '../types/spotify';
 interface AlbumProps {
   albumId: string;
   onBack: () => void;
+  onTrackPlay?: (track: Track, source?: string) => void;
 }
 
-const Album: React.FC<AlbumProps> = ({ albumId, onBack }) => {
+const Album: React.FC<AlbumProps> = ({ albumId, onBack, onTrackPlay }) => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const [album, setAlbum] = useState<AlbumType | null>(null);
@@ -90,6 +91,15 @@ const Album: React.FC<AlbumProps> = ({ albumId, onBack }) => {
         }
 
         await playAlbumFromTrack(album.uri, trackIndex || 0);
+        
+        // Notify the parent component that a track was played
+        if (onTrackPlay) {
+          const fullTrack = {
+            ...track,
+            album: album || undefined
+          };
+          onTrackPlay(fullTrack, 'album');
+        }
       }
     } catch (error) {
       console.error('Error playing track:', error);
@@ -138,6 +148,15 @@ const Album: React.FC<AlbumProps> = ({ albumId, onBack }) => {
     
     try {
       await playAlbumFromTrack(album.uri, 0);
+      
+      // Notify the parent component that the first track was played
+      if (onTrackPlay && album.tracks.items[0]) {
+        const fullTrack = {
+          ...album.tracks.items[0],
+          album: album || undefined
+        };
+        onTrackPlay(fullTrack, 'album');
+      }
     } catch (error) {
       console.error('Error playing album:', error);
       alert('Unable to play album. Make sure you have Spotify Premium and the Spotify app is open.');
