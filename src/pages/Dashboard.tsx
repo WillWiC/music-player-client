@@ -628,116 +628,109 @@ const Dashboard: React.FC = () => {
           {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}
-<div className="relative overflow-hidden mb-8">
-            {/* Glassmorphism background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-3xl border border-white/10"></div>
-            <div className="relative p-8 lg:p-12 space-y-8">
-              {/* Top Status Bar */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
-                    <span className="text-green-300 text-base font-semibold">Live Dashboard</span>
-                  </div>
-                  {/* Device Status Indicator */}
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
-                    <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
-                    <span className={`text-base font-semibold ${deviceId ? 'text-yellow-200' : 'text-red-200'}`}>
-                      Device Status: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device connected'}
-                    </span>
-                  </div>
-                  <div className="text-base font-semibold text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Main Greeting Section */}
-              <div className="text-center lg:text-left max-w-4xl mx-auto lg:mx-0">
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6">
-                  <span className="bg-gradient-to-r from-green-400 via-green-300 to-green-400 bg-clip-text text-transparent">
-                    {greeting}
-                  </span>
-                </h1>
-                {user?.display_name && (
-                  <div className="mb-8">
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-200 mb-4">
-                      Welcome back, <span className="text-white">{formatDisplayName(user.display_name)}</span>! 
-                    </h2>
-                    <p className="text-lg text-gray-400 max-w-2xl mx-auto lg:mx-0">
-                      Ready to discover your next favorite song? Let's dive into your personalized music universe.
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Quick Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <button 
-                  onClick={() => scrollToSection('recently')} 
-                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
-                      <span className="text-2xl font-bold text-green-400 leading-none group-hover:scale-110 transition-transform duration-300">♪</span>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-400 font-medium group-hover:text-green-300 transition-colors duration-300">Recent Plays</div>
-                    </div>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => scrollToSection('playlists')} 
-                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
-                      <span className="text-2xl font-bold text-purple-400 leading-none group-hover:scale-110 transition-transform duration-300">♫</span>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-400 font-medium group-hover:text-purple-300 transition-colors duration-300">Playlists</div>
-                    </div>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => scrollToSection('top')} 
-                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-yellow-500/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
-                      <span className="text-2xl font-bold text-yellow-400 leading-none group-hover:scale-110 transition-transform duration-300">★</span>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-400 font-medium group-hover:text-yellow-300 transition-colors duration-300">Top Tracks</div>
-                    </div>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => scrollToSection('releases')} 
-                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-blue-500/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
-                      <span className="text-2xl font-bold text-blue-400 leading-none group-hover:scale-110 transition-transform duration-300">◆</span>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-400 font-medium group-hover:text-blue-300 transition-colors duration-300">New Releases</div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-wrap justify-center lg:justify-start gap-6">
-                <button 
-                  onClick={() => navigate('/search')} 
-                  className="flex items-center gap-3 px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group"
-                >
-                  <span>Discover Music</span>
+<div className="relative overflow-hidden mb-8 max-h-[90vh] min-h-[340px] flex items-center justify-center">
+  {/* Glassmorphism background */}
+  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-3xl border border-white/10"></div>
+  <div className="relative p-4 sm:p-6 md:p-8 space-y-4 w-full overflow-y-auto max-h-[90vh]">
+    {/* Top Status Bar */}
+    <div className="flex flex-wrap items-center gap-2 mb-2">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-xs">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+          <span className="text-green-300 font-semibold">Live Dashboard</span>
+        </div>
+        {/* Device Status Indicator */}
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm text-xs ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
+          <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
+          <span className={`${deviceId ? 'text-yellow-200' : 'text-red-200'} font-semibold`}>
+            Device: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device'}
+          </span>
+        </div>
+        <div className="text-xs font-semibold text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+          {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+        </div>
+      </div>
+    </div>
+    {/* Main Greeting Section */}
+    <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+        <span className="bg-gradient-to-r from-green-400 via-green-300 to-green-400 bg-clip-text text-transparent">
+          {greeting}
+        </span>
+      </h1>
+      {user?.display_name && (
+        <div className="mb-4">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-200 mb-2">
+            Welcome back, <span className="text-white">{formatDisplayName(user.display_name)}</span>!
+          </h2>
+          <p className="text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
+            Ready to discover your next favorite song? Let's dive into your personalized music universe.
+          </p>
+        </div>
+      )}
+    </div>
+    {/* Quick Stats Grid */}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <button
+        onClick={() => scrollToSection('recently')}
+        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
+            <span className="text-xl font-bold text-green-400 leading-none group-hover:scale-110 transition-transform duration-300">♪</span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 font-medium group-hover:text-green-300 transition-colors duration-300">Recent Plays</div>
+          </div>
+        </div>
+      </button>
+      <button
+        onClick={() => scrollToSection('playlists')}
+        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
+            <span className="text-xl font-bold text-purple-400 leading-none group-hover:scale-110 transition-transform duration-300">♫</span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 font-medium group-hover:text-purple-300 transition-colors duration-300">Playlists</div>
+          </div>
+        </div>
+      </button>
+      <button
+        onClick={() => scrollToSection('top')}
+        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-yellow-500/20"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
+            <span className="text-xl font-bold text-yellow-400 leading-none group-hover:scale-110 transition-transform duration-300">★</span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 font-medium group-hover:text-yellow-300 transition-colors duration-300">Top Tracks</div>
+          </div>
+        </div>
+      </button>
+      <button
+        onClick={() => scrollToSection('releases')}
+        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-blue-500/20"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
+            <span className="text-xl font-bold text-blue-400 leading-none group-hover:scale-110 transition-transform duration-300">◆</span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 font-medium group-hover:text-blue-300 transition-colors duration-300">New Releases</div>
+          </div>
+        </div>
+      </button>
+    </div>
+    {/* Action Buttons */}
+    <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
+      <button
+        onClick={() => navigate('/search')}
+        className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group text-sm"
+      >
+        <span>Discover Music</span>
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
