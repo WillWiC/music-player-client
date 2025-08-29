@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import AlbumComponent from '../components/Album';
+import MediaView from '../components/MediaView';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { CircularProgress } from '@mui/material';
 import '../index.css';
@@ -50,11 +50,15 @@ const Dashboard: React.FC = () => {
   // Album view state
   const [currentAlbumId, setCurrentAlbumId] = React.useState<string | null>(null);
   
-  // Clear album view when navigating to dashboard (via sidebar or direct navigation)
+  // Playlist view state
+  const [currentPlaylistId, setCurrentPlaylistId] = React.useState<string | null>(null);
+  
+  // Clear album and playlist views when navigating to dashboard (via sidebar or direct navigation)
   React.useEffect(() => {
-    // Clear album view when navigating to dashboard
+    // Clear views when navigating to dashboard
     if (location.pathname === '/dashboard' || location.pathname === '/') {
       setCurrentAlbumId(null);
+      setCurrentPlaylistId(null);
     }
   }, [location.pathname]);
   
@@ -507,7 +511,10 @@ const Dashboard: React.FC = () => {
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        onHomeClick={() => setCurrentAlbumId(null)}
+        onHomeClick={() => {
+          setCurrentAlbumId(null);
+          setCurrentPlaylistId(null);
+        }}
       />
       
       {/* Main Content */}
@@ -515,10 +522,18 @@ const Dashboard: React.FC = () => {
         
         {/* Show Album page if an album is selected */}
         {currentAlbumId ? (
-          <AlbumComponent 
-            albumId={currentAlbumId} 
+          <MediaView 
+            id={currentAlbumId} 
+            type="album"
             onBack={() => setCurrentAlbumId(null)}
-            onTrackPlay={(track, source) => addToLocallyPlayed(track, source || 'album')}
+            onTrackPlay={(track: any, source?: string) => addToLocallyPlayed(track, source || 'album')}
+          />
+        ) : currentPlaylistId ? (
+          <MediaView 
+            id={currentPlaylistId} 
+            type="playlist"
+            onBack={() => setCurrentPlaylistId(null)}
+            onTrackPlay={(track: any, source?: string) => addToLocallyPlayed(track, source || 'playlist')}
           />
         ) : (
           <>
@@ -1016,7 +1031,13 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-2">
-                        <h3 className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight">
+                        <h3 
+                          className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentPlaylistId(playlist.id);
+                          }}
+                        >
                           {playlist.name}
                         </h3>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
