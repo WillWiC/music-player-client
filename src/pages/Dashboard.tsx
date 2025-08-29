@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import '../index.css';
 
 const Dashboard: React.FC = () => {
@@ -35,7 +36,6 @@ const Dashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   
   // Refresh state for recently played tracks
-  const [lastRefreshTime, setLastRefreshTime] = React.useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [locallyPlayedTracks, setLocallyPlayedTracks] = React.useState<any[]>([]);
   
@@ -180,7 +180,6 @@ const Dashboard: React.FC = () => {
       }
       
       setRecentlyPlayed(uniqueTracks);
-      setLastRefreshTime(new Date());
       setErrors(prev => ({ ...prev, recently: '' }));
       console.log(`Updated recently played with ${uniqueTracks.length} tracks (${locallyPlayedTracks.length} local, ${apiTracks.length} from API)`);
     } catch (error) {
@@ -526,28 +525,6 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 )}
-                
-                {/* Refresh Button */}
-                <button 
-                  onClick={refreshRecentlyPlayed}
-                  disabled={isRefreshing}
-                  className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                    isRefreshing 
-                      ? 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed' 
-                      : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
-                  }`}
-                  title={
-                    isRefreshing 
-                      ? 'Refreshing...' 
-                      : lastRefreshTime 
-                        ? `Refresh recently played (Last updated: ${lastRefreshTime.toLocaleTimeString()})`
-                        : 'Refresh recently played'
-                  }
-                >
-                  <svg className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
               </div>
             </div>
             
@@ -1028,19 +1005,10 @@ const Dashboard: React.FC = () => {
           title="Scroll to top"
           style={{ zIndex: 100 }}
         >
-          <svg 
-            className="w-5 h-5 transform group-hover:-translate-y-0.5 transition-transform duration-200" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M7 14l5-5 5 5" 
-            />
-          </svg>
+          <KeyboardArrowUpIcon 
+            className="transform group-hover:-translate-y-0.5 transition-transform duration-200"
+            style={{ fontSize: '20px' }}
+          />
         </button>
       )}
     </div>
