@@ -1,11 +1,10 @@
 import React from 'react';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import MediaView from '../components/MediaView';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { CircularProgress } from '@mui/material';
 import '../index.css';
@@ -14,7 +13,6 @@ const Dashboard: React.FC = () => {
   const { token, isLoading } = useAuth();
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
-  const location = useLocation();
   
   // State management
   const [user, setUser] = React.useState<User | null>(null);
@@ -46,21 +44,6 @@ const Dashboard: React.FC = () => {
   
   // Scroll to top button state
   const [showScrollToTop, setShowScrollToTop] = React.useState(false);
-  
-  // Album view state
-  const [currentAlbumId, setCurrentAlbumId] = React.useState<string | null>(null);
-  
-  // Playlist view state
-  const [currentPlaylistId, setCurrentPlaylistId] = React.useState<string | null>(null);
-  
-  // Clear album and playlist views when navigating to dashboard (via sidebar or direct navigation)
-  React.useEffect(() => {
-    // Clear views when navigating to dashboard
-    if (location.pathname === '/dashboard' || location.pathname === '/') {
-      setCurrentAlbumId(null);
-      setCurrentPlaylistId(null);
-    }
-  }, [location.pathname]);
   
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
@@ -130,7 +113,12 @@ const Dashboard: React.FC = () => {
 
   // Function to handle opening album page
   const openAlbum = (albumId: string) => {
-    setCurrentAlbumId(albumId);
+    navigate(`/album/${albumId}`);
+  };
+
+  // Function to handle opening playlist page
+  const openPlaylist = (playlistId: string) => {
+    navigate(`/playlist/${playlistId}`);
   };
 
   // Function to handle track click - either play or open album
@@ -511,32 +499,12 @@ const Dashboard: React.FC = () => {
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        onHomeClick={() => {
-          setCurrentAlbumId(null);
-          setCurrentPlaylistId(null);
-        }}
+        onHomeClick={() => navigate('/dashboard')}
       />
       
       {/* Main Content */}
       <div className="flex-1 lg:ml-72 pb-24 pt-20">
         
-        {/* Show Album page if an album is selected */}
-        {currentAlbumId ? (
-          <MediaView 
-            id={currentAlbumId} 
-            type="album"
-            onBack={() => setCurrentAlbumId(null)}
-            onTrackPlay={(track: any, source?: string) => addToLocallyPlayed(track, source || 'album')}
-          />
-        ) : currentPlaylistId ? (
-          <MediaView 
-            id={currentPlaylistId} 
-            type="playlist"
-            onBack={() => setCurrentPlaylistId(null)}
-            onTrackPlay={(track: any, source?: string) => addToLocallyPlayed(track, source || 'playlist')}
-          />
-        ) : (
-          <>
         {/* Content Container */}
         <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-10">
           {/* Debug Device Status */}
@@ -1035,7 +1003,7 @@ const Dashboard: React.FC = () => {
                           className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setCurrentPlaylistId(playlist.id);
+                            openPlaylist(playlist.id);
                           }}
                         >
                           {playlist.name}
@@ -1263,8 +1231,6 @@ const Dashboard: React.FC = () => {
               style={{ fontSize: '20px' }}
             />
           </button>
-        )}
-        </>
         )}
       </div>
     </div>

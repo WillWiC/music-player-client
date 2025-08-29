@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline, Box } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MediaView from './components/MediaView';
@@ -84,23 +84,27 @@ const MediaPage: React.FC = () => {
   const type = location.pathname.startsWith('/album/') ? 'album' : 'playlist';
   
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#000000' }}>
+    <div className="flex min-h-screen bg-black text-white">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         onHomeClick={() => navigate('/dashboard')}
       />
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
-        <Box sx={{ flex: 1, overflow: 'auto', pb: 10 }}>
+      
+      {/* Header */}
+      <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
+      
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-72 pb-24 pt-20">
+        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12">
           <MediaView 
             id={id} 
             type={type} 
             onBack={() => navigate('/dashboard')} 
           />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 
