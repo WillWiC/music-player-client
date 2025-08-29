@@ -238,7 +238,14 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   if (!mediaData) return null;
 
   return (
-    <Box sx={{ padding: 4, color: 'white' }}>
+  <div className="min-h-screen flex flex-col" style={{ background: '#000000' }}>
+      <Box sx={{
+        color: 'white',
+        flex: 1,
+        width: '100%',
+        maxWidth: '1200px',
+        margin: '0 auto',
+      }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
         <IconButton onClick={onBack} sx={{ color: 'white' }}>
@@ -485,6 +492,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
         })}
       </Box>
     </Box>
+    </div>
   );
 };
 

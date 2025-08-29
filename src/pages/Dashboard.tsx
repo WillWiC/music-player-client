@@ -17,11 +17,30 @@ const Dashboard: React.FC = () => {
   // State management
   const [user, setUser] = React.useState<User | null>(null);
   const [playlists, setPlaylists] = React.useState<Playlist[]>([]);
-  const [recentlyPlayed, setRecentlyPlayed] = React.useState<RecentlyPlayedItem[]>([]);
+  // Load recentlyPlayed from localStorage if available
+  const [recentlyPlayed, setRecentlyPlayed] = React.useState<RecentlyPlayedItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('recentlyPlayed');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to load recentlyPlayed from localStorage:', e);
+    }
+    return [];
+  });
+  // Save recentlyPlayed to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('recentlyPlayed', JSON.stringify(recentlyPlayed));
+    } catch (e) {
+      console.warn('Failed to save recentlyPlayed to localStorage:', e);
+    }
+  }, [recentlyPlayed]);
   const [topTracks, setTopTracks] = React.useState<Track[]>([]);
   const [newReleases, setNewReleases] = React.useState<Album[]>([]);
   const [categories, setCategories] = React.useState<Category[]>([]);
-  const [greeting, setGreeting] = React.useState('Good evening');
+  const [greeting, setGreeting] = React.useState('Good Evening');
   
   // Enhanced loading states
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
@@ -354,25 +373,28 @@ const Dashboard: React.FC = () => {
         }
       }
       
-      // Merge API tracks with existing locally played tracks
+      // Only use API tracks if localStorage is empty, otherwise only add new API tracks not present locally
       setRecentlyPlayed(prev => {
-        const mergedTracks = [...uniqueTracks];
-        const apiTrackIds = new Set(uniqueTracks.map(item => item.track?.id));
-        
-        // Add existing local tracks that aren't already in the API response
-        for (const existingItem of prev) {
-          const existingId = existingItem.track?.id;
-          if (existingId && !apiTrackIds.has(existingId) && mergedTracks.length < 30) {
-            mergedTracks.push(existingItem);
-          }
+        let localTracks = prev;
+        // If localStorage is empty, use API tracks
+        if (!localTracks || localTracks.length === 0) {
+          console.log('No local recentlyPlayed, using API tracks');
+          return uniqueTracks.slice(0, 12);
         }
-        
+        // Otherwise, add only new API tracks not present locally
+        const seenIds = new Set(localTracks.map(item => item.track?.id));
+        const seenNameArtist = new Set(localTracks.map(item => `${item.track?.name?.toLowerCase() || ''}-${item.track?.artists?.[0]?.name?.toLowerCase() || ''}`));
+        const newApiTracks = uniqueTracks.filter(item => {
+          const id = item.track?.id;
+          const name = item.track?.name?.toLowerCase() || '';
+          const artist = item.track?.artists?.[0]?.name?.toLowerCase() || '';
+          const key = `${name}-${artist}`;
+          return (!id || !seenIds.has(id)) && !seenNameArtist.has(key);
+        });
+        const merged = [...localTracks, ...newApiTracks];
         // Sort by played_at to maintain chronological order
-        mergedTracks.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
-        
-        // Take only the most recent 30 tracks
-  const result = mergedTracks.slice(0, 12); // Only keep the latest 12 songs
-        
+        merged.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+        const result = merged.slice(0, 12);
         console.log(`Refreshed recently played: ${result.length} tracks (${uniqueTracks.length} from API, ${result.length - uniqueTracks.length} local)`);
         return result;
       });
