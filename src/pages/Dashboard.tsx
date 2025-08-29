@@ -34,6 +34,14 @@ const Dashboard: React.FC = () => {
   // Sidebar state for mobile
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   
+  // Refresh state for recently played tracks
+  const [lastRefreshTime, setLastRefreshTime] = React.useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [locallyPlayedTracks, setLocallyPlayedTracks] = React.useState<any[]>([]);
+  
+  // Scroll to top button state
+  const [showScrollToTop, setShowScrollToTop] = React.useState(false);
+  
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
   const [recentlyStartIndex, setRecentlyStartIndex] = React.useState(0);
@@ -91,6 +99,96 @@ const Dashboard: React.FC = () => {
   const canGoPrev = topTracksStartIndex > 0;
   const canGoNextRecently = recentlyStartIndex + recentlyPerView < recentlyPlayed.length;
   const canGoPrevRecently = recentlyStartIndex > 0;
+
+  // Scroll to top functionality
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle scroll event to show/hide scroll to top button
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollToTop(window.scrollY > 200);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Function to add a track to locally played tracks immediately
+  const addToLocallyPlayed = React.useCallback((track: any) => {
+    const playedItem = {
+      track: track,
+      played_at: new Date().toISOString(),
+      context: null
+    };
+    
+    setLocallyPlayedTracks(prev => {
+      // Remove if already exists and add to beginning
+      const filtered = prev.filter(item => item.track.id !== track.id);
+      return [playedItem, ...filtered].slice(0, 20); // Keep only last 20
+    });
+    
+    // Also immediately update the recentlyPlayed state
+    setRecentlyPlayed(prev => {
+      const filtered = prev.filter(item => item.track.id !== track.id);
+      return [playedItem, ...filtered].slice(0, 20);
+    });
+    
+    console.log('Added track to locally played:', track.name);
+  }, []);
+
+  // Function to refresh recently played tracks
+  const refreshRecentlyPlayed = React.useCallback(async () => {
+    if (!token || isRefreshing) return;
+    
+    console.log('Refreshing recently played tracks...');
+    setIsRefreshing(true);
+    setLoadingRecently(true);
+    
+    try {
+      const response = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      
+      // Merge locally played tracks with API data
+      const apiTracks = data.items || [];
+      const allTracks = [...locallyPlayedTracks, ...apiTracks];
+      
+      // Remove duplicates and sort by played_at timestamp
+      const uniqueTracks = [];
+      const seenTrackIds = new Set();
+      
+      // Sort by played_at in descending order (most recent first)
+      allTracks.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+      
+      for (const item of allTracks) {
+        if (!seenTrackIds.has(item.track.id)) {
+          seenTrackIds.add(item.track.id);
+          uniqueTracks.push(item);
+          if (uniqueTracks.length >= 20) break;
+        }
+      }
+      
+      setRecentlyPlayed(uniqueTracks);
+      setLastRefreshTime(new Date());
+      setErrors(prev => ({ ...prev, recently: '' }));
+      console.log(`Updated recently played with ${uniqueTracks.length} tracks (${locallyPlayedTracks.length} local, ${apiTracks.length} from API)`);
+    } catch (error) {
+      console.error('Failed to refresh recently played:', error);
+      setErrors(prev => ({ ...prev, recently: 'Failed to refresh recently played tracks' }));
+    } finally {
+      setIsRefreshing(false);
+      setLoadingRecently(false);
+    }
+  }, [token, isRefreshing, locallyPlayedTracks]);
 
   React.useEffect(() => {
     console.log('Dashboard loaded, token:', !!token);
@@ -153,34 +251,8 @@ const Dashboard: React.FC = () => {
       .catch((error) => handleApiError(error, 'playlists'))
       .finally(() => setLoadingPlaylists(false));
 
-    // Fetch recently played tracks
-    setLoadingRecently(true);
-    fetch('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        const uniqueTracks = [];
-        const seenTrackIds = new Set();
-        
-        if (data.items) {
-          for (const item of data.items) {
-            if (!seenTrackIds.has(item.track.id)) {
-              seenTrackIds.add(item.track.id);
-              uniqueTracks.push(item);
-              if (uniqueTracks.length >= 20) break;
-            }
-          }
-        }
-        
-        setRecentlyPlayed(uniqueTracks);
-        setErrors(prev => ({ ...prev, recently: '' }));
-      })
-      .catch((error) => handleApiError(error, 'recently played'))
-      .finally(() => setLoadingRecently(false));
+    // Fetch recently played tracks using the refresh function
+    refreshRecentlyPlayed();
 
     // Fetch user's top tracks
     setLoadingTop(true);
@@ -231,6 +303,18 @@ const Dashboard: React.FC = () => {
       .finally(() => setLoadingCategories(false));
   }, [token, navigate]);
 
+  // Periodic refresh for recently played tracks
+  React.useEffect(() => {
+    if (!token) return;
+
+    // Set up interval to refresh recently played every 2 minutes
+    const intervalId = setInterval(() => {
+      refreshRecentlyPlayed();
+    }, 2 * 60 * 1000); // 2 minutes
+
+    return () => clearInterval(intervalId);
+  }, [token, refreshRecentlyPlayed]);
+
   // Click-outside handling
 
   // Enhanced loading skeleton component
@@ -259,6 +343,14 @@ const Dashboard: React.FC = () => {
           console.log('Search query:', query);
         }}
         onMobileMenuToggle={() => setSidebarOpen(true)}
+        onTrackPlayed={(track: any) => {
+          // Add track to locally played immediately
+          addToLocallyPlayed(track);
+          // Also refresh from API after a short delay to get any other recent activity
+          setTimeout(() => {
+            refreshRecentlyPlayed();
+          }, 1000);
+        }}
       />
       
       {/* Sidebar */}
@@ -432,6 +524,28 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                 )}
+                
+                {/* Refresh Button */}
+                <button 
+                  onClick={refreshRecentlyPlayed}
+                  disabled={isRefreshing}
+                  className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                    isRefreshing 
+                      ? 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed' 
+                      : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
+                  }`}
+                  title={
+                    isRefreshing 
+                      ? 'Refreshing...' 
+                      : lastRefreshTime 
+                        ? `Refresh recently played (Last updated: ${lastRefreshTime.toLocaleTimeString()})`
+                        : 'Refresh recently played'
+                  }
+                >
+                  <svg className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
               </div>
             </div>
             
@@ -469,6 +583,8 @@ const Dashboard: React.FC = () => {
                                   await pause();
                                 } else {
                                   await play(item.track);
+                                  // Add to locally played tracks immediately
+                                  addToLocallyPlayed(item.track);
                                 }
                               } catch (error) {
                                 console.error('Play/Pause error:', error);
@@ -634,6 +750,8 @@ const Dashboard: React.FC = () => {
                                   await pause();
                                 } else {
                                   await play(track);
+                                  // Add to locally played tracks immediately
+                                  addToLocallyPlayed(track);
                                 }
                               } catch (error) {
                                 console.error('Play/Pause error:', error);
@@ -899,6 +1017,29 @@ const Dashboard: React.FC = () => {
           </section>
         </div>
       </div>
+      
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-tr from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group animate-slideIn backdrop-blur-sm border border-green-400/30"
+          title="Scroll to top"
+        >
+          <svg 
+            className="w-7 h-7 transform group-hover:-translate-y-1 transition-transform duration-200" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M7 14l5-5 5 5" 
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

@@ -7,12 +7,14 @@ interface HeaderProps {
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
   onMobileMenuToggle?: () => void;
+  onTrackPlayed?: (track: Track) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   onSearch, 
   searchPlaceholder = "Search for songs, artists, or albums...",
-  onMobileMenuToggle
+  onMobileMenuToggle,
+  onTrackPlayed
 }) => {
   const navigate = useNavigate();
   const { user, token, isLoading, clearAll, logout } = useAuth();
@@ -135,6 +137,8 @@ const Header: React.FC<HeaderProps> = ({
           console.log('Track started playing:', track.name);
           setShowSearchDropdown(false);
           setSearchQuery('');
+          // Notify parent component that a track was played
+          onTrackPlayed?.(track);
         } else {
           console.error('Failed to play track:', playResponse.status);
           if (playResponse.status === 403) {
