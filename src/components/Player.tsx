@@ -1,5 +1,25 @@
 import React from 'react';
 import { usePlayer } from '../context/player';
+import { 
+  Box, 
+  CardMedia, 
+  Typography, 
+  IconButton, 
+  Slider, 
+  Stack,
+  Avatar,
+  Chip
+} from '@mui/material';
+import {
+  PlayArrow,
+  Pause,
+  SkipNext,
+  SkipPrevious,
+  VolumeUp,
+  VolumeDown,
+  VolumeOff,
+  MusicNote
+} from '@mui/icons-material';
 
 const Player: React.FC = () => {
   const { 
@@ -22,153 +42,264 @@ const Player: React.FC = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Handle progress bar click
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const newPosition = (clickX / width) * duration;
+  // Handle progress bar change
+  const handleProgressChange = (_: Event, value: number | number[]) => {
+    const newPosition = Array.isArray(value) ? value[0] : value;
     seek(newPosition);
   };
 
   // Handle volume change
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
+  const handleVolumeChange = (_: Event, value: number | number[]) => {
+    const newVolume = (Array.isArray(value) ? value[0] : value) / 100;
     setVolume(newVolume);
+  };
+
+  // Get volume icon based on current volume
+  const getVolumeIcon = () => {
+    if (volume === 0) return <VolumeOff />;
+    if (volume < 0.5) return <VolumeDown />;
+    return <VolumeUp />;
   };
 
   if (!currentTrack) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 p-4 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-center">
-          <div className="flex items-center gap-4 text-gray-400">
-            <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-sm font-medium">No track playing</div>
-              <div className="text-xs">Play a song to see controls here</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          bgcolor: 'rgba(0, 0, 0, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          p: 2,
+          zIndex: 50
+        }}
+      >
+        <Box sx={{ maxWidth: '1200px', mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ color: 'text.secondary' }}>
+            <Avatar sx={{ bgcolor: 'grey.800' }}>
+              <MusicNote />
+            </Avatar>
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.primary' }}>No track playing</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Play a song to see controls here</Typography>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 p-4 z-50">
-      <div className="max-w-7xl mx-auto">
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        bgcolor: 'rgba(0, 0, 0, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        p: 2,
+        zIndex: 50
+      }}
+    >
+      <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
         {/* Progress Bar */}
-        <div className="mb-4">
-          <div 
-            className="w-full h-1 bg-gray-700 rounded-full cursor-pointer group"
-            onClick={handleProgressClick}
-          >
-            <div 
-              className="h-full bg-green-500 rounded-full transition-all duration-300 group-hover:bg-green-400"
-              style={{ width: `${duration > 0 ? (position / duration) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
+        <Box sx={{ mb: 2 }}>
+          <Slider
+            value={duration > 0 ? position : 0}
+            max={duration}
+            onChange={handleProgressChange}
+            sx={{
+              height: 4,
+              '& .MuiSlider-thumb': {
+                width: 12,
+                height: 12,
+                transition: '0.3s cubic-bezier(.47,1.64,.41,.8)',
+                '&:before': {
+                  boxShadow: '0 2px 12px 0 rgba(34,197,94,0.4)',
+                },
+                '&:hover, &.Mui-focusVisible': {
+                  boxShadow: '0px 0px 0px 8px rgba(34,197,94,0.16)',
+                },
+                '&.Mui-active': {
+                  width: 16,
+                  height: 16,
+                },
+              },
+              '& .MuiSlider-rail': {
+                opacity: 0.28,
+              },
+              '& .MuiSlider-track': {
+                background: 'linear-gradient(to right, #22c55e, #3b82f6)',
+              },
+            }}
+          />
+        </Box>
 
-        <div className="flex items-center justify-between gap-4">
+        <Stack direction="row" alignItems="center" spacing={3}>
           {/* Track Info */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <img 
-              src={currentTrack.album?.images?.[0]?.url} 
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+            <CardMedia
+              component="img"
+              image={currentTrack.album?.images?.[0]?.url}
               alt={`${currentTrack.name} cover`}
-              className="w-12 h-12 rounded-lg object-cover shadow-lg"
-            />
-            <div className="min-w-0 flex-1">
-              <h4 className="text-white font-semibold text-sm truncate hover:text-green-400 transition-colors cursor-pointer">
-                {currentTrack.name}
-              </h4>
-              <p className="text-gray-400 text-xs truncate">
-                {currentTrack.artists?.map(artist => artist.name).join(', ')}
-              </p>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-gray-400 font-mono">
-              <span>{formatTime(position)}</span>
-              <span>/</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-4">
-            {/* Previous Track */}
-            <button 
-              onClick={previousTrack}
-              className="p-2 text-gray-400 hover:text-white transition-colors hover:scale-110 transform"
-              title="Previous track"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
-              </svg>
-            </button>
-
-            {/* Play/Pause */}
-            <button 
-              onClick={togglePlay}
-              className="w-10 h-10 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? (
-                <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-            </button>
-
-            {/* Next Track */}
-            <button 
-              onClick={nextTrack}
-              className="p-2 text-gray-400 hover:text-white transition-colors hover:scale-110 transform"
-              title="Next track"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Volume Control */}
-          <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M6 10l4-4v4h4l-4 4v-4H6z" />
-            </svg>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer volume-slider"
-              style={{
-                background: `linear-gradient(to right, #10b981 0%, #10b981 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 1,
+                boxShadow: 2
               }}
             />
-            <span className="text-xs text-gray-400 font-mono w-8 text-right">
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  '&:hover': { color: 'primary.main' },
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {currentTrack.name}
+              </Typography>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'text.secondary',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block'
+                }}
+              >
+                {currentTrack.artists?.map(artist => artist.name).join(', ')}
+              </Typography>
+            </Box>
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1 }}>
+              <Chip 
+                label={`${formatTime(position)} / ${formatTime(duration)}`}
+                size="small"
+                variant="outlined"
+                sx={{ 
+                  fontSize: '0.7rem',
+                  fontFamily: 'monospace',
+                  color: 'text.secondary',
+                  borderColor: 'rgba(255, 255, 255, 0.1)'
+                }}
+              />
+            </Box>
+          </Stack>
+
+          {/* Controls */}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconButton 
+              onClick={previousTrack}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { 
+                  color: 'text.primary',
+                  transform: 'scale(1.1)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <SkipPrevious />
+            </IconButton>
+
+            <IconButton 
+              onClick={togglePlay}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'black',
+                width: 48,
+                height: 48,
+                '&:hover': {
+                  bgcolor: 'primary.light',
+                  transform: 'scale(1.05)'
+                },
+                transition: 'all 0.2s ease',
+                boxShadow: 2
+              }}
+            >
+              {isPlaying ? <Pause /> : <PlayArrow />}
+            </IconButton>
+
+            <IconButton 
+              onClick={nextTrack}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { 
+                  color: 'text.primary',
+                  transform: 'scale(1.1)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <SkipNext />
+            </IconButton>
+          </Stack>
+
+          {/* Volume Control */}
+          <Stack 
+            direction="row" 
+            spacing={1} 
+            alignItems="center" 
+            sx={{ 
+              display: { xs: 'none', md: 'flex' },
+              minWidth: 120
+            }}
+          >
+            <IconButton size="small" sx={{ color: 'text.secondary' }}>
+              {getVolumeIcon()}
+            </IconButton>
+            <Slider
+              value={volume * 100}
+              onChange={handleVolumeChange}
+              sx={{
+                width: 80,
+                '& .MuiSlider-thumb': {
+                  width: 8,
+                  height: 8,
+                  '&:before': {
+                    boxShadow: '0 2px 12px 0 rgba(34,197,94,0.4)',
+                  },
+                  '&:hover, &.Mui-focusVisible': {
+                    boxShadow: '0px 0px 0px 8px rgba(34,197,94,0.16)',
+                  },
+                },
+                '& .MuiSlider-track': {
+                  bgcolor: 'primary.main',
+                },
+              }}
+            />
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', minWidth: 24 }}>
               {Math.round(volume * 100)}%
-            </span>
-          </div>
+            </Typography>
+          </Stack>
 
           {/* Mobile Time Display */}
-          <div className="flex sm:hidden items-center gap-2 text-xs text-gray-400 font-mono">
-            <span>{formatTime(position)}</span>
-            <span>/</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+          <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
+            <Chip 
+              label={`${formatTime(position)} / ${formatTime(duration)}`}
+              size="small"
+              variant="outlined"
+              sx={{ 
+                fontSize: '0.7rem',
+                fontFamily: 'monospace',
+                color: 'text.secondary',
+                borderColor: 'rgba(255, 255, 255, 0.1)'
+              }}
+            />
+          </Box>
+        </Stack>
+      </Box>
+    </Box>
   );
 };
 
