@@ -48,8 +48,13 @@ const Dashboard: React.FC = () => {
   // Horizontal scroll state for top tracks
   const [topTracksStartIndex, setTopTracksStartIndex] = React.useState(0);
   const [recentlyStartIndex, setRecentlyStartIndex] = React.useState(0);
-  const tracksPerView = 20;
-  const recentlyPerView = 5;
+  const [releasesStartIndex, setReleasesStartIndex] = React.useState(0);
+  const [isAnimatingRecently, setIsAnimatingRecently] = React.useState(false);
+  const [isAnimatingReleases, setIsAnimatingReleases] = React.useState(false);
+  const [isAnimatingTracks, setIsAnimatingTracks] = React.useState(false);
+  const tracksPerView = 5;
+  const recentlyPerView = 6;
+  const releasesPerView = 6;
   // Removed unused showProfileDropdown state after layout overhaul
 
   // Helper function to format display name
@@ -81,27 +86,56 @@ const Dashboard: React.FC = () => {
 
   // Navigation functions for horizontal scrolling
   const handleNextTracks = () => {
+    if (isAnimatingTracks) return; // Prevent multiple animations
+    setIsAnimatingTracks(true);
     const maxStartIndex = Math.max(0, topTracks.length - tracksPerView);
     setTopTracksStartIndex(prev => Math.min(prev + tracksPerView, maxStartIndex));
+    setTimeout(() => setIsAnimatingTracks(false), 300);
   };
 
   const handlePrevTracks = () => {
+    if (isAnimatingTracks) return; // Prevent multiple animations
+    setIsAnimatingTracks(true);
     setTopTracksStartIndex(prev => Math.max(prev - tracksPerView, 0));
+    setTimeout(() => setIsAnimatingTracks(false), 300);
   };
 
   const handleNextRecently = () => {
+    if (isAnimatingRecently) return; // Prevent multiple animations
+    setIsAnimatingRecently(true);
     const maxStartIndex = Math.max(0, recentlyPlayed.length - recentlyPerView);
     setRecentlyStartIndex(prev => Math.min(prev + recentlyPerView, maxStartIndex));
+    setTimeout(() => setIsAnimatingRecently(false), 300);
   };
 
   const handlePrevRecently = () => {
+    if (isAnimatingRecently) return; // Prevent multiple animations
+    setIsAnimatingRecently(true);
     setRecentlyStartIndex(prev => Math.max(prev - recentlyPerView, 0));
+    setTimeout(() => setIsAnimatingRecently(false), 300);
+  };
+
+  const handleNextReleases = () => {
+    if (isAnimatingReleases) return; // Prevent multiple animations
+    setIsAnimatingReleases(true);
+    const maxStartIndex = Math.max(0, newReleases.length - releasesPerView);
+    setReleasesStartIndex(prev => Math.min(prev + releasesPerView, maxStartIndex));
+    setTimeout(() => setIsAnimatingReleases(false), 300);
+  };
+
+  const handlePrevReleases = () => {
+    if (isAnimatingReleases) return; // Prevent multiple animations
+    setIsAnimatingReleases(true);
+    setReleasesStartIndex(prev => Math.max(prev - releasesPerView, 0));
+    setTimeout(() => setIsAnimatingReleases(false), 300);
   };
 
   const canGoNext = topTracksStartIndex + tracksPerView < topTracks.length;
   const canGoPrev = topTracksStartIndex > 0;
   const canGoNextRecently = recentlyStartIndex + recentlyPerView < recentlyPlayed.length;
   const canGoPrevRecently = recentlyStartIndex > 0;
+  const canGoNextReleases = releasesStartIndex + releasesPerView < newReleases.length;
+  const canGoPrevReleases = releasesStartIndex > 0;
 
   // Scroll to top functionality
   const scrollToTop = () => {
@@ -109,6 +143,29 @@ const Dashboard: React.FC = () => {
       top: 0,
       behavior: 'smooth'
     });
+  };
+
+  // Smooth scroll to section functionality
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const yOffset = -100; // Add some offset for header
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      
+      // Add a brief visual feedback to the clicked button
+      const clickedButton = document.activeElement;
+      if (clickedButton) {
+        clickedButton.classList.add('animate-pulse');
+        setTimeout(() => {
+          clickedButton.classList.remove('animate-pulse');
+        }, 300);
+      }
+      
+      window.scrollTo({
+        top: y,
+        behavior: 'smooth'
+      });
+    }
   };
 
   // Function to handle opening album page
@@ -154,6 +211,9 @@ const Dashboard: React.FC = () => {
     const normalizedTrack = track.track ? track.track : track;
     
     // More aggressive duplicate prevention - check multiple criteria
+    // But allow re-adding if it's a replay from recently-played section
+    const isReplay = source === 'recently-played-replay';
+    
     const isDuplicateByName = recentlyPlayed.some(item => {
       const existingTrack = item.track;
       const existingArtist = existingTrack.artists?.[0]?.name || '';
@@ -164,22 +224,25 @@ const Dashboard: React.FC = () => {
       return existingName === newName && existingArtist === newArtist;
     });
 
-    if (isDuplicateByName) {
+    if (isDuplicateByName && !isReplay) {
       console.log(`❌ Track ${trackName} by ${normalizedTrack.artists?.[0]?.name} already exists (different ID but same name/artist), skipping addition from source: ${source || 'unknown'}`);
       return;
     }
 
     // Also check if this exact track ID is already at the top
     const isAlreadyMostRecent = recentlyPlayed.length > 0 && recentlyPlayed[0]?.track?.id === trackId;
-    if (isAlreadyMostRecent) {
+    if (isAlreadyMostRecent && !isReplay) {
       console.log(`❌ Track ${trackName} (ID: ${trackId}) is already the most recent track, skipping addition from source: ${source || 'unknown'}`);
       return;
     }
     
     // Check if this track was added very recently (within 2 seconds from ANY source)
+    // But allow replays and current track changes to override this
+    const isAllowedSource = isReplay || source === 'current track change';
     if (lastAddedRef.current && 
         lastAddedRef.current.trackId === trackId && 
-        now - lastAddedRef.current.timestamp < 2000) {
+        now - lastAddedRef.current.timestamp < 2000 && 
+        !isAllowedSource) {
       console.log(`❌ Preventing rapid duplicate addition of track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} (last added ${now - lastAddedRef.current.timestamp}ms ago)`);
       return;
     }
@@ -187,7 +250,11 @@ const Dashboard: React.FC = () => {
     // Update the last added tracker
     lastAddedRef.current = { trackId, timestamp: now };
     
-    console.log(`✅ Adding track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'}`);
+    if (isReplay) {
+      console.log(`🔄 Replaying track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} - moving to top of recently played`);
+    } else {
+      console.log(`✅ Adding track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'}`);
+    }
     
     const playedItem = {
       track: normalizedTrack,
@@ -241,7 +308,7 @@ const Dashboard: React.FC = () => {
         return true;
       });
       
-      const result = deduped.slice(0, 20);
+  const result = deduped.slice(0, 12); // Only keep the latest 12 songs
       console.log(`📋 After adding: recentlyPlayed now has ${result.length} tracks`);
       
       return result;
@@ -259,7 +326,7 @@ const Dashboard: React.FC = () => {
     setLoadingRecently(true);
     
     try {
-      const response = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
+      const response = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=30', {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -272,7 +339,7 @@ const Dashboard: React.FC = () => {
       
       // Only use API tracks for initial load - don't merge with locallyPlayedTracks
       // because addToLocallyPlayed already manages recentlyPlayed directly
-      const uniqueTracks = [];
+      const uniqueTracks: RecentlyPlayedItem[] = [];
       const seenTrackIds = new Set();
       
       // Sort by played_at in descending order (most recent first)
@@ -287,14 +354,28 @@ const Dashboard: React.FC = () => {
         }
       }
       
-      // Only set recentlyPlayed if it's currently empty (initial load)
-      // Otherwise, addToLocallyPlayed manages it directly
-      if (recentlyPlayed.length === 0) {
-        setRecentlyPlayed(uniqueTracks);
-        console.log(`Initial load: Set recently played with ${uniqueTracks.length} tracks from API`);
-      } else {
-        console.log(`Skipping refresh - recentlyPlayed already has ${recentlyPlayed.length} tracks (managed by addToLocallyPlayed)`);
-      }
+      // Merge API tracks with existing locally played tracks
+      setRecentlyPlayed(prev => {
+        const mergedTracks = [...uniqueTracks];
+        const apiTrackIds = new Set(uniqueTracks.map(item => item.track?.id));
+        
+        // Add existing local tracks that aren't already in the API response
+        for (const existingItem of prev) {
+          const existingId = existingItem.track?.id;
+          if (existingId && !apiTrackIds.has(existingId) && mergedTracks.length < 30) {
+            mergedTracks.push(existingItem);
+          }
+        }
+        
+        // Sort by played_at to maintain chronological order
+        mergedTracks.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
+        
+        // Take only the most recent 30 tracks
+  const result = mergedTracks.slice(0, 12); // Only keep the latest 12 songs
+        
+        console.log(`Refreshed recently played: ${result.length} tracks (${uniqueTracks.length} from API, ${result.length - uniqueTracks.length} local)`);
+        return result;
+      });
       
       setErrors(prev => ({ ...prev, recently: '' }));
     } catch (error) {
@@ -395,7 +476,7 @@ const Dashboard: React.FC = () => {
 
     // Fetch new releases
     setLoadingReleases(true);
-    fetch('https://api.spotify.com/v1/browse/new-releases?limit=8', {
+    fetch('https://api.spotify.com/v1/browse/new-releases?limit=20', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
@@ -430,13 +511,28 @@ const Dashboard: React.FC = () => {
   React.useEffect(() => {
     if (!token) return;
 
-    // Set up interval to refresh recently played every 2 minutes
+    // Set up interval to refresh recently played every 30 seconds
     const intervalId = setInterval(() => {
       refreshRecentlyPlayed();
-    }, 2 * 60 * 1000); // 2 minutes
+    }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(intervalId);
   }, [token, refreshRecentlyPlayed]);
+
+  // Watch for current track changes and add to recently played
+  React.useEffect(() => {
+    if (!currentTrack) return;
+
+    console.log('🎵 Current track changed:', currentTrack.name, 'by', currentTrack.artists?.[0]?.name, 'isPlaying:', isPlaying);
+    
+    // Add a small delay to ensure the track is actually playing and to avoid race conditions
+    const timeoutId = setTimeout(() => {
+      console.log('🎵 Adding current track to recently played after delay');
+      addToLocallyPlayed(currentTrack, 'current track change');
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [currentTrack, addToLocallyPlayed]);
 
   // Click-outside handling
 
@@ -568,46 +664,58 @@ const Dashboard: React.FC = () => {
               
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <a href="#recently" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                <button 
+                  onClick={() => scrollToSection('recently')} 
+                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold text-green-400 leading-none">♪</span>
+                    <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
+                      <span className="text-2xl font-bold text-green-400 leading-none group-hover:scale-110 transition-transform duration-300">♪</span>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400 font-medium">Recent Plays</div>
+                      <div className="text-sm text-gray-400 font-medium group-hover:text-green-300 transition-colors duration-300">Recent Plays</div>
                     </div>
                   </div>
-                </a>
-                <a href="#playlists" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </button>
+                <button 
+                  onClick={() => scrollToSection('playlists')} 
+                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold text-purple-400 leading-none">♫</span>
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
+                      <span className="text-2xl font-bold text-purple-400 leading-none group-hover:scale-110 transition-transform duration-300">♫</span>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400 font-medium">Playlists</div>
+                      <div className="text-sm text-gray-400 font-medium group-hover:text-purple-300 transition-colors duration-300">Playlists</div>
                     </div>
                   </div>
-                </a>
-                <a href="#top" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </button>
+                <button 
+                  onClick={() => scrollToSection('top')} 
+                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-yellow-500/20"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold text-yellow-400 leading-none">★</span>
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
+                      <span className="text-2xl font-bold text-yellow-400 leading-none group-hover:scale-110 transition-transform duration-300">★</span>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400 font-medium">Top Tracks</div>
+                      <div className="text-sm text-gray-400 font-medium group-hover:text-yellow-300 transition-colors duration-300">Top Tracks</div>
                     </div>
                   </div>
-                </a>
-                <a href="#releases" className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                </button>
+                <button 
+                  onClick={() => scrollToSection('releases')} 
+                  className="group p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-blue-500/20"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold text-blue-400 leading-none">◆</span>
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
+                      <span className="text-2xl font-bold text-blue-400 leading-none group-hover:scale-110 transition-transform duration-300">◆</span>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400 font-medium">New Releases</div>
+                      <div className="text-sm text-gray-400 font-medium group-hover:text-blue-300 transition-colors duration-300">New Releases</div>
                     </div>
                   </div>
-                </a>
+                </button>
               </div>
               
               {/* Action Buttons */}
@@ -638,9 +746,9 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={handlePrevRecently}
-                      disabled={!canGoPrevRecently}
+                      disabled={!canGoPrevRecently || isAnimatingRecently}
                       className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoPrevRecently 
+                        canGoPrevRecently && !isAnimatingRecently
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
@@ -652,9 +760,9 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button 
                       onClick={handleNextRecently}
-                      disabled={!canGoNextRecently}
+                      disabled={!canGoNextRecently || isAnimatingRecently}
                       className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoNextRecently 
+                        canGoNextRecently && !isAnimatingRecently
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
@@ -671,7 +779,7 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-6 gap-4">
                 {Array.from({ length: recentlyPerView }).map((_, i) => (
                   <div key={i} className="space-y-2">
                     <LoadingSkeleton className="aspect-square rounded-lg" />
@@ -683,9 +791,16 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item) => (
-                  <div key={item.track.id} className="group cursor-pointer">
+                <div className={`grid grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
+                  <div 
+                    key={`${item.track.id}-${recentlyStartIndex}`} 
+                    className={`group cursor-pointer transition-all duration-300 ease-out ${isAnimatingRecently ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      animationDelay: `${index * 50}ms`,
+                      transform: isAnimatingRecently ? 'translateY(10px)' : 'translateY(0px)'
+                    }}
+                  >
                     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
@@ -707,8 +822,8 @@ const Dashboard: React.FC = () => {
                                 } else {
                                   console.log(`▶️ Playing track: ${item.track.name}`);
                                   await play(item.track);
-                                  // Note: Don't call addToLocallyPlayed here since this track is already 
-                                  // in the recently played list. Only Top Tracks and Album sections should add tracks.
+                                  // Add to recently played to move it to the top (most recent position)
+                                  addToLocallyPlayed(item.track, 'recently-played-replay');
                                 }
                               } catch (error) {
                                 console.error('❌ Play/Pause error:', error);
@@ -776,9 +891,9 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={handlePrevTracks}
-                      disabled={!canGoPrev}
+                      disabled={!canGoPrev || isAnimatingTracks}
                       className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoPrev 
+                        canGoPrev && !isAnimatingTracks
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
@@ -790,9 +905,9 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button 
                       onClick={handleNextTracks}
-                      disabled={!canGoNext}
+                      disabled={!canGoNext || isAnimatingTracks}
                       className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoNext 
+                        canGoNext && !isAnimatingTracks
                           ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                           : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
@@ -826,13 +941,17 @@ const Dashboard: React.FC = () => {
             ) : errors.top ? (
               <ErrorMessage message={errors.top} />
             ) : topTracks.length > 0 ? (
-              <div className="space-y-3">
+              <div className={`space-y-3 transition-all duration-300 ease-in-out ${isAnimatingTracks ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {topTracks.slice(topTracksStartIndex, topTracksStartIndex + tracksPerView).map((track, index) => {
                   const globalIndex = topTracksStartIndex + index;
                   return (
                     <div 
-                      key={track.id} 
-                      className="group cursor-pointer bg-white/3 hover:bg-white/8 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden"
+                      key={`${track.id}-${topTracksStartIndex}`} 
+                      className={`group cursor-pointer bg-white/3 hover:bg-white/8 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden ${isAnimatingTracks ? 'animate-pulse' : ''}`}
+                      style={{ 
+                        animationDelay: `${index * 50}ms`,
+                        transform: isAnimatingTracks ? 'translateX(10px)' : 'translateX(0px)'
+                      }}
                     >
                       <div className="flex items-center gap-4 p-4">
                         {/* Rank */}
@@ -880,8 +999,8 @@ const Dashboard: React.FC = () => {
                                   await pause();
                                 } else {
                                   await play(track);
-                                  // Add to locally played tracks immediately
-                                  addToLocallyPlayed(track, 'top-tracks');
+                                  // Always move to top of recently played, even if already present
+                                  addToLocallyPlayed(track, 'recently-played-replay');
                                 }
                               } catch (error) {
                                 console.error('Play/Pause error:', error);
@@ -1042,12 +1161,47 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-white mb-1">New Song Releases</h2>
                 <p className="text-gray-400 text-sm">Fresh music from your favorite artists</p>
               </div>
+              <div className="flex items-center gap-3">
+                {/* Navigation Arrows */}
+                {newReleases.length > releasesPerView && (
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={handlePrevReleases}
+                      disabled={!canGoPrevReleases || isAnimatingReleases}
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        canGoPrevReleases && !isAnimatingReleases
+                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                      }`}
+                      title="Previous releases"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={handleNextReleases}
+                      disabled={!canGoNextReleases || isAnimatingReleases}
+                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        canGoNextReleases && !isAnimatingReleases
+                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                      }`}
+                      title="Next releases"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* New Releases Section */}
             {loadingReleases ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {Array.from({ length: 12 }).map((_, i) => (
+                {Array.from({ length: releasesPerView }).map((_, i) => (
                   <div key={i} className="space-y-2">
                     <LoadingSkeleton className="aspect-square rounded-lg" />
                     <LoadingSkeleton className="h-3 w-full" />
@@ -1058,9 +1212,16 @@ const Dashboard: React.FC = () => {
             ) : errors.releases ? (
               <ErrorMessage message={errors.releases} />
             ) : newReleases.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {newReleases.map((album) => (
-                  <div key={album.id} className="group cursor-pointer">
+              <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingReleases ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                {newReleases.slice(releasesStartIndex, releasesStartIndex + releasesPerView).map((album, index) => (
+                  <div 
+                    key={`${album.id}-${releasesStartIndex}`} 
+                    className={`group cursor-pointer transition-all duration-300 ease-out ${isAnimatingReleases ? 'animate-pulse' : ''}`}
+                    style={{ 
+                      animationDelay: `${index * 50}ms`,
+                      transform: isAnimatingReleases ? 'translateY(10px)' : 'translateY(0px)'
+                    }}
+                  >
                     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
@@ -1116,7 +1277,11 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-2">
-                        <h4 className="text-white font-medium text-xs truncate group-hover:text-blue-400 transition-colors leading-tight">
+                        <h4 
+                          className="text-white font-medium text-xs truncate group-hover:text-blue-400 transition-colors leading-tight cursor-pointer hover:underline"
+                          onClick={() => openAlbum(album.id)}
+                          title={album.name}
+                        >
                           {album.name}
                         </h4>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">

@@ -233,6 +233,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     );
   }
 
+
   if (!mediaData) return null;
 
   return (
@@ -303,16 +304,6 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           mb: 1
         }}>
           <Typography sx={{ 
-            width: 40, 
-            textAlign: 'center', 
-            color: 'gray',
-            fontSize: '0.9rem',
-            fontWeight: 500
-          }}>
-            #
-          </Typography>
-          
-          <Typography sx={{ 
             flex: 1,
             color: 'gray',
             fontSize: '0.9rem',
@@ -321,20 +312,6 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           }}>
             Title
           </Typography>
-          
-          {type === 'playlist' && (
-            <Typography sx={{ 
-              width: 200,
-              color: 'gray',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              textAlign: 'left',
-              mr: 2
-            }}>
-              Album
-            </Typography>
-          )}
-          
           <Typography sx={{ 
             width: 100,
             color: 'gray',
@@ -342,14 +319,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             fontWeight: 500,
             textAlign: 'left'
           }}>
-            Date added
           </Typography>
-          
-          <Box sx={{ width: 60, display: 'flex', justifyContent: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ color: 'gray' }}>
-              <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM7 4.5V8l3 1.5.5-1L8 7.5V4.5z"/>
-            </svg>
-          </Box>
         </Box>
         
         {tracks.map((item, index) => {
@@ -462,19 +432,6 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                 </Typography>
               )}
               
-              <Typography sx={{ 
-                width: 100,
-                color: 'gray', 
-                fontSize: '0.875rem',
-                textAlign: 'left'
-              }}>
-                {/* Mock date - you can add real date if available */}
-                {new Date().toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                })}
-              </Typography>
               
               <Box sx={{ 
                 width: 60, 
