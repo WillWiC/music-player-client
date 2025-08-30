@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth';
+import { usePlayer } from '../context/player';
 import type { Track } from '../types/spotify';
 import {
   AppBar,
@@ -32,6 +33,7 @@ import {
   Close,
   Settings
 } from '@mui/icons-material';
+import { PlayArrow, Pause } from '@mui/icons-material';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -48,6 +50,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
+  const { play, pause, currentTrack, isPlaying } = usePlayer();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
   const [showLogoutNotification, setShowLogoutNotification] = React.useState(false);
@@ -124,6 +127,12 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleTrackPlay = async (track: Track) => {
+    try {
+      await play(track as any);
+    } catch (err) {
+      console.error('Play failed from header:', err);
+    }
+
     if (onTrackPlayed) {
       onTrackPlayed(track);
     }
@@ -299,10 +308,32 @@ const Header: React.FC<HeaderProps> = ({
                         }
                         secondary={
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {track.artists?.map(a => a.name).join(', ')}
+                            {track.artists?.map(a => a.name).join(', ')} • {track.album?.name}
                           </Typography>
                         }
                       />
+                      {/* Play/Pause button */}
+                      <IconButton
+                        size="small"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            if (currentTrack?.id === track.id && isPlaying) {
+                              await pause();
+                            } else {
+                              await play(track as any);
+                            }
+                            if (onTrackPlayed) onTrackPlayed(track);
+                            setShowSearchDropdown(false);
+                            clearSearch();
+                          } catch (err) {
+                            console.error('Play button error in dropdown:', err);
+                          }
+                        }}
+                        sx={{ ml: 1 }}
+                      >
+                        {currentTrack?.id === track.id && isPlaying ? <Pause /> : <PlayArrow />}
+                      </IconButton>
                     </ListItem>
                   ))}
                 </List>
