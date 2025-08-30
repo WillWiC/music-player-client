@@ -196,6 +196,8 @@ const Player: React.FC = () => {
             {/* Shuffle Button */}
             <IconButton 
               onClick={handleShuffleToggle}
+              aria-label="Toggle shuffle"
+              aria-pressed={isShuffled}
               sx={{ 
                 color: isShuffled ? 'primary.main' : 'text.secondary',
                 '&:hover': { 
@@ -211,6 +213,7 @@ const Player: React.FC = () => {
 
             <IconButton 
               onClick={previousTrack}
+              aria-label="Previous track"
               sx={{ 
                 color: 'text.secondary',
                 '&:hover': { 
@@ -225,6 +228,7 @@ const Player: React.FC = () => {
 
             <IconButton 
               onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
               sx={{
                 bgcolor: 'primary.main',
                 color: 'white',
@@ -244,6 +248,7 @@ const Player: React.FC = () => {
 
             <IconButton 
               onClick={nextTrack}
+              aria-label="Next track"
               sx={{ 
                 color: 'text.secondary',
                 '&:hover': { 
@@ -259,6 +264,8 @@ const Player: React.FC = () => {
             {/* Repeat Button */}
             <IconButton 
               onClick={handleRepeatToggle}
+              aria-label={`Repeat mode: ${repeatMode}`}
+              aria-pressed={repeatMode !== 'off'}
               sx={{ 
                 color: repeatMode !== 'off' ? 'primary.main' : 'text.secondary',
                 '&:hover': { 
@@ -325,12 +332,13 @@ const Player: React.FC = () => {
               minWidth: 120
             }}
           >
-            <IconButton sx={{ color: 'text.secondary' }}>
+            <IconButton sx={{ color: 'text.secondary' }} aria-label="Volume">
               {getVolumeIcon()}
             </IconButton>
             <Slider
               value={volume * 100}
               onChange={handleVolumeChange}
+              aria-label="Volume"
               sx={{
                 width: 80,
                 '& .MuiSlider-thumb': {

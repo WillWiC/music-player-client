@@ -7,12 +7,14 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { CircularProgress } from '@mui/material';
+import { useToast } from '../context/toast';
 import '../index.css';
 
 const Dashboard: React.FC = () => {
   const { token, isLoading } = useAuth();
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
+  const toast = useToast();
   
   // State management
   const [user, setUser] = React.useState<User | null>(null);
@@ -833,7 +835,7 @@ const Dashboard: React.FC = () => {
                                 }
                               } catch (error) {
                                 console.error('❌ Play/Pause error:', error);
-                                alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
+                                toast.showToast('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
                             className="w-8 h-8 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
@@ -1010,7 +1012,7 @@ const Dashboard: React.FC = () => {
                                 }
                               } catch (error) {
                                 console.error('Play/Pause error:', error);
-                                alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
+                                toast.showToast('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
                             className="w-10 h-10 bg-yellow-500/20 hover:bg-yellow-500 text-yellow-400 hover:text-black rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 border border-yellow-500/30 hover:border-yellow-500"
@@ -1105,14 +1107,14 @@ const Dashboard: React.FC = () => {
                                     addToLocallyPlayed(firstTrack, 'playlist');
                                     console.log('Playing first track from playlist:', playlist.name);
                                   } else {
-                                    alert('No tracks available in this playlist.');
+                                    toast.showToast('No tracks available in this playlist.', 'warning');
                                   }
                                 } else {
                                   throw new Error(`Failed to fetch playlist tracks: HTTP ${tracksResponse.status}`);
                                 }
                               } catch (error) {
                                 console.error('Play error:', error);
-                                alert('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.');
+                                toast.showToast('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
                             className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
@@ -1263,15 +1265,15 @@ const Dashboard: React.FC = () => {
                                     addToLocallyPlayed(fullTrack, 'new-releases');
                                     console.log('Playing first track from album:', album.name);
                                   } else {
-                                    alert('No tracks available for this album.');
+                                    toast.showToast('No tracks available for this album.', 'warning');
                                   }
                                 } else {
                                   console.error('Failed to fetch album tracks:', tracksResponse.status);
-                                  alert('Unable to load album tracks. Please try again.');
+                                  toast.showToast('Unable to load album tracks. Please try again.', 'error');
                                 }
                               } catch (error) {
                                 console.error('Album play error:', error);
-                                alert('Unable to play album. Make sure you have Spotify Premium and the Spotify app is open.');
+                                toast.showToast('Unable to play album. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
                             className="w-8 h-8 bg-blue-500 hover:bg-blue-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"

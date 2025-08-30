@@ -11,6 +11,7 @@ import {
   IconButton
 } from '@mui/material';
 import { PlayArrow, Pause } from '@mui/icons-material';
+import { useToast } from '../context/toast';
 
 const Library: React.FC = () => {
   const { token } = useAuth();
@@ -65,6 +66,8 @@ const Library: React.FC = () => {
     loadAll();
   }, [token, navigate]);
 
+  const toast = useToast();
+
   const handlePlay = async (track: any) => {
     try {
       if (currentTrack?.id === track.id && isPlaying) {
@@ -74,7 +77,7 @@ const Library: React.FC = () => {
       }
     } catch (err) {
       console.error('Play error:', err);
-      alert('Unable to play track. Ensure Spotify Premium and an active device.');
+      toast.showToast('Unable to play track. Ensure Spotify Premium and an active device.', 'error');
     }
   };
 

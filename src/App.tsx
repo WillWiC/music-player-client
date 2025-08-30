@@ -12,6 +12,7 @@ import Header from './components/Header';
 import Player from './components/Player';
 import { AuthProvider, useAuth } from './context/auth';
 import { PlayerProvider } from './context/player';
+import { ToastProvider } from './context/toast';
 
 // Create a dark theme for the music player
 const darkTheme = createTheme({
@@ -136,9 +137,11 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <PlayerProvider>
-          <Router>
-            <AppContent />
-          </Router>
+          <ToastProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </ToastProvider>
         </PlayerProvider>
       </AuthProvider>
     </ThemeProvider>

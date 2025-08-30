@@ -9,6 +9,7 @@ import {
   CardMedia,
   Skeleton
 } from '@mui/material';
+import { useToast } from '../context/toast';
 import {
   PlayArrow,
   ArrowBack,
@@ -93,6 +94,8 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     fetchMediaData();
   }, [token, id, type]);
 
+  const toast = useToast();
+
   const handleTrackPlay = async (track: Track) => {
     try {
       if (currentTrack?.id === track.id && isPlaying) {
@@ -117,7 +120,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
       }
     } catch (error) {
       console.error('Failed to play track:', error);
-      alert('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.');
+      toast.showToast('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
     }
   };
 
@@ -148,7 +151,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
       }
     } catch (error) {
       console.error(`Failed to play ${type}:`, error);
-      alert(`Unable to play ${type}. Make sure you have Spotify Premium and the Spotify app is open.`);
+      toast.showToast(`Unable to play ${type}. Make sure you have Spotify Premium and the Spotify app is open.`, 'error');
     }
   };
 

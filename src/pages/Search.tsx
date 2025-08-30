@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
+import { useToast } from '../context/toast';
 import {
   Box,
   
@@ -22,6 +23,7 @@ const SearchPage: React.FC = () => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
@@ -85,7 +87,7 @@ const SearchPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Play error', err);
-      alert('Unable to play track. Ensure Spotify Premium and an active device.');
+      toast.showToast('Unable to play track. Ensure Spotify Premium and an active device.', 'error');
     }
   };
 
