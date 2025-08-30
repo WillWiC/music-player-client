@@ -28,7 +28,6 @@ import {
   Menu as MenuIcon,
   Search,
   AccountCircle,
-  PlayArrow,
   Logout,
   Close,
   Settings
@@ -290,16 +289,11 @@ const Header: React.FC<HeaderProps> = ({
                       }}
                     >
                       <ListItemAvatar>
-                        <Avatar
-                          src={track.album?.images?.[0]?.url}
-                          sx={{ width: 40, height: 40 }}
-                        >
-                          <PlayArrow />
-                        </Avatar>
+                        <Avatar src={track.album?.images?.[0]?.url} alt={track.name} variant="rounded" sx={{ width: 44, height: 44, mr: 1 }} />
                       </ListItemAvatar>
                       <ListItemText
                         primary={
-                          <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
+                          <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 600 }}>
                             {track.name}
                           </Typography>
                         }
