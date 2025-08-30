@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/auth';
@@ -17,9 +17,36 @@ const Library: React.FC = () => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [tab, setTab] = React.useState(0);
+
+  // If navigated with state indicating liked songs, open that tab
+  React.useEffect(() => {
+    try {
+      const state = (location && (location.state as any)) || {};
+      const tabKey = state.initialTab || new URLSearchParams(location.search).get('tab');
+      switch (tabKey) {
+        case 'playlists':
+          setTab(0);
+          break;
+        case 'liked':
+          setTab(1);
+          break;
+        case 'albums':
+          setTab(2);
+          break;
+        case 'artists':
+          setTab(3);
+          break;
+        default:
+          break;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [location]);
 
   const [playlists, setPlaylists] = React.useState<any[]>([]);
   const [albums, setAlbums] = React.useState<any[]>([]);

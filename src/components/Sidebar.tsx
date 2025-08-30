@@ -19,7 +19,7 @@ import {
   Search,
   LibraryMusic,
   Favorite,
-  History,
+  PlaylistPlay,
   Close
 } from '@mui/icons-material';
 
@@ -61,19 +61,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
 
   const quickLinks = [
     {
+      id: 'myplaylists',
+      label: 'My Playlists',
+      icon: <PlaylistPlay />,
+      path: '/library',
+      color: '#f59e0b' // Amber
+    },
+    {
       id: 'liked',
       label: 'Liked Songs',
       icon: <Favorite />,
-      path: '/liked',
+      path: '/library',
       color: '#8b5cf6' // Purple
     },
-    {
-      id: 'recent',
-      label: 'Recently Played',
-      icon: <History />,
-      path: '/recent',
-      color: '#10b981' // Green
-    }
+    // Removed 'Recently Played' quick link per request.
   ];
 
   const handleNavigation = (path: string, isHome: boolean = false) => {
@@ -175,10 +176,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
           Quick Access
         </Typography>
         <List sx={{ p: 0 }}>
-          {quickLinks.map((link) => (
+              {quickLinks.map((link) => (
             <ListItem key={link.id} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
-                onClick={() => handleNavigation(link.path)}
+                onClick={() => {
+                  // Support quick links that target specific Library tabs
+                  if (link.id === 'liked') {
+                    navigate('/library', { state: { initialTab: 'liked' } });
+                    if (isMobile && onClose) onClose();
+                    return;
+                  }
+                  if (link.id === 'myplaylists') {
+                    navigate('/library', { state: { initialTab: 'playlists' } });
+                    if (isMobile && onClose) onClose();
+                    return;
+                  }
+                  handleNavigation(link.path);
+                }}
                 sx={{
                   borderRadius: 2,
                   px: 2,
