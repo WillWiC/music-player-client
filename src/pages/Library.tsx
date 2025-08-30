@@ -21,6 +21,7 @@ const Library: React.FC = () => {
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [tab, setTab] = React.useState(0);
+  const [tabHighlight, setTabHighlight] = React.useState(false);
 
   // If navigated with state indicating liked songs, open that tab
   React.useEffect(() => {
@@ -30,15 +31,19 @@ const Library: React.FC = () => {
       switch (tabKey) {
         case 'playlists':
           setTab(0);
+          setTabHighlight(true);
           break;
         case 'liked':
           setTab(1);
+          setTabHighlight(true);
           break;
         case 'albums':
           setTab(2);
+          setTabHighlight(true);
           break;
         case 'artists':
           setTab(3);
+          setTabHighlight(true);
           break;
         default:
           break;
@@ -47,6 +52,13 @@ const Library: React.FC = () => {
       // ignore
     }
   }, [location]);
+
+  // Clear temporary highlight after animation
+  React.useEffect(() => {
+    if (!tabHighlight) return;
+    const id = setTimeout(() => setTabHighlight(false), 700);
+    return () => clearTimeout(id);
+  }, [tabHighlight]);
 
   const [playlists, setPlaylists] = React.useState<any[]>([]);
   const [albums, setAlbums] = React.useState<any[]>([]);
@@ -134,7 +146,7 @@ const Library: React.FC = () => {
               <CircularProgress sx={{ color: 'primary.main' }} />
             </div>
           ) : (
-            <div>
+            <div className={tabHighlight ? 'tab-open-highlight' : ''}>
               {tab === 0 && (
                 <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {playlists.map(pl => (
