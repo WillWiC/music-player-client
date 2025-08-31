@@ -8,6 +8,7 @@ import Search from './pages/Search';
 import Library from './pages/Library';
 import Account from './pages/Account';
 import Settings from './pages/Settings';
+import Discovery from './pages/Discovery';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -119,6 +120,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="App">
       <Routes>
+  <Route path="/discover" element={<Discovery />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
   <Route path="/search" element={<Search />} />

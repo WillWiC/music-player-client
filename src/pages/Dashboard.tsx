@@ -729,7 +729,7 @@ const Dashboard: React.FC = () => {
     {/* Action Buttons */}
     <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
       <button
-        onClick={() => navigate('/search')}
+        onClick={() => navigate('/discover')}
         className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group text-sm"
       >
         <span>Discover Music</span>
