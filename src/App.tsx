@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import Library from './pages/Library';
+import Account from './pages/Account';
+import Settings from './pages/Settings';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -121,6 +123,8 @@ const AppContent: React.FC = () => {
         <Route path="/login" element={<Login />} />
   <Route path="/search" element={<Search />} />
   <Route path="/library" element={<Library />} />
+  <Route path="/account" element={<Account />} />
+  <Route path="/settings" element={<Settings />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
