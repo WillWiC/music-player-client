@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { User } from '../types/spotify';
 
 interface AuthContextType {
@@ -26,6 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // ref to hold refresh timer id so we can clear it on unmount / logout
+  const refreshTimeoutRef = useRef<number | null>(null);
 
   // Fetch user data when token is available
   useEffect(() => {
@@ -66,6 +68,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false); // Set loading to false when no token
     }
   }, [token]);
+
+  // Clear refresh timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        window.clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Check for authorization code in URL (from Spotify OAuth redirect)
@@ -110,10 +122,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       // Check for stored token
       const storedToken = localStorage.getItem('spotify_token');
-      console.log('No authorization code, checking stored token:', { hasStoredToken: !!storedToken });
+      const storedRefresh = localStorage.getItem('spotify_refresh_token');
+      const storedExpiry = localStorage.getItem('spotify_token_expiry');
+      console.log('No authorization code, checking stored token:', { hasStoredToken: !!storedToken, hasStoredRefresh: !!storedRefresh, hasStoredExpiry: !!storedExpiry });
       if (storedToken) {
-        setToken(storedToken);
-        // Note: setIsLoading(false) will be called by the token validation useEffect
+        // If we have an expiry, check if it's expired and attempt refresh if needed
+        if (storedExpiry) {
+          const expiryNum = parseInt(storedExpiry, 10);
+          if (Date.now() > expiryNum) {
+            // Token expired, try to refresh if we have a refresh token
+            if (storedRefresh) {
+              console.log('Stored token expired, attempting refresh...');
+              refreshAccessToken(storedRefresh);
+            } else {
+              console.log('Stored token expired and no refresh token available, clearing token');
+              setToken(null);
+              setIsLoading(false);
+            }
+          } else {
+            // Token still valid, use it and schedule refresh
+            setToken(storedToken);
+            scheduleTokenRefresh(Math.max(0, expiryNum - Date.now()));
+            // token validation effect will fetch user and set loading false
+          }
+        } else {
+          // no expiry information — just use stored token and schedule a refresh in ~1h
+          setToken(storedToken);
+          scheduleTokenRefresh(3600 * 1000);
+        }
       } else {
         setIsLoading(false);
       }
@@ -170,15 +206,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const data = await response.json();
       console.log('Token exchange successful:', { access_token: data.access_token ? 'Received' : 'Missing' });
-      
+
       setToken(data.access_token);
       localStorage.setItem('spotify_token', data.access_token);
-      
+
       // Store refresh token if provided
       if (data.refresh_token) {
         localStorage.setItem('spotify_refresh_token', data.refresh_token);
       }
-      
+
+      // Store expiry and schedule refresh
+      const expiresIn = data.expires_in || 3600; // seconds
+      const expiryTs = Date.now() + expiresIn * 1000;
+      localStorage.setItem('spotify_token_expiry', String(expiryTs));
+      // Schedule refresh a minute before expiry
+      scheduleTokenRefresh(Math.max(0, expiresIn * 1000 - 60 * 1000));
+
       console.log('Token stored successfully');
     } catch (error) {
       console.error('Error exchanging code for token:', error);
@@ -236,8 +279,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('spotify_token');
     localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_token_expiry');
     localStorage.removeItem('spotify_auth_state');
     localStorage.removeItem('spotify_code_verifier');
+    if (refreshTimeoutRef.current) {
+      window.clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
   };
 
   const clearAll = () => {
@@ -246,11 +294,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('spotify_token');
     localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_token_expiry');
     localStorage.removeItem('spotify_auth_state');
     localStorage.removeItem('spotify_code_verifier');
+    if (refreshTimeoutRef.current) {
+      window.clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
     // Also clear any other possible stored data
     localStorage.clear();
   };
+
+  // Schedule a token refresh in ms; will call server /refresh with stored refresh token
+  const scheduleTokenRefresh = (ms: number) => {
+    if (!ms || ms <= 0) return;
+    if (refreshTimeoutRef.current) {
+      window.clearTimeout(refreshTimeoutRef.current);
+    }
+    // Ensure we don't schedule extremely long timers; cap to 24h
+    const toSchedule = Math.min(ms, 24 * 60 * 60 * 1000);
+    refreshTimeoutRef.current = window.setTimeout(() => {
+      const refreshToken = localStorage.getItem('spotify_refresh_token');
+      if (refreshToken) {
+        refreshAccessToken(refreshToken);
+      }
+    }, toSchedule) as unknown as number;
+  };
+
+  // Use server-side refresh endpoint to exchange refresh_token for new access_token
+  const refreshAccessToken = async (refreshToken: string) => {
+    try {
+      const server = import.meta.env.VITE_AUTH_SERVER_URL || 'http://localhost:3001';
+      const res = await fetch(`${server.replace(/\/$/, '')}/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!res.ok) throw new Error('Refresh failed');
+      const data = await res.json();
+      if (data.access_token) {
+        setToken(data.access_token);
+        localStorage.setItem('spotify_token', data.access_token);
+        if (data.expires_in) {
+          const expiryTs = Date.now() + data.expires_in * 1000;
+          localStorage.setItem('spotify_token_expiry', String(expiryTs));
+          // schedule next refresh one minute before expiry
+          scheduleTokenRefresh(Math.max(0, data.expires_in * 1000 - 60 * 1000));
+        } else {
+          // default to 1 hour
+          scheduleTokenRefresh(3600 * 1000 - 60 * 1000);
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing access token:', err);
+      // If refresh fails, clear token and require re-login
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('spotify_token');
+      localStorage.removeItem('spotify_token_expiry');
+      // keep refresh token so user can try again, or clear depending on policy
+    }
+  };
+
+  // Listen for manual token updates (e.g. settings page) so AuthProvider can pick them up
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const storedToken = localStorage.getItem('spotify_token');
+        const storedExpiry = localStorage.getItem('spotify_token_expiry');
+        if (storedToken) {
+          setToken(storedToken);
+        }
+        if (storedExpiry) {
+          const expiryNum = parseInt(storedExpiry, 10);
+          // schedule refresh one minute before expiry
+          scheduleTokenRefresh(Math.max(0, expiryNum - Date.now() - 60 * 1000));
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener('spotify_token_updated', handler);
+    return () => window.removeEventListener('spotify_token_updated', handler);
+  }, []);
 
   const value = {
     token,
