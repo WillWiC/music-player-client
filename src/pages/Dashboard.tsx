@@ -672,7 +672,7 @@ const Dashboard: React.FC = () => {
       )}
     </div>
     {/* Quick Stats Grid */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       <button
         onClick={() => scrollToSection('recently')}
         className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
@@ -709,6 +709,19 @@ const Dashboard: React.FC = () => {
           </div>
           <div>
             <div className="text-xs text-gray-400 font-medium group-hover:text-yellow-300 transition-colors duration-300">Top Tracks</div>
+          </div>
+        </div>
+      </button>
+      <button
+        onClick={() => scrollToSection('browse')}
+        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-orange-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-orange-500/20"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-orange-500/30 transition-colors duration-300">
+            <span className="text-xl font-bold text-orange-400 leading-none group-hover:scale-110 transition-transform duration-300">♬</span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 font-medium group-hover:text-orange-300 transition-colors duration-300">Browse Genres</div>
           </div>
         </div>
       </button>
@@ -1354,6 +1367,8 @@ const Dashboard: React.FC = () => {
                     <div 
                       key={category.id} 
                       className={`relative h-14 rounded-lg overflow-hidden cursor-pointer group hover:scale-102 transition-all duration-300 bg-gradient-to-br ${gradient} shadow-lg`}
+                      onClick={() => navigate(`/category/${category.id}`)}
+                      title={`Browse ${category.name}`}
                     >
                       <div className="absolute inset-0 p-2 flex flex-col justify-between">
                         <h4 className="font-bold text-white text-xs leading-tight drop-shadow-lg">
