@@ -61,6 +61,11 @@ const Header: React.FC<HeaderProps> = ({
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [showLogoutNotification, setShowLogoutNotification] = React.useState(false);
 
+  // Workaround: Menu typing doesn't expose ModalProps in this project's MUI types,
+  // so build an `any` prop bag and spread it into the Menu to disable body scroll
+  // locking when the profile dropdown opens (prevents layout shift).
+  const menuModalProps: any = { ModalProps: { disableScrollLock: true } };
+
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   const searchTracks = React.useCallback(
@@ -324,7 +329,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mr: { xs: 1, sm: 2, md: 4 } }}>
             {user ? (
               <Box display="flex" alignItems="center" gap={1}>
                 <Button id="profile-button" onClick={handleProfileOpen} sx={{ textTransform: 'none', color: 'white' }}>
@@ -335,6 +340,7 @@ const Header: React.FC<HeaderProps> = ({
                 </Button>
 
                 <Menu
+                  {...menuModalProps}
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
                   onClose={handleProfileClose}
