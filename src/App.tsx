@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import Login from './pages/Login';
+import SpotifyLite from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import Library from './pages/Library';
@@ -123,7 +123,7 @@ const AppContent: React.FC = () => {
       <Routes>
   <Route path="/discover" element={<Discovery />} />
         <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={<Login />} />
+  <Route path="/login" element={<SpotifyLite />} />
   <Route path="/search" element={<Search />} />
   <Route path="/library" element={<Library />} />
   <Route path="/account" element={<Account />} />

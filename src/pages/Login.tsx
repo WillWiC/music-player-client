@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/auth';
 import { useNavigate } from 'react-router-dom';
 
-const Login: React.FC = () => {
+const SpotifyLite: React.FC = () => {
   const { token, login, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isButtonLoading, setIsButtonLoading] = useState(false);
@@ -29,9 +29,9 @@ const Login: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-dark-bg via-gray-900 to-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-spotify-green border-t-transparent mx-auto mb-4"></div>
           <div className="text-white text-xl">Loading...</div>
         </div>
       </div>
@@ -39,90 +39,76 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center px-4">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 px-4">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-spotify-green rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute -bottom-32 -left-28 w-80 h-80 bg-indigo-600 rounded-full mix-blend-multiply filter blur-2xl opacity-10" />
       </div>
 
-      <div className="relative z-10 max-w-md w-full">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl">
-          {/* Header Section */}
-          <div className="text-center mb-8">
-            <div className="relative mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full mx-auto animate-pulse shadow-lg"></div>
+      <div className="relative z-10 max-w-3xl w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-gradient-to-br from-gray-800/60 to-black/40 backdrop-blur-md border border-gray-700 rounded-3xl p-8 shadow-2xl">
+          {/* Left: Brand */}
+          <div className="text-center md:text-left px-4">
+
+            <div className="mb-6">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white">Spotify Lite</h1>
+              <p className="text-gray-400 text-sm md:text-base">A lightweight, minimal player built on the Spotify API</p>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              Alternative Spotify Music Player
-            </h1>
-            <p className="text-gray-400 text-lg">
-              Connect your Spotify account to start your musical journey
-            </p>
+
+            <p className="text-gray-300 mt-2">Sign in to access your playlists and control playback.</p>
+
+            <div className="mt-6">
+              <button
+                onClick={handleLogin}
+                disabled={isButtonLoading}
+                className="w-full md:w-auto inline-flex items-center gap-3 bg-spotify-green hover:bg-green-600 disabled:bg-gray-600 text-black font-semibold py-3 px-5 rounded-lg transition-transform transform hover:scale-105 disabled:cursor-not-allowed shadow-md"
+              >
+                {isButtonLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>Sign in with Spotify</>
+                )}
+              </button>
+            </div>
+
+            <div className="mt-6 text-sm text-gray-400">
+              <strong className="text-white">Note:</strong> Playback requires Spotify Premium. You can still browse and discover music without a subscription.
+            </div>
           </div>
 
-          {/* Login Button */}
-          <div className="space-y-6">
-            <button
-              onClick={handleLogin}
-              disabled={isButtonLoading}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-600 disabled:to-gray-700 text-black font-bold py-4 px-8 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-green-500/25 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
-            >
-              {isButtonLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-black border-t-transparent"></div>
-                  Connecting...
-                </>
-              ) : (
-                "Continue with Spotify"
-              )}
-            </button>
+          {/* Right: Features / Illustration */}
+          <div className="px-4">
+            <div className="bg-gradient-to-tr from-white/5 to-white/2 border border-gray-700 rounded-2xl p-6 h-full flex flex-col justify-center">
+              <h3 className="text-white font-semibold mb-4">What Spotify Lite gives you</h3>
+              <ul className="space-y-3 text-gray-300">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-spotify-green rounded-full mt-1 flex-shrink-0" />
+                  <span className="text-sm">Fast, minimal UI focused on listening.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-spotify-green rounded-full mt-1 flex-shrink-0" />
+                  <span className="text-sm">Control playback across devices.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-spotify-green rounded-full mt-1 flex-shrink-0" />
+                  <span className="text-sm">Discover curated playlists and recommendations.</span>
+                </li>
+              </ul>
 
-            {/* Features Section */}
-            <div className="space-y-4">
-              <div className="border-t border-gray-700 pt-6">
-                <h3 className="text-white font-semibold mb-4 text-center">What you can do:</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-gray-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Stream your favorite music</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Control playback from anywhere</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Discover new music</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Requirements */}
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 bg-yellow-500 rounded-full mt-0.5 flex-shrink-0"></div>
-                <div>
-                  <p className="text-yellow-400 text-sm font-medium">Spotify Premium Required</p>
-                  <p className="text-yellow-300/80 text-xs mt-1">
-                    You need an active Spotify Premium subscription to use playback features.
-                  </p>
-                </div>
-              </div>
+              <div className="mt-6 text-xs text-gray-500">By signing in you agree to Spotify's Terms and the app's privacy policy. Authentication is handled by Spotify.</div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-gray-500 text-sm">
-            Secure authentication powered by Spotify
-          </p>
+        <div className="text-center mt-6">
+          <p className="text-gray-500 text-sm">Secure authentication via Spotify • Built with Spotify Web API</p>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default SpotifyLite;

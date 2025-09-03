@@ -346,7 +346,7 @@ const Header: React.FC<HeaderProps> = ({
                 </Menu>
               </Box>
             ) : (
-              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>Login</Button>
+              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>Sign in</Button>
             )}
           </Stack>
         </Toolbar>
