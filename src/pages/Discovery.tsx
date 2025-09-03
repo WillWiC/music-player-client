@@ -575,7 +575,7 @@ const Discovery: React.FC = () => {
                   >
                     <div className="aspect-square mb-2 relative">
                       <img
-                        src={track.album?.images?.[0]?.url || '/api/placeholder/300/300'}
+                        src={track.album?.images?.[0]?.url || '/vite.svg'}
                         alt={track.name}
                         className="w-full h-full object-cover rounded-md"
                         loading="lazy"

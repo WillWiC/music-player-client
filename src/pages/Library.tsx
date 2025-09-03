@@ -155,7 +155,7 @@ const Library: React.FC = () => {
                     <div key={pl.id} className="cursor-pointer" onClick={() => navigate(`/playlist/${pl.id}`)}>
                       <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10">
                         <div className="aspect-square">
-                          <img src={pl.images?.[0]?.url} alt={pl.name} className="w-full h-full object-cover" />
+                          <img src={pl.images?.[0]?.url || '/vite.svg'} alt={pl.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="p-2">
                           <div className="text-sm text-white font-semibold truncate">{pl.name}</div>
@@ -171,7 +171,7 @@ const Library: React.FC = () => {
                 <div className="space-y-2">
                   {tracks.map(track => (
                     <div key={track.id} className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg">
-                      <img src={track.album?.images?.[0]?.url} alt={track.name} className="w-14 h-14 object-cover rounded-md flex-shrink-0" />
+                      <img src={track.album?.images?.[0]?.url || '/vite.svg'} alt={track.name} className="w-14 h-14 object-cover rounded-md flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-white font-semibold truncate">{track.name}</div>
                         <div className="text-xs text-gray-400 truncate">
@@ -195,7 +195,7 @@ const Library: React.FC = () => {
                     <div key={al.id} className="cursor-pointer" onClick={() => navigate(`/album/${al.id}`)}>
                       <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10">
                         <div className="aspect-square">
-                          <img src={al.images?.[0]?.url} alt={al.name} className="w-full h-full object-cover" />
+                          <img src={al.images?.[0]?.url || '/vite.svg'} alt={al.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="p-2">
                           <div className="text-sm text-white font-semibold truncate">{al.name}</div>

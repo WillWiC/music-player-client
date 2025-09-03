@@ -244,7 +244,7 @@ const CategoryPage: React.FC = () => {
                         <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-gray-700">
                           {playlist.images?.[0]?.url ? (
                             <img
-                              src={playlist.images[0].url}
+                              src={playlist.images[0].url || '/vite.svg'}
                               alt={playlist.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
@@ -287,7 +287,7 @@ const CategoryPage: React.FC = () => {
                         <div className="w-12 h-12 rounded overflow-hidden bg-gray-700 flex-shrink-0">
                           {track.album?.images?.[0]?.url ? (
                             <img
-                              src={track.album.images[0].url}
+                              src={track.album.images[0].url || '/vite.svg'}
                               alt={track.name}
                               className="w-full h-full object-cover"
                             />

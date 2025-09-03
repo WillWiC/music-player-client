@@ -74,8 +74,13 @@ const SpotifyLite: React.FC = () => {
               </button>
             </div>
 
-            <div className="mt-6 text-sm text-gray-400">
-              <strong className="text-white">Note:</strong> Playback requires Spotify Premium. You can still browse and discover music without a subscription.
+            <div className="mt-6 text-xs text-gray-400">
+              <ul className="space-y-1">
+                <li className="flex items-start gap-3">
+                  <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
+                  <span><strong className="text-white">Note:</strong> Playback requires Spotify Premium. You can still browse and discover music without a subscription.</span>
+                </li>
+              </ul>
             </div>
           </div>
 

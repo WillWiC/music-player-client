@@ -277,7 +277,7 @@ const Header: React.FC<HeaderProps> = ({
                       sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, cursor: 'pointer', bgcolor: activeIndex === idx ? 'rgba(34,197,94,0.06)' : 'transparent' }}
                     >
                       <ListItemAvatar>
-                        <Avatar src={track.album?.images?.[0]?.url} alt={track.name} variant="rounded" sx={{ width: 44, height: 44 }} />
+                        <Avatar src={track.album?.images?.[0]?.url || '/vite.svg'} alt={track.name} variant="rounded" sx={{ width: 44, height: 44 }} />
                       </ListItemAvatar>
                       <ListItemText
                         primary={<Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 600 }}>{track.name}</Typography>}
@@ -346,7 +346,7 @@ const Header: React.FC<HeaderProps> = ({
                 </Menu>
               </Box>
             ) : (
-              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>Sign in</Button>
+              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>Login</Button>
             )}
           </Stack>
         </Toolbar>

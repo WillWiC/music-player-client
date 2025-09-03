@@ -586,23 +586,63 @@ const Dashboard: React.FC = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
         <main className="flex-1 lg:ml-72 pb-24 pt-20">
-          <div className="relative max-w-4xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
-            <div className="max-w-2xl mx-auto text-center bg-white/3 border border-white/10 rounded-3xl p-10 backdrop-blur-sm">
-              <h1 className="text-3xl font-bold text-white mb-4">Welcome to Music Player</h1>
-              <p className="text-gray-300 mb-6">You are browsing as a guest. Sign in to unlock personalized recommendations, your playlists, and playback controls.</p>
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => navigate('/login')}
-                  className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg"
-                >
-                  Sign in
-                </button>
-                <button
-                  onClick={() => navigate('/discover')}
-                  className="px-6 py-2 border border-white/10 text-white rounded-lg"
-                >
-                  Explore as guest
-                </button>
+          <div className="relative max-w-6xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
+            <div className="w-full bg-white/4 border border-white/10 rounded-3xl p-8 backdrop-blur-md grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+              {/* Left: Message & CTAs */}
+              <div className="px-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <span className="text-green-300 font-bold">♪</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Welcome to Music Player</h1>
+                </div>
+
+                <p className="text-gray-300 mb-6">You're browsing as a guest. Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls, save playlists, and get personalized recommendations.</p>
+
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <button
+                    onClick={() => navigate('/discover')}
+                    className="flex items-center gap-2 px-5 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl shadow-lg transition-transform transform hover:scale-105"
+                  >
+                    Explore as guest
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="px-5 py-2 border border-white/10 text-white rounded-2xl hover:bg-white/5 transition-colors"
+                  >
+                    Sign in
+                  </button>
+                </div>
+
+                <ul className="text-sm text-gray-300 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
+                    <span>Preview curated playlists and top tracks.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
+                    <span>Use the discovery tools to find new music.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
+                    <span>Search and preview tracks without signing in.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Right: Sample previews */}
+              <div className="px-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="h-24 bg-gradient-to-br from-green-500/30 to-green-700/30 rounded-lg flex items-end p-2 text-xs text-white">Top playlists</div>
+                  <div className="h-24 bg-gradient-to-br from-purple-500/30 to-purple-700/30 rounded-lg flex items-end p-2 text-xs text-white">New releases</div>
+                  <div className="h-24 bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 rounded-lg flex items-end p-2 text-xs text-white">Trending</div>
+                </div>
+
+                <div className="mt-3 text-gray-400 text-sm">No account required to explore. Sign in when you're ready to save favorites and control playback.</div>
               </div>
             </div>
           </div>
@@ -847,7 +887,7 @@ const Dashboard: React.FC = () => {
                     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-green-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
-                          src={item.track.album?.images?.[0]?.url} 
+                          src={item.track.album?.images?.[0]?.url || '/vite.svg'} 
                           alt={`${item.track.name} cover`} 
                           className="w-full h-full object-cover"
                         />
@@ -1007,7 +1047,7 @@ const Dashboard: React.FC = () => {
                         {/* Album Cover */}
                         <div className="flex-shrink-0 relative">
                           <img 
-                            src={track.album?.images?.[0]?.url} 
+                            src={track.album?.images?.[0]?.url || '/vite.svg'} 
                             alt={`${track.name} cover`} 
                             className="w-14 h-14 rounded-xl object-cover shadow-lg"
                           />

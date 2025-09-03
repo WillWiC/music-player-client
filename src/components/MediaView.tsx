@@ -433,7 +433,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, ml: 2 }}>
                 <CardMedia
                   component="img"
-                  image={track.album?.images?.[0]?.url || getImage()}
+                  image={track.album?.images?.[0]?.url || getImage() || '/vite.svg'}
                   alt={track.name}
                   sx={{ width: 40, height: 40, borderRadius: 1, mr: 2 }}
                 />

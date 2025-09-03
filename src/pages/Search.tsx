@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/auth';
@@ -23,6 +23,7 @@ const SearchPage: React.FC = () => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -32,6 +33,7 @@ const SearchPage: React.FC = () => {
   const [albums, setAlbums] = React.useState<any[]>([]);
   const [artists, setArtists] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState(0);
+  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     // Don't auto-redirect to login; allow guest access to search UI but disable playback/searching when unauthenticated
@@ -41,8 +43,30 @@ const SearchPage: React.FC = () => {
   }, [token]);
 
   const runSearch = React.useCallback(async (q: string) => {
-    if (!token || !q.trim()) {
+    if (!q.trim()) {
       setTracks([]);
+      return;
+    }
+
+    // Save query locally (even if unauthenticated) for quick access later
+    try {
+      const key = 'recentSearches';
+      const raw = localStorage.getItem(key);
+      const parsed: string[] = raw ? JSON.parse(raw) : [];
+      const normalized = q.trim();
+      const lower = normalized.toLowerCase();
+      const deduped = [normalized, ...parsed.filter(s => s.toLowerCase() !== lower)].slice(0, 10);
+      localStorage.setItem(key, JSON.stringify(deduped));
+      setRecentSearches(deduped);
+    } catch (e) {
+      console.warn('Failed to save recent search', e);
+    }
+
+    if (!token) {
+      // When unauthenticated, we still store the query but cannot call Spotify API
+      setTracks([]);
+      setAlbums([]);
+      setArtists([]);
       return;
     }
 
@@ -78,6 +102,57 @@ const SearchPage: React.FC = () => {
     }, 350);
     return () => clearTimeout(id);
   }, [query, runSearch]);
+
+  // Load recent searches from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('recentSearches');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setRecentSearches(parsed.slice(0, 10));
+      }
+    } catch (e) {
+      console.warn('Failed to load recent searches', e);
+    }
+  }, []);
+
+  // If the page is opened with a ?q=... param, populate the input and run the search immediately
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    if (q.trim()) {
+      setQuery(q);
+      // run without waiting for debounce
+      void runSearch(q);
+    }
+  }, [location.search, runSearch]);
+
+  const handleRunRecent = (q: string) => {
+    setQuery(q);
+    // run immediately without waiting for debounce
+    void runSearch(q);
+  };
+
+  const clearRecentSearches = () => {
+    try {
+      localStorage.removeItem('recentSearches');
+      setRecentSearches([]);
+    } catch (e) {
+      console.warn('Failed to clear recent searches', e);
+    }
+  };
+
+  const removeRecentSearch = (q: string) => {
+    try {
+      const raw = localStorage.getItem('recentSearches');
+      const parsed: string[] = raw ? JSON.parse(raw) : [];
+      const filtered = parsed.filter(s => s.toLowerCase() !== q.toLowerCase()).slice(0, 10);
+      localStorage.setItem('recentSearches', JSON.stringify(filtered));
+      setRecentSearches(filtered);
+    } catch (e) {
+      console.warn('Failed to remove recent search', e);
+    }
+  };
 
   const handlePlayClick = async (track: Track) => {
     try {
@@ -115,6 +190,23 @@ const SearchPage: React.FC = () => {
                 )
               }}
             />
+            {/* Recent searches quick access */}
+            {recentSearches.length > 0 && !query.trim() && (
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                {recentSearches.map((s) => (
+                  <div key={s} className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleRunRecent(s)}
+                      className="px-3 py-1 text-sm bg-white/5 rounded-full hover:bg-white/10"
+                    >
+                      {s}
+                    </button>
+                    <button onClick={() => removeRecentSearch(s)} className="text-xs text-gray-500 hover:text-gray-300 ml-1">✕</button>
+                  </div>
+                ))}
+                <button onClick={clearRecentSearches} className="ml-2 text-xs text-gray-400 hover:text-gray-200">Clear</button>
+              </div>
+            )}
           </div>
 
           <Box>
@@ -141,7 +233,7 @@ const SearchPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-150"
                         >
                           <img
-                            src={track.album?.images?.[0]?.url}
+                            src={track.album?.images?.[0]?.url || '/vite.svg'}
                             alt={track.name}
                             className="w-14 h-14 object-cover rounded-md flex-shrink-0"
                           />
@@ -183,7 +275,7 @@ const SearchPage: React.FC = () => {
                         <div key={album.id} className="cursor-pointer" onClick={() => navigate(`/album/${album.id}`)}>
                           <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10">
                             <div className="aspect-square">
-                              <img src={album.images?.[0]?.url} alt={album.name} className="w-full h-full object-cover" />
+                              <img src={album.images?.[0]?.url || '/vite.svg'} alt={album.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="p-2">
                               <div className="text-sm text-white font-semibold truncate">{album.name}</div>
@@ -206,10 +298,10 @@ const SearchPage: React.FC = () => {
                   ) : artists.length === 0 ? (
                     <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">No artists found. Try another query.</div>
                   ) : (
-                    <div className="space-y-2">
+        <div className="space-y-2">
                       {artists.map(artist => (
                         <div key={artist.id} className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg">
-                          <img src={artist.images?.[0]?.url} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
+          <img src={artist.images?.[0]?.url || '/vite.svg'} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-white font-semibold truncate">{artist.name}</div>
                             <div className="text-xs text-gray-400">{artist.type} • {artist.followers?.total ? `${artist.followers.total.toLocaleString()} followers` : ''}</div>

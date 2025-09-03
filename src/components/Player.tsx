@@ -149,7 +149,7 @@ const Player: React.FC = () => {
           <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0, width: 280 }}>
             <CardMedia
               component="img"
-              image={currentTrack.album?.images?.[0]?.url}
+              image={currentTrack.album?.images?.[0]?.url || '/vite.svg'}
               alt={`${currentTrack.name} cover`}
               sx={{
                 width: 56,
