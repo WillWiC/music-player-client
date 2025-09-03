@@ -34,6 +34,8 @@ const Player: React.FC = () => {
     volume, 
     isShuffled,
     repeatMode,
+  activeDeviceName,
+  isRemotePlaying,
     togglePlay, 
     nextTrack, 
     previousTrack, 
@@ -187,6 +189,9 @@ const Player: React.FC = () => {
                 }}
               >
                 {currentTrack.artists?.map(artist => artist.name).join(', ')}
+                {isRemotePlaying && activeDeviceName ? (
+                  <><br /><small style={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>Playing on: {activeDeviceName}</small></>
+                ) : null}
               </Typography>
             </Box>
           </Stack>

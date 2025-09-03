@@ -10,6 +10,7 @@ import Account from './pages/Account';
 import Settings from './pages/Settings';
 import Discovery from './pages/Discovery';
 import Category from './pages/Category';
+import About from './pages/About';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -122,6 +123,7 @@ const AppContent: React.FC = () => {
     <div className="App">
       <Routes>
   <Route path="/discover" element={<Discovery />} />
+  <Route path="/about" element={<About />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
   <Route path="/search" element={<Search />} />

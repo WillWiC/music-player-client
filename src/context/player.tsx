@@ -25,6 +25,9 @@ interface PlayerContextType {
   duration: number;
   volume: number;
   deviceId: string | null;
+  activeDeviceId: string | null;
+  activeDeviceName: string | null;
+  isRemotePlaying: boolean;
   isShuffled: boolean;
   repeatMode: 'off' | 'context' | 'track';
   togglePlay: () => Promise<void>;
@@ -60,8 +63,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.5);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
+  const [activeDeviceName, setActiveDeviceName] = useState<string | null>(null);
   const [shuffled, setShuffled] = useState(false);
   const [repeat, setRepeatState] = useState<'off' | 'context' | 'track'>('off');
+  const [isRemotePlaying, setIsRemotePlaying] = useState(false);
   
   const positionInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -81,16 +87,85 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (state) {
           setShuffled(state.shuffle_state || false);
           setRepeatState(state.repeat_state || 'off');
+
+          // Active device details
+          const activeId = state.device?.id ?? null;
+          const activeName = state.device?.name ?? null;
+          setActiveDeviceId(activeId);
+          setActiveDeviceName(activeName);
+
+          // If another device (not this web SDK) is playing, populate current track from API
+          const playingOnOther = !!(activeId && deviceId && activeId !== deviceId && state.is_playing);
+          setIsRemotePlaying(playingOnOther);
+
+          if (state.item) {
+            const track = state.item;
+            // Map API item to internal Track shape
+            setCurrent({
+              id: track.id,
+              name: track.name,
+              artists: (track.artists || []).map((artist: any) => ({
+                id: artist.id || artist.uri?.split(':')?.[2] || artist.name,
+                name: artist.name,
+                external_urls: { spotify: artist.external_urls?.spotify || '' },
+                href: artist.href || '',
+                type: 'artist' as const,
+                uri: artist.uri || ''
+              })),
+              album: {
+                id: track.album?.id || track.album?.uri?.split(':')?.[2] || '',
+                name: track.album?.name || '',
+                images: (track.album?.images || []).map((img: any) => ({ url: img.url, height: null, width: null })),
+                external_urls: { spotify: track.album?.external_urls?.spotify || '' },
+                href: track.album?.href || '',
+                type: 'album' as const,
+                uri: track.album?.uri || '',
+                album_type: track.album?.album_type || 'album',
+                total_tracks: track.album?.total_tracks || 0,
+                available_markets: track.album?.available_markets || [],
+                release_date: track.album?.release_date || '',
+                release_date_precision: track.album?.release_date_precision || 'day',
+                artists: []
+              },
+              duration_ms: track.duration_ms,
+              explicit: track.explicit || false,
+              external_urls: { spotify: `https://open.spotify.com/track/${track.id}` },
+              href: `https://api.spotify.com/v1/tracks/${track.id}`,
+              preview_url: track.preview_url || null,
+              type: 'track' as const,
+              uri: track.uri
+            });
+
+            setPlaying(!!state.is_playing);
+            setPosition(state.progress_ms || 0);
+            setDuration(track.duration_ms || 0);
+          }
         } else {
           // No active playback device - reset state
           setShuffled(false);
           setRepeatState('off');
+          setActiveDeviceId(null);
+          setActiveDeviceName(null);
+          setIsRemotePlaying(false);
         }
       }
     } catch (error) {
       console.error('Error fetching playback state:', error);
     }
   };
+
+  // Poll playback state every 5 seconds so we can show remote-device playback
+  useEffect(() => {
+    if (!token) return;
+    const id = setInterval(() => {
+      fetchPlaybackState();
+    }, 5000);
+
+    // initial fetch
+    fetchPlaybackState();
+
+    return () => clearInterval(id);
+  }, [token, deviceId]);
 
   useEffect(() => {
     if (!token) return;
@@ -363,6 +438,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     duration,
     volume,
     deviceId,
+  activeDeviceId,
+  activeDeviceName,
+  isRemotePlaying,
     isShuffled: shuffled,
     repeatMode: repeat,
     togglePlay,

@@ -31,7 +31,8 @@ import {
   AccountCircle,
   Logout,
   Close,
-  Settings
+  Settings,
+  InfoOutlined
 } from '@mui/icons-material';
 import { PlayArrow, Pause } from '@mui/icons-material';
 
@@ -333,15 +334,77 @@ const Header: React.FC<HeaderProps> = ({
                   <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>{user.display_name || 'Profile'}</Typography>
                 </Button>
 
-                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleProfileClose} PaperProps={{ sx: { bgcolor: '#000', border: '1px solid rgba(255,255,255,0.06)', mt: 1 } }}>
-                    <MenuItem onClick={() => { handleProfileClose(); navigate('/account'); }} sx={{ fontWeight: 600 }}>
-                      <AccountCircle sx={{ mr: 1 }} /> Account
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleProfileClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  PaperProps={{ sx: { bgcolor: '#000', border: '1px solid rgba(255,255,255,0.06)' } }}
+                >
+                    <MenuItem
+                      onClick={() => { handleProfileClose(); navigate('/account'); }}
+                      sx={{
+                        fontWeight: 600,
+                        color: '#e6e6e6',
+                        px: 2.5,
+                        py: 1,
+                        borderRadius: 1,
+                        transition: 'all 160ms ease',
+                        '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
+                        '&:hover svg': { color: 'primary.main' }
+                      }}
+                    >
+                      <AccountCircle sx={{ mr: 1, fontSize: 18, color: '#9ca3af', transition: 'color 160ms ease' }} />
+                      <Typography variant="inherit" component="span">Account</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => { handleProfileClose(); navigate('/settings'); }} sx={{ fontWeight: 600 }}>
-                      <Settings sx={{ mr: 1 }} /> Settings
+                    <MenuItem
+                      onClick={() => { handleProfileClose(); navigate('/settings'); }}
+                      sx={{
+                        fontWeight: 600,
+                        color: '#e6e6e6',
+                        px: 2.5,
+                        py: 1,
+                        borderRadius: 1,
+                        transition: 'all 160ms ease',
+                        '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
+                        '&:hover svg': { color: 'primary.main' }
+                      }}
+                    >
+                      <Settings sx={{ mr: 1, fontSize: 18, color: '#9ca3af', transition: 'color 160ms ease' }} />
+                      <Typography variant="inherit" component="span">Settings</Typography>
                     </MenuItem>
-                  <MenuItem onClick={handleLogout}>
-                    <Logout sx={{ mr: 1 }} /> Logout
+                    <MenuItem
+                      onClick={() => { handleProfileClose(); navigate('/about'); }}
+                      sx={{
+                        fontWeight: 600,
+                        color: '#e6e6e6',
+                        px: 2.5,
+                        py: 1,
+                        borderRadius: 1,
+                        transition: 'all 160ms ease',
+                        '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
+                        '&:hover svg': { color: 'primary.main' }
+                      }}
+                    >
+                      <InfoOutlined sx={{ mr: 1, fontSize: 18, color: '#9ca3af', transition: 'color 160ms ease' }} />
+                      <Typography variant="inherit" component="span">About</Typography>
+                    </MenuItem>
+                  <MenuItem
+                    onClick={handleLogout}
+                    sx={{
+                      fontWeight: 600,
+                      color: '#e6e6e6',
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: 1,
+                      transition: 'all 160ms ease',
+                      '&:hover': { color: '#ffffff', bgcolor: 'rgba(229,62,62,0.08)', transform: 'translateX(6px)' },
+                      '&:hover svg': { color: 'error.main' }
+                    }}
+                  >
+                    <Logout sx={{ mr: 1, fontSize: 18, color: '#9ca3af', transition: 'color 160ms ease' }} />
+                    <Typography variant="inherit" component="span">Logout</Typography>
                   </MenuItem>
                 </Menu>
               </Box>
