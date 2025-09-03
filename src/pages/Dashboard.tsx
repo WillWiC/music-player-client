@@ -419,11 +419,12 @@ const Dashboard: React.FC = () => {
       console.log('Auth still loading, waiting...');
       return;
     }
-    
-    // If user is not authenticated and not loading, redirect to login
+
+    // If user is not authenticated and not loading, stay on Dashboard as a guest
+    // Do not redirect to /login automatically; allow guest experience and skip
+    // authenticated-only data fetching below.
     if (!token) {
-      console.log('No token found and not loading, redirecting to login...');
-      navigate('/login');
+      console.log('No token found and not loading, staying on Dashboard as guest');
       return;
     }
 
@@ -577,14 +578,35 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  // Show loading or redirect if not authenticated
+  // Guest experience: if not authenticated, show a lightweight guest dashboard
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
-          <p>Redirecting to login...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+        <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
+
+        <main className="flex-1 lg:ml-72 pb-24 pt-20">
+          <div className="relative max-w-4xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
+            <div className="max-w-2xl mx-auto text-center bg-white/3 border border-white/10 rounded-3xl p-10 backdrop-blur-sm">
+              <h1 className="text-3xl font-bold text-white mb-4">Welcome to Music Player</h1>
+              <p className="text-gray-300 mb-6">You are browsing as a guest. Sign in to unlock personalized recommendations, your playlists, and playback controls.</p>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg"
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => navigate('/discover')}
+                  className="px-6 py-2 border border-white/10 text-white rounded-lg"
+                >
+                  Explore as guest
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }

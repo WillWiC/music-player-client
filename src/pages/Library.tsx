@@ -67,8 +67,10 @@ const Library: React.FC = () => {
 
   const [loading, setLoading] = React.useState(true);
   React.useEffect(() => {
+    // If no token, show guest prompt and skip loading library data
     if (!token) {
-      navigate('/login');
+      console.log('Library loaded without token - guest mode');
+      setLoading(false);
       return;
     }
 

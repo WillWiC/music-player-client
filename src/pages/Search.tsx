@@ -34,10 +34,11 @@ const SearchPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState(0);
 
   React.useEffect(() => {
+    // Don't auto-redirect to login; allow guest access to search UI but disable playback/searching when unauthenticated
     if (!token) {
-      navigate('/login');
+      console.log('Search page loaded without token - guest mode');
     }
-  }, [token, navigate]);
+  }, [token]);
 
   const runSearch = React.useCallback(async (q: string) => {
     if (!token || !q.trim()) {

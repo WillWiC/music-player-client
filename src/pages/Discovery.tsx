@@ -397,9 +397,10 @@ const Discovery: React.FC = () => {
   // Fetch data on mount and when dependencies change - staggered loading
   React.useEffect(() => {
     if (authLoading) return;
-    
+
+    // If no token, stay on Discovery as guest - don't auto-redirect to login
     if (!token) {
-      navigate('/login');
+      console.log('No token - Discovery will show guest content');
       return;
     }
 
@@ -445,10 +446,28 @@ const Discovery: React.FC = () => {
     );
   }
 
+  // Allow guest users: show a lightweight prompt/cta when not authenticated
   if (!token) {
     return (
-      <div className="h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center">
-        <p className="text-white text-lg">Please log in to view this page.</p>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center p-6">
+        <div className="max-w-xl w-full text-center bg-white/3 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
+          <h1 className="text-3xl font-bold text-white mb-3">Discover Music (Guest)</h1>
+          <p className="text-gray-300 mb-6">Sign in to unlock personalized recommendations and your playlists — or continue exploring as a guest.</p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="px-6 py-2 border border-white/10 text-white rounded-lg"
+            >
+              Continue as guest
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
