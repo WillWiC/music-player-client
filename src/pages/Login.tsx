@@ -52,7 +52,7 @@ const SpotifyLite: React.FC = () => {
 
             <div className="mb-6">
               <h1 className="text-3xl md:text-4xl font-extrabold text-white">Spotify Lite</h1>
-              <p className="text-gray-400 text-sm md:text-base">A lightweight, minimal player built on the Spotify API</p>
+              <p className="text-gray-400 text-xs md:text-sm">A lightweight, minimal player built on the Spotify API</p>
             </div>
 
             <p className="text-gray-300 mt-2">Sign in to access your playlists and control playback.</p>
@@ -78,7 +78,7 @@ const SpotifyLite: React.FC = () => {
               <ul className="space-y-1">
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
-                  <span><strong className="text-white">Note:</strong> Playback requires Spotify Premium. You can still browse and discover music without a subscription.</span>
+                  <span>Playback requires Spotify Premium. You can still browse and discover music without a subscription.</span>
                 </li>
               </ul>
             </div>
@@ -103,7 +103,7 @@ const SpotifyLite: React.FC = () => {
                 </li>
               </ul>
 
-              <div className="mt-6 text-xs text-gray-500">By signing in you agree to Spotify's Terms and the app's privacy policy. Authentication is handled by Spotify.</div>
+              
             </div>
           </div>
         </div>
