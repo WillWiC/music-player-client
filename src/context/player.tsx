@@ -2,6 +2,21 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from './auth';
 import type { Track } from '../types/spotify';
 
+// Helper function to safely parse JSON from Spotify API responses
+const safeParseJSON = async (response: Response) => {
+  const contentLength = response.headers.get('content-length');
+  if (contentLength === '0' || response.status === 204) {
+    return null; // No content to parse
+  }
+  
+  try {
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to parse JSON response:', error);
+    return null;
+  }
+};
+
 interface PlayerContextType {
   player: SpotifyPlayer | null;
   currentTrack: Track | null;
@@ -62,10 +77,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       if (response.ok) {
-        const state = await response.json();
+        const state = await safeParseJSON(response);
         if (state) {
           setShuffled(state.shuffle_state || false);
           setRepeatState(state.repeat_state || 'off');
+        } else {
+          // No active playback device - reset state
+          setShuffled(false);
+          setRepeatState('off');
         }
       }
     } catch (error) {
