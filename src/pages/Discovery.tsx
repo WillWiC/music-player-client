@@ -14,7 +14,7 @@ interface FeaturedPlaylist extends Playlist {
 
 const Discovery: React.FC = () => {
   const navigate = useNavigate();
-  const { token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading, isGuest } = useAuth();
   const { play } = usePlayer();
   const toast = useToast();
   
@@ -398,15 +398,17 @@ const Discovery: React.FC = () => {
   React.useEffect(() => {
     if (authLoading) return;
 
-    // If no token, stay on Discovery as guest - don't auto-redirect to login
-    if (!token) {
-      console.log('No token - Discovery will show guest content');
+    // If neither token nor guest, don't proceed with fetching user-specific data
+    if (!token && !isGuest) {
+      console.log('No token and not guest - Discovery will show sign-in CTA');
       return;
     }
 
     console.log('Token available, starting data fetch...');
-    console.log('Token length:', token.length);
-    console.log('Token starts with:', token.substring(0, 20) + '...');
+    if (token) {
+      console.log('Token length:', token.length);
+      console.log('Token starts with:', token.substring(0, 20) + '...');
+    }
 
     // Load user data first (required for local algorithms)
     const loadInitialData = async () => {
@@ -427,7 +429,7 @@ const Discovery: React.FC = () => {
 
   // Fetch recommendations when user data or preferences change - with debouncing
   React.useEffect(() => {
-    if (!token) return;
+    if (!token && !isGuest) return;
     
     const timeoutId = setTimeout(() => {
       if (topArtists.length > 0 || userTopTracks.length > 0 || selectedGenres.length > 0) {
@@ -447,7 +449,7 @@ const Discovery: React.FC = () => {
   }
 
   // Allow guest users: show a lightweight prompt/cta when not authenticated
-  if (!token) {
+  if (!token && !isGuest) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center p-6">
         <div className="max-w-xl w-full text-center bg-white/3 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">

@@ -57,7 +57,7 @@ const SpotifyLite: React.FC = () => {
 
             <p className="text-gray-300 mt-2">Sign in to access your playlists and control playback.</p>
 
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
               <button
                 onClick={handleLogin}
                 disabled={isButtonLoading}
@@ -72,6 +72,8 @@ const SpotifyLite: React.FC = () => {
                   <>Sign in with Spotify</>
                 )}
               </button>
+
+              {/* Explore as guest removed from Login page - guests should use the Dashboard welcome card to enter guest mode */}
             </div>
 
             <div className="mt-6 text-xs text-gray-400">
@@ -103,7 +105,6 @@ const SpotifyLite: React.FC = () => {
                 </li>
               </ul>
 
-              
             </div>
           </div>
         </div>

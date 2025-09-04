@@ -4,7 +4,9 @@ import type { User } from '../types/spotify';
 interface AuthContextType {
   token: string | null;
   user: User | null;
+  isGuest: boolean;
   login: () => void;
+  loginAsGuest: () => void;
   logout: () => void;
   clearAll: () => void;
   isLoading: boolean;
@@ -25,13 +27,25 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isGuest, setIsGuest] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   // ref to hold refresh timer id so we can clear it on unmount / logout
   const refreshTimeoutRef = useRef<number | null>(null);
 
   // Fetch user data when token is available
   useEffect(() => {
+    // If guest mode, skip validation and keep user null.
+    if (token === 'GUEST') {
+      console.log('Guest session active - skipping Spotify API validation');
+      setIsGuest(true);
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Normal authenticated flow: validate token and fetch user data
     if (token) {
+      setIsGuest(false);
       console.log('Validating token and fetching user data...');
       fetch('https://api.spotify.com/v1/me', {
         headers: {
@@ -120,7 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setIsLoading(false);
     } else {
-      // Check for stored token
+      // Check for stored token or guest marker
+      const storedGuest = localStorage.getItem('spotify_is_guest');
+      if (storedGuest === '1') {
+        console.log('Found stored guest marker - entering guest mode');
+        setIsGuest(true);
+        setToken(null);
+        setIsLoading(false);
+        return;
+      }
+
       const storedToken = localStorage.getItem('spotify_token');
       const storedRefresh = localStorage.getItem('spotify_refresh_token');
       const storedExpiry = localStorage.getItem('spotify_token_expiry');
@@ -274,14 +297,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = authUrl;
   };
 
+  const loginAsGuest = () => {
+    console.log('Entering guest mode');
+    // Don't set a fake token. Keep token null so other code does not attempt
+    // to call Spotify Web API or initialize playback. Use isGuest flag instead.
+    setToken(null);
+    setIsGuest(true);
+    setUser(null);
+    // Persist guest marker so other tabs/providers can detect it
+    localStorage.removeItem('spotify_token');
+    localStorage.setItem('spotify_is_guest', '1');
+    setIsLoading(false);
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
+  setIsGuest(false);
     localStorage.removeItem('spotify_token');
     localStorage.removeItem('spotify_refresh_token');
     localStorage.removeItem('spotify_token_expiry');
     localStorage.removeItem('spotify_auth_state');
     localStorage.removeItem('spotify_code_verifier');
+  localStorage.removeItem('spotify_is_guest');
     if (refreshTimeoutRef.current) {
       window.clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = null;
@@ -381,7 +419,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     token,
     user,
+  isGuest,
     login,
+  loginAsGuest,
     logout,
     clearAll,
     isLoading

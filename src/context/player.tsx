@@ -68,7 +68,7 @@ export const usePlayer = () => {
 };
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token } = useAuth();
+  const { token, isGuest } = useAuth();
     const dispatch = useAppDispatch();
     const storePlayer = useAppSelector(s => s.player);
 
@@ -76,7 +76,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const positionInterval = useRef<number | null>(null as unknown as number | null);
 
     const fetchPlaybackState = async () => {
-      if (!token) return;
+    if (!token || isGuest) return;
       try {
         const res = await fetch('https://api.spotify.com/v1/me/player', { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) return;
@@ -130,7 +130,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     useEffect(() => {
-      if (!token) return;
+      if (!token || isGuest) return;
       const id = setInterval(fetchPlaybackState, 5000);
       fetchPlaybackState();
       return () => clearInterval(id);
@@ -138,10 +138,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Load Spotify SDK and wire events
     useEffect(() => {
-      if (!token) return;
-      const script = document.createElement('script');
-      script.src = 'https://sdk.scdn.co/spotify-player.js';
-      document.head.appendChild(script);
+  if (!token || isGuest) return;
+  const script = document.createElement('script');
+  script.src = 'https://sdk.scdn.co/spotify-player.js';
+  document.head.appendChild(script);
 
       // @ts-ignore
       window.onSpotifyWebPlaybackSDKReady = () => {
@@ -203,9 +203,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }, [token]);
 
-    // Update position ticker
+  // Update position ticker
     useEffect(() => {
-      if (storePlayer.playing) {
+  if (storePlayer.playing) {
         positionInterval.current = window.setInterval(() => {
           dispatch(setPosition(Math.min(storePlayer.position + 1000, storePlayer.duration)));
         }, 1000);
@@ -226,8 +226,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Player control helpers
     const play = async (track?: Track) => {
-      if (!token || !storePlayer.deviceId) {
-        console.log('Cannot play: missing token or device ID', { token: !!token, deviceId: storePlayer.deviceId });
+      if (!token || isGuest || !storePlayer.deviceId) {
+        console.log('Cannot play: missing token, guest mode, or device ID', { hasToken: !!token, isGuest, deviceId: storePlayer.deviceId });
         return;
       }
 
@@ -303,7 +303,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const toggleShuffle = async () => {
-      if (!token) return;
+      if (!token || isGuest) return;
       try {
         const newShuffle = !storePlayer.isShuffled;
         await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${newShuffle}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
@@ -314,7 +314,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const setRepeat = async (mode: 'off' | 'context' | 'track') => {
-      if (!token) return;
+      if (!token || isGuest) return;
       try {
         await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${mode}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
         dispatch(setRepeatAction(mode));

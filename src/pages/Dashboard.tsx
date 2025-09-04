@@ -222,7 +222,7 @@ const Dashboard: React.FC = () => {
     const trackId = track.id || track.track?.id;
     const trackName = track.name || track.track?.name || 'Unknown';
     const now = Date.now();
-    
+
     if (!trackId) {
       console.warn('Track has no ID, skipping:', track);
       return;
@@ -230,63 +230,62 @@ const Dashboard: React.FC = () => {
 
     // Normalize the track object to ensure consistency
     const normalizedTrack = track.track ? track.track : track;
-    
+
     // More aggressive duplicate prevention - check multiple criteria
     // But allow re-adding if it's a replay from recently-played section
     const isReplay = source === 'recently-played-replay';
-    
-    const isDuplicateByName = recentlyPlayed.some(item => {
-      const existingTrack = item.track;
-      const existingArtist = existingTrack.artists?.[0]?.name || '';
-      const newArtist = normalizedTrack.artists?.[0]?.name || '';
-      const existingName = existingTrack.name?.toLowerCase() || '';
-      const newName = normalizedTrack.name?.toLowerCase() || '';
-      
-      return existingName === newName && existingArtist === newArtist;
-    });
 
-    if (isDuplicateByName && !isReplay) {
-      console.log(`❌ Track ${trackName} by ${normalizedTrack.artists?.[0]?.name} already exists (different ID but same name/artist), skipping addition from source: ${source || 'unknown'}`);
-      return;
-    }
-
-    // Also check if this exact track ID is already at the top
-    const isAlreadyMostRecent = recentlyPlayed.length > 0 && recentlyPlayed[0]?.track?.id === trackId;
-    if (isAlreadyMostRecent && !isReplay) {
-      console.log(`❌ Track ${trackName} (ID: ${trackId}) is already the most recent track, skipping addition from source: ${source || 'unknown'}`);
-      return;
-    }
-    
-    // Check if this track was added very recently (within 2 seconds from ANY source)
-    // But allow replays and current track changes to override this
+    // Check rapid-duplicate prevention using ref
     const isAllowedSource = isReplay || source === 'current track change';
-    if (lastAddedRef.current && 
-        lastAddedRef.current.trackId === trackId && 
-        now - lastAddedRef.current.timestamp < 2000 && 
+    if (lastAddedRef.current &&
+        lastAddedRef.current.trackId === trackId &&
+        now - lastAddedRef.current.timestamp < 2000 &&
         !isAllowedSource) {
       console.log(`❌ Preventing rapid duplicate addition of track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} (last added ${now - lastAddedRef.current.timestamp}ms ago)`);
       return;
     }
-    
+
     // Update the last added tracker
     lastAddedRef.current = { trackId, timestamp: now };
-    
+
     if (isReplay) {
       console.log(`🔄 Replaying track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} - moving to top of recently played`);
     } else {
       console.log(`✅ Adding track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'}`);
     }
-    
+
     const playedItem = {
       track: normalizedTrack,
       played_at: new Date().toISOString(),
       context: null
     };
-    
-    // Only manage recentlyPlayed state with aggressive deduplication
+
+    // Use functional updater to avoid external dependency on recentlyPlayed
     setRecentlyPlayed(prev => {
       console.log(`📋 Before adding: recentlyPlayed has ${prev.length} tracks`);
-      
+
+      // If duplicate by name+artist exists and not a replay, skip
+      const existsByNameArtist = prev.some(item => {
+        const existingTrack = item.track;
+        const existingArtist = existingTrack.artists?.[0]?.name || '';
+        const newArtist = normalizedTrack.artists?.[0]?.name || '';
+        const existingName = existingTrack.name?.toLowerCase() || '';
+        const newName = normalizedTrack.name?.toLowerCase() || '';
+        return existingName === newName && existingArtist === newArtist;
+      });
+
+      if (existsByNameArtist && !isReplay) {
+        console.log(`❌ Track ${trackName} by ${normalizedTrack.artists?.[0]?.name} already exists (different ID but same name/artist), skipping addition from source: ${source || 'unknown'}`);
+        return prev;
+      }
+
+      // Also check if this exact track ID is already at the top
+      const isAlreadyMostRecent = prev.length > 0 && prev[0]?.track?.id === trackId;
+      if (isAlreadyMostRecent && !isReplay) {
+        console.log(`❌ Track ${trackName} (ID: ${trackId}) is already the most recent track, skipping addition from source: ${source || 'unknown'}`);
+        return prev;
+      }
+
       // Remove any existing instances of this track first (check both ID and name+artist)
       const withoutCurrent = prev.filter(item => {
         const itemId = item.track?.id;
@@ -294,20 +293,20 @@ const Dashboard: React.FC = () => {
         const itemArtist = item.track?.artists?.[0]?.name || '';
         const newName = normalizedTrack.name?.toLowerCase() || '';
         const newArtist = normalizedTrack.artists?.[0]?.name || '';
-        
+
         const isDuplicateById = itemId === trackId;
         const isDuplicateByName = itemName === newName && itemArtist === newArtist;
         const isDuplicate = isDuplicateById || isDuplicateByName;
-        
+
         if (isDuplicate) {
           console.log(`🗑️ Removing existing instance of track: ${item.track?.name} (ID: ${itemId}) - ${isDuplicateById ? 'same ID' : 'same name+artist'}`);
         }
         return !isDuplicate;
       });
-      
+
       // Add the new item at the beginning
       const newList = [playedItem, ...withoutCurrent];
-      
+
       // Final deduplication pass - use ID, name, and artist for comprehensive checking
       const seen = new Set();
       const seenNameArtist = new Set();
@@ -317,7 +316,7 @@ const Dashboard: React.FC = () => {
         const artist = item.track?.artists?.[0]?.name || '';
         const uniqueKeyById = id;
         const uniqueKeyByNameArtist = `${name}-${artist}`;
-        
+
         if (!id || seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist)) {
           if (id && (seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist))) {
             console.log(`🔄 Final deduplication: removing duplicate ${item.track?.name} by ${artist} at index ${index}`);
@@ -328,15 +327,15 @@ const Dashboard: React.FC = () => {
         seenNameArtist.add(uniqueKeyByNameArtist);
         return true;
       });
-      
-  const result = deduped.slice(0, 12); // Only keep the latest 12 songs
+
+      const result = deduped.slice(0, 12); // Only keep the latest 12 songs
       console.log(`📋 After adding: recentlyPlayed now has ${result.length} tracks`);
-      
+
       return result;
     });
-    
+
     console.log(`✨ Track processed successfully: ${trackName} (ID: ${trackId})`);
-  }, [recentlyPlayed]);
+  }, []);
 
   // Function to refresh recently played tracks
   const refreshRecentlyPlayed = React.useCallback(async () => {
@@ -594,27 +593,20 @@ const Dashboard: React.FC = () => {
                   <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center">
                     <span className="text-green-300 font-bold">♪</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Welcome to Music Player</h1>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Welcome to Spotify Lite</h1>
                 </div>
 
                 <p className="text-gray-300 mb-6">You're browsing as a guest. Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls, save playlists, and get personalized recommendations.</p>
 
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                   <button
-                    onClick={() => navigate('/discover')}
+                    onClick={() => scrollToSection('browse')}
                     className="flex items-center gap-2 px-5 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl shadow-lg transition-transform transform hover:scale-105"
                   >
                     Explore as guest
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="px-5 py-2 border border-white/10 text-white rounded-2xl hover:bg-white/5 transition-colors"
-                  >
-                    Sign in
                   </button>
                 </div>
 
