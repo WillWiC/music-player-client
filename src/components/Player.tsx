@@ -674,7 +674,7 @@ const Player: React.FC = () => {
                   mt: 0.5,
                   minWidth: 250,
                   p: 0.5,
-                  mr: '-8px'
+                  ml: '6px'
                 }
               }}
             >
