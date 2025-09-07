@@ -98,12 +98,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         borderRight: '1px solid rgba(255,255,255,0.08)',
         color: 'white',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        px: 4, // increased horizontal padding
+        py: 4.5  // increased vertical padding
       }}
     >
-      {/* Mobile close button */}
-      {isMobile && onClose && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+      {/* Header with title and close button */}
+      <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 2, mb: 3 }}>
+        <Typography
+          variant="h4"
+          component="div"
+          sx={{
+            fontWeight: 800,
+            color: 'white',
+            m: 0,
+            fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
+            lineHeight: 1
+          }}
+        >
+          Spotify Lite
+        </Typography>
+        {isMobile && onClose && (
           <IconButton
             onClick={onClose}
             sx={{ 
@@ -113,18 +128,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
           >
             <Close />
           </IconButton>
-        </Box>
-      )}
-
-      {/* Logo Section */}
-      <Box sx={{ px: 3, py: 1, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'white' }}>
-          Spotify Lite
-        </Typography>
+        )}
       </Box>
 
       {/* Main Navigation */}
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ mb: 2 }}>
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => (
             <ListItem key={item.id} disablePadding sx={{ mb: 1 }}>
