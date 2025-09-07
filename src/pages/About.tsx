@@ -16,14 +16,14 @@ const About: React.FC = () => {
         <div className="w-full max-w-4xl mx-auto py-24 px-6">
           <h1 className="text-4xl font-extrabold mb-4">About</h1>
 
-          <p className="text-gray-300 mb-4">Spotify Lite is a compact web client built on top of the Spotify Web API and Web Playback SDK. It focuses on fast, minimal playback and discovery features while keeping a small footprint.</p>
+          <p className="text-gray-300 mb-4">Spotify Lite is a compact web client built on top of the Spotify Web API and Web Playback SDK. It focuses on fast, minimal playback while keeping a small footprint.</p>
 
           <section className="mt-6">
             <h2 className="text-2xl font-semibold mb-2">Core features</h2>
             <ul className="list-disc list-inside text-gray-300 space-y-2">
               <li>Sign in with Spotify and control playback.</li>
               <li>View what’s playing across your devices and transfer playback.</li>
-              <li>Search, browse, and play tracks using a minimal UI.</li>
+              <li>Search and play tracks using a minimal UI.</li>
             </ul>
           </section>
 
