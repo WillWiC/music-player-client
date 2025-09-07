@@ -8,7 +8,7 @@ import Search from './pages/Search';
 import Library from './pages/Library';
 import Account from './pages/Account';
 import Settings from './pages/Settings';
-import Category from './pages/Category';
+// Category page removed
 import About from './pages/About';
 import Artist from './pages/Artist';
 import MediaView from './components/MediaView';
@@ -133,7 +133,7 @@ const AppContent: React.FC = () => {
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
         <Route path="/artist/:id" element={<Artist />} />
-        <Route path="/category/:categoryId" element={<Category />} />
+  {/* Category route removed */}
       </Routes>
       {/* Show player only when user is authenticated */}
       {token && <Player />}

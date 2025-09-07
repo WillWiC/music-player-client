@@ -59,7 +59,7 @@ interface PlayerContextType {
   previousTrack: () => Promise<void>;
   seek: (position: number) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
-  play: (track: Track) => Promise<void>;
+  play: (track?: Track | { context_uri?: string; uris?: string[]; offset?: { position?: number } }) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   toggleShuffle: () => Promise<void>;
@@ -239,29 +239,45 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, [storePlayer.playing, storePlayer.duration, storePlayer.position]);
 
     // Player control helpers - enhanced for remote playback
-    const play = async (track?: Track) => {
+    const play = async (trackOrOptions?: Track | { context_uri?: string; uris?: string[]; offset?: { position?: number } }) => {
       if (!token || isGuest) {
         console.log('Cannot play: missing token or guest mode', { hasToken: !!token, isGuest });
         return;
       }
 
       try {
-        if (track) {
-          // For specific track playback, prefer using the current device or any active device
+        if (trackOrOptions) {
+          // For specific playback options or Track playback
           const targetDeviceId = storePlayer.deviceId || storePlayer.activeDeviceId;
-          if (targetDeviceId) {
-            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${targetDeviceId}`, {
+          const params = targetDeviceId ? `?device_id=${targetDeviceId}` : '';
+
+          // If an options object with context_uri or uris is provided, use it directly
+          if ((trackOrOptions as any).context_uri || (trackOrOptions as any).uris) {
+            const body: any = {};
+            if ((trackOrOptions as any).context_uri) body.context_uri = (trackOrOptions as any).context_uri;
+            if ((trackOrOptions as any).uris) body.uris = (trackOrOptions as any).uris;
+            if ((trackOrOptions as any).offset) body.offset = (trackOrOptions as any).offset;
+
+            await fetch(`https://api.spotify.com/v1/me/player/play${params}`, {
               method: 'PUT',
               headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ uris: [track.uri] })
+              body: JSON.stringify(body)
+            });
+          } else if ((trackOrOptions as any).uri) {
+            // Track object with uri
+            await fetch(`https://api.spotify.com/v1/me/player/play${params}`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ uris: [(trackOrOptions as any).uri] })
             });
           } else {
-            // Fallback to Web API without device ID
-            await fetch('https://api.spotify.com/v1/me/player/play', {
-              method: 'PUT',
-              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ uris: [track.uri] })
-            });
+            // Fallback: attempt resume
+            if (storePlayer.isRemotePlaying) {
+              await fetch('https://api.spotify.com/v1/me/player/play', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+              dispatch(setPlaying(true));
+            } else {
+              await playerRef.current?.resume();
+            }
           }
         } else {
           // Resume current playback
@@ -322,18 +338,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nextTrack = async () => {
       try {
-        if (storePlayer.isRemotePlaying) {
-          // Use Web API for remote devices
-          await fetch('https://api.spotify.com/v1/me/player/next', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          // Refresh state after track change
-          setTimeout(fetchPlaybackState, 500);
-        } else {
-          // Use local player for this device
-          await playerRef.current?.nextTrack();
+        // Prefer SDK/local player when available
+        try {
+          if (playerRef.current && !storePlayer.isRemotePlaying) {
+            // @ts-ignore - nextTrack may exist on the SDK player
+            if (typeof (playerRef.current as any).nextTrack === 'function') {
+              await (playerRef.current as any).nextTrack();
+              return;
+            }
+          }
+        } catch (e) {
+          // Fall through to Web API
         }
+
+        // Fallback to Web API for remote devices or if SDK method unavailable
+        await fetch('https://api.spotify.com/v1/me/player/next', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        // Refresh state after track change
+        setTimeout(fetchPlaybackState, 500);
       } catch (err) {
         console.error('nextTrack error', err);
       }
@@ -341,18 +365,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const previousTrack = async () => {
       try {
-        if (storePlayer.isRemotePlaying) {
-          // Use Web API for remote devices
-          await fetch('https://api.spotify.com/v1/me/player/previous', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          // Refresh state after track change
-          setTimeout(fetchPlaybackState, 500);
-        } else {
-          // Use local player for this device
-          await playerRef.current?.previousTrack();
+        // Prefer SDK/local player when available
+        try {
+          if (playerRef.current && !storePlayer.isRemotePlaying) {
+            // @ts-ignore - previousTrack may exist on the SDK player
+            if (typeof (playerRef.current as any).previousTrack === 'function') {
+              await (playerRef.current as any).previousTrack();
+              return;
+            }
+          }
+        } catch (e) {
+          // Fall through to Web API
         }
+
+        // Fallback to Web API for remote devices or if SDK method unavailable
+        await fetch('https://api.spotify.com/v1/me/player/previous', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        // Refresh state after track change
+        setTimeout(fetchPlaybackState, 500);
       } catch (err) {
         console.error('previousTrack error', err);
       }
@@ -405,7 +437,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!token || isGuest) return;
       try {
         const newShuffle = !storePlayer.isShuffled;
-        await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${newShuffle}`, { 
+  // Include device_id when available so shuffle applies to the intended player
+  const params = new URLSearchParams({ state: String(newShuffle) });
+  if (storePlayer.deviceId) params.set('device_id', storePlayer.deviceId);
+  await fetch(`https://api.spotify.com/v1/me/player/shuffle?${params.toString()}`, { 
           method: 'PUT', 
           headers: { Authorization: `Bearer ${token}` } 
         });
@@ -420,10 +455,24 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const setRepeat = async (mode: 'off' | 'context' | 'track') => {
       if (!token || isGuest) return;
       try {
-        await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${mode}`, { 
+        // Include device_id when available to ensure the repeat setting targets the intended player
+        const params = new URLSearchParams({ state: mode });
+        if (storePlayer.deviceId) params.set('device_id', storePlayer.deviceId);
+
+        const url = `https://api.spotify.com/v1/me/player/repeat?${params.toString()}`;
+        const res = await fetch(url, { 
           method: 'PUT', 
           headers: { Authorization: `Bearer ${token}` } 
         });
+
+        if (!res.ok) {
+          // Try to surface useful debug info
+          let text = '';
+          try { text = await res.text(); } catch {}
+          console.error('setRepeat failed', res.status, res.statusText, text);
+          return;
+        }
+
         dispatch(setRepeatAction(mode));
         // Refresh state to ensure consistency
         setTimeout(fetchPlaybackState, 300);

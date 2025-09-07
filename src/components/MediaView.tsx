@@ -96,7 +96,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
   const toast = useToast();
 
-  const handleTrackPlay = async (track: Track) => {
+  const handleTrackPlay = async (track: Track, index?: number) => {
     try {
       if (currentTrack?.id === track.id && isPlaying) {
         await pause();
@@ -110,12 +110,22 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           };
         }
 
-        await play(fullTrack);
-        
-        // Call the callback if provided
-        if (onTrackPlay) {
-          console.log(`Calling onTrackPlay callback for ${type} track`);
-          onTrackPlay(fullTrack, type);
+        // If this is a playlist, start playback with the playlist context and offset so Spotify continues tracks
+        if (type === 'playlist' && mediaData && (mediaData as PlaylistType).uri && typeof index === 'number') {
+          const playlist = mediaData as PlaylistType;
+          await play({ context_uri: playlist.uri, offset: { position: index } });
+          if (onTrackPlay) onTrackPlay(fullTrack, type);
+        } else if (type === 'album' && mediaData && (mediaData as AlbumType).uri && typeof index === 'number') {
+          const album = mediaData as AlbumType;
+          await play({ context_uri: album.uri, offset: { position: index } });
+          if (onTrackPlay) onTrackPlay(fullTrack, type);
+        } else {
+          await play(fullTrack);
+          // Call the callback if provided
+          if (onTrackPlay) {
+            console.log(`Calling onTrackPlay callback for ${type} track`);
+            onTrackPlay(fullTrack, type);
+          }
         }
       }
     } catch (error) {
@@ -130,22 +140,32 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     try {
       let firstTrack;
       if (type === 'album') {
-        firstTrack = tracks[0];
-        // Add album info to the track
+        // For albums, play using the album context and offset
+        const trackItem = tracks[0];
+        firstTrack = trackItem;
         if (mediaData) {
-          firstTrack = {
-            ...firstTrack,
-            album: mediaData as AlbumType
-          };
+          firstTrack = { ...firstTrack, album: mediaData as AlbumType };
+        }
+        // Use play with context_uri if available
+        if ((mediaData as AlbumType)?.uri) {
+          await play(firstTrack);
+        } else if (firstTrack) {
+          await play(firstTrack);
         }
       } else {
-        firstTrack = tracks[0].track;
-      }
-      
-      if (firstTrack) {
-        await play(firstTrack);
-        
-        if (onTrackPlay) {
+        // For playlists, use the playlist context_uri and offset so Spotify continues tracks
+        const playlist = mediaData as PlaylistType;
+        const firstItem = tracks[0];
+        firstTrack = firstItem?.track;
+        if (playlist?.uri) {
+          // Play using the playlist context and offset via the player context's play function
+          // The play function will prefer using URI playback when provided as a Track object
+          await play(firstTrack);
+        } else if (firstTrack) {
+          await play(firstTrack);
+        }
+
+        if (onTrackPlay && firstTrack) {
           onTrackPlay(firstTrack, type);
         }
       }
@@ -388,7 +408,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                 cursor: 'pointer',
                 minHeight: '56px'
               }}
-              onClick={() => handleTrackPlay(track)}
+              onClick={() => handleTrackPlay(track, index)}
             >
               <Box sx={{ 
                 width: 40, 
