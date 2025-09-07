@@ -30,6 +30,16 @@ const safeParseJSON = async (response: Response) => {
   }
 };
 
+interface Device {
+  id: string;
+  is_active: boolean;
+  is_private_session: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string;
+  volume_percent: number;
+}
+
 interface PlayerContextType {
   player: SpotifyPlayer | null;
   currentTrack: Track | null;
@@ -43,6 +53,7 @@ interface PlayerContextType {
   isRemotePlaying: boolean;
   isShuffled: boolean;
   repeatMode: 'off' | 'context' | 'track';
+  availableDevices: Device[];
   togglePlay: () => Promise<void>;
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
@@ -53,6 +64,8 @@ interface PlayerContextType {
   resume: () => Promise<void>;
   toggleShuffle: () => Promise<void>;
   setRepeat: (mode: 'off' | 'context' | 'track') => Promise<void>;
+  getAvailableDevices: () => Promise<void>;
+  transferPlayback: (deviceId: string) => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -71,6 +84,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { token, isGuest } = useAuth();
     const dispatch = useAppDispatch();
     const storePlayer = useAppSelector(s => s.player);
+    const [availableDevices, setAvailableDevices] = React.useState<Device[]>([]);
 
     const playerRef = useRef<SpotifyPlayer | null>(null);
     const positionInterval = useRef<number | null>(null as unknown as number | null);
@@ -224,22 +238,44 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }, [storePlayer.playing, storePlayer.duration, storePlayer.position]);
 
-    // Player control helpers
+    // Player control helpers - enhanced for remote playback
     const play = async (track?: Track) => {
-      if (!token || isGuest || !storePlayer.deviceId) {
-        console.log('Cannot play: missing token, guest mode, or device ID', { hasToken: !!token, isGuest, deviceId: storePlayer.deviceId });
+      if (!token || isGuest) {
+        console.log('Cannot play: missing token or guest mode', { hasToken: !!token, isGuest });
         return;
       }
 
       try {
         if (track) {
-          await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${storePlayer.deviceId}`, {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uris: [track.uri] })
-          });
+          // For specific track playback, prefer using the current device or any active device
+          const targetDeviceId = storePlayer.deviceId || storePlayer.activeDeviceId;
+          if (targetDeviceId) {
+            await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${targetDeviceId}`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ uris: [track.uri] })
+            });
+          } else {
+            // Fallback to Web API without device ID
+            await fetch('https://api.spotify.com/v1/me/player/play', {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ uris: [track.uri] })
+            });
+          }
         } else {
-          await playerRef.current?.resume();
+          // Resume current playback
+          if (storePlayer.isRemotePlaying) {
+            // Use Web API for remote devices
+            await fetch('https://api.spotify.com/v1/me/player/play', {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            dispatch(setPlaying(true));
+          } else {
+            // Use local player for this device
+            await playerRef.current?.resume();
+          }
         }
       } catch (err) {
         console.error('play error', err);
@@ -248,8 +284,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const pause = async () => {
       try {
-        await playerRef.current?.pause();
-        dispatch(setPlaying(false));
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          await fetch('https://api.spotify.com/v1/me/player/pause', {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          dispatch(setPlaying(false));
+        } else {
+          // Use local player for this device
+          await playerRef.current?.pause();
+          dispatch(setPlaying(false));
+        }
       } catch (err) {
         console.error('pause error', err);
       }
@@ -257,8 +303,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const resume = async () => {
       try {
-        await playerRef.current?.resume();
-        dispatch(setPlaying(true));
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          await fetch('https://api.spotify.com/v1/me/player/play', {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          dispatch(setPlaying(true));
+        } else {
+          // Use local player for this device
+          await playerRef.current?.resume();
+          dispatch(setPlaying(true));
+        }
       } catch (err) {
         console.error('resume error', err);
       }
@@ -266,7 +322,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nextTrack = async () => {
       try {
-        await playerRef.current?.nextTrack();
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          await fetch('https://api.spotify.com/v1/me/player/next', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          // Refresh state after track change
+          setTimeout(fetchPlaybackState, 500);
+        } else {
+          // Use local player for this device
+          await playerRef.current?.nextTrack();
+        }
       } catch (err) {
         console.error('nextTrack error', err);
       }
@@ -274,7 +341,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const previousTrack = async () => {
       try {
-        await playerRef.current?.previousTrack();
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          await fetch('https://api.spotify.com/v1/me/player/previous', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          // Refresh state after track change
+          setTimeout(fetchPlaybackState, 500);
+        } else {
+          // Use local player for this device
+          await playerRef.current?.previousTrack();
+        }
       } catch (err) {
         console.error('previousTrack error', err);
       }
@@ -282,8 +360,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const seek = async (position: number) => {
       try {
-        await playerRef.current?.seek(position);
-        dispatch(setPosition(position));
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          await fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${position}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          dispatch(setPosition(position));
+        } else {
+          // Use local player for this device
+          await playerRef.current?.seek(position);
+          dispatch(setPosition(position));
+        }
       } catch (err) {
         console.error('seek error', err);
       }
@@ -291,8 +379,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const setVolume = async (newVolume: number) => {
       try {
-        await playerRef.current?.setVolume(newVolume);
-        dispatch(setVolumeAction(newVolume));
+        if (storePlayer.isRemotePlaying) {
+          // Use Web API for remote devices
+          const volumePercent = Math.round(newVolume * 100);
+          await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${volumePercent}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          dispatch(setVolumeAction(newVolume));
+        } else {
+          // Use local player for this device
+          await playerRef.current?.setVolume(newVolume);
+          dispatch(setVolumeAction(newVolume));
+        }
       } catch (err) {
         console.error('setVolume error', err);
       }
@@ -306,8 +405,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!token || isGuest) return;
       try {
         const newShuffle = !storePlayer.isShuffled;
-        await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${newShuffle}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+        await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${newShuffle}`, { 
+          method: 'PUT', 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
         dispatch(setShuffled(newShuffle));
+        // Refresh state to ensure consistency
+        setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('toggleShuffle error', err);
       }
@@ -316,12 +420,72 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const setRepeat = async (mode: 'off' | 'context' | 'track') => {
       if (!token || isGuest) return;
       try {
-        await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${mode}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+        await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${mode}`, { 
+          method: 'PUT', 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
         dispatch(setRepeatAction(mode));
+        // Refresh state to ensure consistency
+        setTimeout(fetchPlaybackState, 300);
       } catch (err) {
         console.error('setRepeat error', err);
       }
     };
+
+    // Device management functions
+    const getAvailableDevices = async () => {
+      if (!token || isGuest) return;
+      try {
+        const response = await fetch('https://api.spotify.com/v1/me/player/devices', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableDevices(data.devices || []);
+        }
+      } catch (err) {
+        console.error('getAvailableDevices error', err);
+      }
+    };
+
+    const transferPlayback = async (deviceId: string) => {
+      if (!token || isGuest) return;
+      try {
+        await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            device_ids: [deviceId],
+            play: storePlayer.playing
+          })
+        });
+        // Refresh devices after transfer
+        setTimeout(() => {
+          getAvailableDevices();
+          fetchPlaybackState();
+        }, 1000);
+      } catch (err) {
+        console.error('transferPlayback error', err);
+      }
+    };
+
+    // Periodically fetch available devices
+    React.useEffect(() => {
+      if (!token || isGuest) return;
+      
+      const fetchDevices = () => {
+        getAvailableDevices();
+      };
+      
+      // Fetch devices immediately and then every 30 seconds
+      fetchDevices();
+      const interval = setInterval(fetchDevices, 30000);
+      
+      return () => clearInterval(interval);
+    }, [token, isGuest]);
 
     const value: PlayerContextType = {
       player: playerRef.current,
@@ -336,6 +500,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isRemotePlaying: storePlayer.isRemotePlaying,
       isShuffled: storePlayer.isShuffled,
       repeatMode: storePlayer.repeatMode,
+      availableDevices,
       togglePlay,
       nextTrack,
       previousTrack,
@@ -345,7 +510,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       pause,
       resume,
       toggleShuffle,
-      setRepeat
+      setRepeat,
+      getAvailableDevices,
+      transferPlayback
     };
 
     return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
