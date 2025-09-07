@@ -804,18 +804,10 @@ const Dashboard: React.FC = () => {
         </div>
       </button>
     </div>
-    {/* Action Buttons */}
+    {/* Action Buttons (Discover button removed) */}
     <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
-      <button
-        onClick={() => navigate('/search')}
-        className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group text-sm"
-      >
-        <span>Discover Music</span>
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
+      {/* Discover Music button intentionally removed */}
+    </div>
             </div>
           </div>
           {/* Continue Listening Section */}
