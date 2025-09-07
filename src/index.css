@@ -29,6 +29,14 @@ body {
   /* Reserve vertical scrollbar space to avoid layout shift when modals/menus toggle page scroll */
   overflow-x: hidden;
   overflow-y: scroll;
+  /* Prevent MUI from causing layout shifts when managing scroll */
+  scrollbar-gutter: stable;
+}
+
+/* Prevent MUI modal from overriding body overflow styles */
+body[style*="overflow: hidden"] {
+  overflow-y: scroll !important;
+  padding-right: 0 !important;
 }
 
 #root {

@@ -665,6 +665,8 @@ const Player: React.FC = () => {
               onClose={handleDeviceMenuClose}
               anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
               transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              disableScrollLock={true}
+              disablePortal={true}
               PaperProps={{
                 sx: {
                   bgcolor: 'rgba(0, 0, 0, 0.9)',
