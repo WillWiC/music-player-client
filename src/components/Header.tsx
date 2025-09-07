@@ -64,7 +64,8 @@ const Header: React.FC<HeaderProps> = ({
   // Workaround: Menu typing doesn't expose ModalProps in this project's MUI types,
   // so build an `any` prop bag and spread it into the Menu to disable body scroll
   // locking when the profile dropdown opens (prevents layout shift).
-  const menuModalProps: any = { ModalProps: { disableScrollLock: true } };
+  // Prefer passing the Menu prop directly to avoid unexpected Modal style overrides
+  // which can add padding-right to <body> and shift the header horizontally.
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -340,7 +341,9 @@ const Header: React.FC<HeaderProps> = ({
                 </Button>
 
                 <Menu
-                  {...menuModalProps}
+                  // disable MUI scroll locking so the body scrollbar isn't toggled
+                  // (prevents layout/padding adjustments that shift the header)
+                  disableScrollLock={true}
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
                   onClose={handleProfileClose}

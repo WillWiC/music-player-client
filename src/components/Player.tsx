@@ -666,9 +666,11 @@ const Player: React.FC = () => {
               anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
               transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               disableScrollLock={true}
-              disablePortal={true}
+              /* Render the Menu in a portal (default) so it isn't clipped by parent stacking/overflow contexts */
+              disablePortal={false}
               PaperProps={{
                 sx: {
+                  zIndex: (theme) => theme.zIndex.modal + 50,
                   bgcolor: 'rgba(0, 0, 0, 0.9)',
                   backdropFilter: 'blur(20px)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',

@@ -92,7 +92,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       sx={{
         width: 288, // Same as the original w-72 (72 * 4 = 288px)
         height: '100vh',
-        bgcolor: '#000000',
+        bgcolor: '#121212', // Modern Spotify black
+        background: 'linear-gradient(180deg, #121212 0%, #000000 100%)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(255,255,255,0.08)',
         color: 'white',
         display: 'flex',
         flexDirection: 'column'
@@ -114,8 +117,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       )}
 
       {/* Logo Section */}
-      <Box sx={{ p: 3, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'white' }}>
+      <Box sx={{ px: 3, py: 1, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'white' }}>
           Spotify Lite
         </Typography>
       </Box>
@@ -248,7 +251,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         zIndex: 1200, // Lower than player's 9999
         '& .MuiDrawer-paper': {
           border: 'none',
-          boxShadow: 'none',
+          borderRight: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
+          bgcolor: '#121212',
+          background: 'linear-gradient(180deg, #121212 0%, #000000 100%)',
+          backdropFilter: 'blur(20px)',
           zIndex: 1200
         }
       }}

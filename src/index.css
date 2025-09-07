@@ -33,11 +33,11 @@ body {
   scrollbar-gutter: stable;
 }
 
-/* Prevent MUI modal from overriding body overflow styles */
-body[style*="overflow: hidden"] {
-  overflow-y: scroll !important;
-  padding-right: 0 !important;
-}
+/* NOTE: Previously we forced body[style*="overflow: hidden"] to keep scrollbars visible
+  which interferes with MUI's scroll-lock behavior and could cause header/content shifts.
+  MUI now has disableScrollLock passed to Menus/Modals where needed, so we avoid
+  forcing overflow styles here. If you still see layout shift, re-enable scroll gutter
+  via `scrollbar-gutter: stable;` on body instead. */
 
 #root {
   width: 100%;
