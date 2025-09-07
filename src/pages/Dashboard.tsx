@@ -189,6 +189,11 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Function to handle opening artist page
+  const openArtist = (artistId: string) => {
+    navigate(`/artist/${artistId}`);
+  };
+
   // Function to handle opening album page
   const openAlbum = (albumId: string) => {
     navigate(`/album/${albumId}`);
@@ -203,6 +208,12 @@ const Dashboard: React.FC = () => {
   const handleTrackNameClick = (e: React.MouseEvent, albumId: string) => {
     e.stopPropagation(); // Prevent triggering the play button
     openAlbum(albumId);
+  };
+
+  // Function to handle artist click
+  const handleArtistClick = (e: React.MouseEvent, artistId: string) => {
+    e.stopPropagation(); // Prevent triggering the parent click
+    openArtist(artistId);
   };
 
   // Handle scroll event to show/hide scroll to top button
@@ -796,7 +807,7 @@ const Dashboard: React.FC = () => {
     {/* Action Buttons */}
     <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
       <button
-        onClick={() => navigate('/discover')}
+        onClick={() => navigate('/search')}
         className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-green-500/25 group text-sm"
       >
         <span>Discover Music</span>
@@ -927,7 +938,12 @@ const Dashboard: React.FC = () => {
                           {item.track.name}
                         </h4>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
-                          {item.track.artists?.[0]?.name}
+                          <span 
+                            className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
+                            onClick={(e) => handleArtistClick(e, item.track.artists?.[0]?.id || '')}
+                          >
+                            {item.track.artists?.[0]?.name}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -1055,7 +1071,17 @@ const Dashboard: React.FC = () => {
                             {track.name}
                           </h4>
                           <p className="text-gray-400 text-xs truncate">
-                            {track.artists?.map((artist) => artist.name).join(', ') || 'Unknown Artist'}
+                            {track.artists?.map((artist, index) => (
+                              <span key={artist.id}>
+                                <span 
+                                  className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
+                                  onClick={(e) => handleArtistClick(e, artist.id)}
+                                >
+                                  {artist.name}
+                                </span>
+                                {index < (track.artists?.length || 0) - 1 && ', '}
+                              </span>
+                            )) || 'Unknown Artist'}
                           </p>
                         </div>
                         
@@ -1360,7 +1386,15 @@ const Dashboard: React.FC = () => {
                           {album.name}
                         </h4>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
-                          {album.artists[0]?.name}
+                          <span 
+                            className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArtistClick(e, album.artists[0]?.id || '');
+                            }}
+                          >
+                            {album.artists[0]?.name}
+                          </span>
                         </p>
                       </div>
                     </div>

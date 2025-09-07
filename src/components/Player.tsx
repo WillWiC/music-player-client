@@ -350,6 +350,12 @@ const Player: React.FC = () => {
                     color: '#ffffff'
                   }
                 }}
+                onClick={() => {
+                  const firstArtist = currentTrack.artists?.[0];
+                  if (firstArtist) {
+                    navigate(`/artist/${firstArtist.id}`);
+                  }
+                }}
               >
                 {currentTrack.artists?.map(artist => artist.name).join(', ')}
               </Typography>

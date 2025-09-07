@@ -8,9 +8,9 @@ import Search from './pages/Search';
 import Library from './pages/Library';
 import Account from './pages/Account';
 import Settings from './pages/Settings';
-import Discovery from './pages/Discovery';
 import Category from './pages/Category';
 import About from './pages/About';
+import Artist from './pages/Artist';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -122,7 +122,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="App">
       <Routes>
-  <Route path="/discover" element={<Discovery />} />
   <Route path="/about" element={<About />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
@@ -133,6 +132,7 @@ const AppContent: React.FC = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
+        <Route path="/artist/:id" element={<Artist />} />
         <Route path="/category/:categoryId" element={<Category />} />
       </Routes>
       {/* Show player only when user is authenticated */}

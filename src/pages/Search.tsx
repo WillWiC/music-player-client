@@ -241,7 +241,22 @@ const SearchPage: React.FC = () => {
                             <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 600 }} noWrap className="truncate">{track.name}</Typography>
                             <div className="text-xs text-gray-400 truncate">
                               <span className="truncate block">{track.album?.name}</span>
-                              <span className="truncate">{track.artists?.map(a => a.name).join(', ')}</span>
+                              <span className="truncate">
+                                {track.artists?.map((artist, index) => (
+                                  <span key={artist.id}>
+                                    <span 
+                                      className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/artist/${artist.id}`);
+                                      }}
+                                    >
+                                      {artist.name}
+                                    </span>
+                                    {index < (track.artists?.length || 0) - 1 && ', '}
+                                  </span>
+                                ))}
+                              </span>
                             </div>
                           </div>
                           <div className="flex-shrink-0">
@@ -279,7 +294,22 @@ const SearchPage: React.FC = () => {
                             </div>
                             <div className="p-2">
                               <div className="text-sm text-white font-semibold truncate">{album.name}</div>
-                              <div className="text-xs text-gray-400 truncate">{album.artists?.map((a:any) => a.name).join(', ')}</div>
+                              <div className="text-xs text-gray-400 truncate">
+                                {album.artists?.map((artist: any, index: number) => (
+                                  <span key={artist.id}>
+                                    <span 
+                                      className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/artist/${artist.id}`);
+                                      }}
+                                    >
+                                      {artist.name}
+                                    </span>
+                                    {index < (album.artists?.length || 0) - 1 && ', '}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -300,14 +330,15 @@ const SearchPage: React.FC = () => {
                   ) : (
         <div className="space-y-2">
                       {artists.map(artist => (
-                        <div key={artist.id} className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg">
+                        <div 
+                          key={artist.id} 
+                          className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+                          onClick={() => navigate(`/artist/${artist.id}`)}
+                        >
           <img src={artist.images?.[0]?.url || '/vite.svg'} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm text-white font-semibold truncate">{artist.name}</div>
+                            <div className="text-sm text-white font-semibold truncate hover:text-green-400 transition-colors">{artist.name}</div>
                             <div className="text-xs text-gray-400">{artist.type} • {artist.followers?.total ? `${artist.followers.total.toLocaleString()} followers` : ''}</div>
-                          </div>
-                          <div className="flex-shrink-0">
-                            <a href={artist.external_urls?.spotify} target="_blank" rel="noreferrer" className="text-xs text-green-300 underline">Open</a>
                           </div>
                         </div>
                       ))}
