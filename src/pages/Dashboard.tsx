@@ -6,7 +6,7 @@ import type { User, Playlist, RecentlyPlayedItem, Track, Album, Category } from 
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { CircularProgress } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { useToast } from '../context/toast';
 import '../index.css';
 
@@ -930,12 +930,23 @@ const Dashboard: React.FC = () => {
                           {item.track.name}
                         </h4>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
-                          <span 
-                            className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
-                            onClick={(e) => handleArtistClick(e, item.track.artists?.[0]?.id || '')}
+                          <Box
+                            component="span"
+                            tabIndex={0}
+                            role="link"
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); openArtist(item.track.artists?.[0]?.id || ''); }}
+                            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArtist(item.track.artists?.[0]?.id || ''); } }}
+                            sx={{
+                              cursor: 'pointer',
+                              color: 'inherit',
+                              textDecoration: 'none',
+                              transition: 'color 120ms ease, transform 120ms ease',
+                              '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
+                              '&:focus': { outline: 'none', textDecoration: 'underline' }
+                            }}
                           >
                             {item.track.artists?.[0]?.name}
-                          </span>
+                          </Box>
                         </p>
                       </div>
                     </div>
@@ -1065,12 +1076,23 @@ const Dashboard: React.FC = () => {
                           <p className="text-gray-400 text-xs truncate">
                             {track.artists?.map((artist, index) => (
                               <span key={artist.id}>
-                                <span 
-                                  className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
-                                  onClick={(e) => handleArtistClick(e, artist.id)}
+                                <Box
+                                  component="span"
+                                  tabIndex={0}
+                                  role="link"
+                                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); openArtist(artist.id); }}
+                                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArtist(artist.id); } }}
+                                  sx={{
+                                    cursor: 'pointer',
+                                    color: 'inherit',
+                                    textDecoration: 'none',
+                                    transition: 'color 120ms ease, transform 120ms ease',
+                                    '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
+                                    '&:focus': { outline: 'none', textDecoration: 'underline' }
+                                  }}
                                 >
                                   {artist.name}
-                                </span>
+                                </Box>
                                 {index < (track.artists?.length || 0) - 1 && ', '}
                               </span>
                             )) || 'Unknown Artist'}

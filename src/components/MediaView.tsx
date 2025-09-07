@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { useAuth } from '../context/auth';
 import { 
@@ -29,6 +30,7 @@ interface MediaViewProps {
 const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) => {
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
+  const navigate = useNavigate();
   const [mediaData, setMediaData] = useState<AlbumType | PlaylistType | null>(null);
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -478,7 +480,37 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                     }}
                     noWrap
                   >
-                    {track.artists?.map((artist: any) => artist.name).join(', ')}
+                    {track.artists?.map((artist: any, i: number) => (
+                      <span key={artist.id || artist.name}>
+                        {artist.id ? (
+                          <Box
+                            component="span"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
+                            sx={{
+                              cursor: 'pointer',
+                              color: 'inherit',
+                              textDecoration: 'none',
+                              transition: 'color 120ms ease, transform 120ms ease',
+                              '&:hover': {
+                                color: '#1db954',
+                                transform: 'translateY(-1px)'
+                              },
+                              '&:focus': {
+                                outline: 'none',
+                                textDecoration: 'underline'
+                              }
+                            }}
+                          >
+                            {artist.name}
+                          </Box>
+                        ) : (
+                          <span>{artist.name}</span>
+                        )}
+                        {i < (track.artists?.length || 0) - 1 ? ', ' : ''}
+                      </span>
+                    ))}
                   </Typography>
                 </Box>
               </Box>

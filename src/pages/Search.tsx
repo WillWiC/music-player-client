@@ -244,15 +244,23 @@ const SearchPage: React.FC = () => {
                               <span className="truncate">
                                 {track.artists?.map((artist, index) => (
                                   <span key={artist.id}>
-                                    <span 
-                                      className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/artist/${artist.id}`);
+                                    <Box
+                                      component="span"
+                                      tabIndex={0}
+                                      role="link"
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
+                                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        color: 'inherit',
+                                        textDecoration: 'none',
+                                        transition: 'color 120ms ease, transform 120ms ease',
+                                        '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
+                                        '&:focus': { outline: 'none', textDecoration: 'underline' }
                                       }}
                                     >
                                       {artist.name}
-                                    </span>
+                                    </Box>
                                     {index < (track.artists?.length || 0) - 1 && ', '}
                                   </span>
                                 ))}
@@ -297,15 +305,23 @@ const SearchPage: React.FC = () => {
                               <div className="text-xs text-gray-400 truncate">
                                 {album.artists?.map((artist: any, index: number) => (
                                   <span key={artist.id}>
-                                    <span 
-                                      className="cursor-pointer hover:text-green-400 hover:underline transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/artist/${artist.id}`);
+                                    <Box
+                                      component="span"
+                                      tabIndex={0}
+                                      role="link"
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
+                                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        color: 'inherit',
+                                        textDecoration: 'none',
+                                        transition: 'color 120ms ease, transform 120ms ease',
+                                        '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
+                                        '&:focus': { outline: 'none', textDecoration: 'underline' }
                                       }}
                                     >
                                       {artist.name}
-                                    </span>
+                                    </Box>
                                     {index < (album.artists?.length || 0) - 1 && ', '}
                                   </span>
                                 ))}
