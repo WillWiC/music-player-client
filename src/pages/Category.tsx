@@ -7,7 +7,7 @@ import Header from '../components/Header';
 import { CircularProgress, IconButton } from '@mui/material';
 import { PlayArrow, ArrowBack, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
-import { getCategoryById, mapGenresToCategories, type CustomCategory } from '../utils/categoryMapping';
+import { getCategoryById, mapGenresToCategories, getCategorySearchTerms, type CustomCategory } from '../utils/categoryMapping';
 import { formatCount } from '../utils/numberFormat';
 
 interface Playlist {
@@ -122,8 +122,9 @@ const Category: React.FC = () => {
     setError('');
     
     try {
-      // Search for artists and playlists for the category
-      const genreSearches = category.spotifyGenres.slice(0, 3); // Limit to avoid too many requests
+      // Use optimized search terms for better API results
+      const searchTerms = getCategorySearchTerms(categoryId!);
+      const genreSearches = searchTerms.slice(0, 4); // Use optimized terms instead of raw spotifyGenres
       let allArtists: Artist[] = [];
       let allPlaylists: Playlist[] = [];
       let allTracks: Track[] = [];
