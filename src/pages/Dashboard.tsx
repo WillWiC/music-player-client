@@ -519,7 +519,14 @@ const Dashboard: React.FC = () => {
         return res.json();
       })
       .then(data => {
-        setNewReleases(data.albums?.items ?? []);
+        const items = data.albums?.items ?? [];
+        // Sort by release_date descending so newest releases appear first
+        items.sort((a: any, b: any) => {
+          const da = a?.release_date ? new Date(a.release_date).getTime() : 0;
+          const db = b?.release_date ? new Date(b.release_date).getTime() : 0;
+          return db - da;
+        });
+        setNewReleases(items);
         setErrors(prev => ({ ...prev, releases: '' }));
       })
       .catch((error) => handleApiError(error, 'new releases'))
