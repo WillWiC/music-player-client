@@ -324,6 +324,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = null;
     }
+    // Refresh the page shortly after logout so the UI fully resets.
+    // Use a small delay to allow any logout notifications to briefly display.
+    setTimeout(() => {
+      try {
+        window.location.reload();
+      } catch (err) {
+        // Fallback: navigate to root
+        window.location.href = '/';
+      }
+    }, 300);
   };
 
   const clearAll = () => {

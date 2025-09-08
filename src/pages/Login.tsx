@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/auth';
 import { useNavigate } from 'react-router-dom';
+import SpotifyIcon from '../components/SpotifyIcon';
 
 const SpotifyLite: React.FC = () => {
   const { token, login, isLoading } = useAuth();
@@ -69,7 +70,10 @@ const SpotifyLite: React.FC = () => {
                     Signing in...
                   </>
                 ) : (
-                  <>Sign in with Spotify</>
+                  <>
+                    <SpotifyIcon size={18} />
+                    Sign in with Spotify
+                  </>
                 )}
               </button>
 

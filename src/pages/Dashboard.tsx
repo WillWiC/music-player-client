@@ -453,71 +453,7 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  // Guest experience: if not authenticated, show a lightweight guest dashboard
-  if (!token) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
-        <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
-
-        <main className="flex-1 lg:ml-72 pb-24 pt-20">
-          <div className="relative max-w-6xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
-            <div className="w-full bg-white/4 border border-white/10 rounded-3xl p-8 backdrop-blur-md grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-              {/* Left: Message & CTAs */}
-              <div className="px-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <span className="text-green-300 font-bold">♪</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Welcome to Spotify Lite</h1>
-                </div>
-
-                <p className="text-gray-300 mb-6">You're browsing as a guest. Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls, save playlists, and get personalized recommendations.</p>
-
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                  <button
-                    onClick={() => scrollToSection('browse')}
-                    className="flex items-center gap-2 px-5 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-2xl shadow-lg transition-transform transform hover:scale-105"
-                  >
-                    Explore as guest
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-
-                <ul className="text-sm text-gray-300 space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
-                    <span>Preview curated playlists and top tracks.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
-                    <span>Use the discovery tools to find new music.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full mt-1 flex-shrink-0" />
-                    <span>Search and preview tracks without signing in.</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Right: Sample previews */}
-              <div className="px-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="h-24 bg-gradient-to-br from-green-500/30 to-green-700/30 rounded-lg flex items-end p-2 text-xs text-white">Top playlists</div>
-                  <div className="h-24 bg-gradient-to-br from-purple-500/30 to-purple-700/30 rounded-lg flex items-end p-2 text-xs text-white">New releases</div>
-                  <div className="h-24 bg-gradient-to-br from-yellow-400/30 to-yellow-600/30 rounded-lg flex items-end p-2 text-xs text-white">Trending</div>
-                </div>
-
-                <div className="mt-3 text-gray-400 text-sm">No account required to explore. Sign in when you're ready to save favorites and control playback.</div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  // Guest experience removed - always render the normal dashboard below
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
@@ -587,10 +523,16 @@ const Dashboard: React.FC = () => {
     <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
       <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
         <span className="bg-gradient-to-r from-green-400 via-green-300 to-green-400 bg-clip-text text-transparent">
-          {greeting}
+          {token ? greeting : 'Welcome to Flowbeats'}
         </span>
       </h1>
-      {user?.display_name && (
+      {!token ? (
+        <div className="mb-4">
+          <p className="text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
+            Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls, save playlists, and get personalized recommendations.
+          </p>
+        </div>
+      ) : user?.display_name && (
         <div className="mb-4">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-200 mb-2">
             Welcome back, <span className="text-white">{formatDisplayName(user.display_name)}</span>!
@@ -601,52 +543,55 @@ const Dashboard: React.FC = () => {
         </div>
       )}
     </div>
-    {/* Quick Stats Grid */}
-  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+    {/* Quick Actions: balanced 4-up grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <button
         onClick={() => scrollToSection('recently')}
-        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
+        aria-label="Recent Plays"
+        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
-            <span className="text-xl font-bold text-green-400 leading-none group-hover:scale-110 transition-transform duration-300">♪</span>
-          </div>
-          <div>
-            <div className="text-xs text-gray-400 font-medium group-hover:text-green-300 transition-colors duration-300">Recent Plays</div>
-          </div>
+        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
+          <span className="text-lg font-bold text-green-400">♪</span>
         </div>
+        <div className="text-sm font-semibold text-white">Recent Plays</div>
+        <div className="text-xs text-gray-400">Continue listening</div>
       </button>
+
       <button
         onClick={() => scrollToSection('playlists')}
-        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+        aria-label="Playlists"
+        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
-            <span className="text-xl font-bold text-purple-400 leading-none group-hover:scale-110 transition-transform duration-300">♫</span>
-          </div>
-          <div>
-            <div className="text-xs text-gray-400 font-medium group-hover:text-purple-300 transition-colors duration-300">Playlists</div>
-          </div>
+        <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
+          <span className="text-lg font-bold text-purple-400">♫</span>
         </div>
+        <div className="text-sm font-semibold text-white">Playlists</div>
+        <div className="text-xs text-gray-400">Your collections</div>
       </button>
+
       <button
         onClick={() => scrollToSection('top')}
-        className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-yellow-500/20"
+        aria-label="Top Tracks"
+        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
-            <span className="text-xl font-bold text-yellow-400 leading-none group-hover:scale-110 transition-transform duration-300">★</span>
-          </div>
-          <div>
-            <div className="text-xs text-gray-400 font-medium group-hover:text-yellow-300 transition-colors duration-300">Top Tracks</div>
-          </div>
+        <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
+          <span className="text-lg font-bold text-yellow-400">★</span>
         </div>
+        <div className="text-sm font-semibold text-white">Top Tracks</div>
+        <div className="text-xs text-gray-400">Your most played</div>
       </button>
-  {/* Removed: New Releases and Browse Genres quick-action buttons */}
-    </div>
-    {/* Action Buttons (Discover button removed) */}
-    <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-2">
-      {/* Discover Music button intentionally removed */}
+
+      <button
+        onClick={() => navigate('/browse')}
+        aria-label="Browse Categories"
+        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+      >
+        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
+          <span className="text-lg font-bold text-blue-400">◆</span>
+        </div>
+        <div className="text-sm font-semibold text-white">Browse</div>
+        <div className="text-xs text-gray-400">Music categories</div>
+      </button>
     </div>
             </div>
           </div>

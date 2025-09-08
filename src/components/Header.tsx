@@ -34,6 +34,8 @@ import {
   Settings,
   InfoOutlined
 } from '@mui/icons-material';
+import { OpenInNew } from '@mui/icons-material';
+import SpotifyIcon from './SpotifyIcon';
 import { PlayArrow, Pause } from '@mui/icons-material';
 
 interface HeaderProps {
@@ -181,6 +183,27 @@ const Header: React.FC<HeaderProps> = ({
     setShowLogoutNotification(true);
     setTimeout(() => setShowLogoutNotification(false), 2500);
   };
+
+  // Open current track (or Spotify home) in Spotify Web Player
+  const openInSpotify = React.useCallback(() => {
+    try {
+      let url = 'https://open.spotify.com';
+      if (currentTrack) {
+        // Prefer URI if present
+        const uri = (currentTrack as any).uri || '';
+        if (typeof uri === 'string' && uri.startsWith('spotify:track:')) {
+          const id = uri.split(':').pop();
+          if (id) url = `https://open.spotify.com/track/${id}`;
+        } else if ((currentTrack as any).id) {
+          url = `https://open.spotify.com/track/${(currentTrack as any).id}`;
+        }
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Failed to open in Spotify', err);
+      window.open('https://open.spotify.com', '_blank', 'noopener,noreferrer');
+    }
+  }, [currentTrack]);
 
   return (
     <>
@@ -418,8 +441,18 @@ const Header: React.FC<HeaderProps> = ({
                 </Menu>
               </Box>
             ) : (
-              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>Login</Button>
+              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SpotifyIcon size={18} />
+                <span style={{ fontWeight: 800 }}>Sign in with Spotify</span>
+              </Button>
             )}
+            <IconButton
+              onClick={openInSpotify}
+              title="Open in Spotify"
+              sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.02)' }}
+            >
+              <OpenInNew />
+            </IconButton>
           </Stack>
         </Toolbar>
       </AppBar>

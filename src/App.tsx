@@ -5,6 +5,7 @@ import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
+import Browse from './pages/Browse';
 import Library from './pages/Library';
 import Account from './pages/Account';
 import Settings from './pages/Settings';
@@ -125,13 +126,14 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/browse" element={<Browse />} />
         <Route path="/library" element={<Library />} />
         <Route path="/account" element={<Account />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
-  <Route path="/artist/:id" element={<Artist />} />
+        <Route path="/artist/:id" element={<Artist />} />
       </Routes>
       {/* Show player only when user is authenticated */}
       {token && <Player />}

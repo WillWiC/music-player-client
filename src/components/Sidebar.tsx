@@ -18,6 +18,7 @@ import {
   Home,
   Search,
   LibraryMusic,
+  Explore,
   Favorite,
   PlaylistPlay,
   Close
@@ -49,6 +50,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       icon: <Search />,
       path: '/search',
       isActive: location.pathname === '/search'
+    },
+    {
+      id: 'browse',
+      label: 'Browse',
+      icon: <Explore />,
+      path: '/browse',
+      isActive: location.pathname === '/browse'
     },
     {
       id: 'library',
@@ -116,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
             lineHeight: 1
           }}
         >
-          Spotify Lite
+          Flowbeats
         </Typography>
         {isMobile && onClose && (
           <IconButton
