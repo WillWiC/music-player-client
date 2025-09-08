@@ -87,29 +87,3 @@ npm run preview
 
 ---
 
-## Developer notes
-
-Key files to look at:
-
-- `src/context/auth.tsx` — OAuth PKCE flow and scope configuration
-- `src/context/player.tsx` — Spotify Web Playback SDK integration and playback helpers
-- `src/pages/Search.tsx` — search UI and result rendering
-- `src/pages/Library.tsx` — Library page (playlists, liked songs, saved albums, followed artists)
-- `src/components/Header.tsx` — top search bar and dropdown (now includes play buttons)
-
-If you'd like, I can add a visible "Re-authorize" button to force a fresh OAuth prompt after changing scopes.
-
-Enjoy! 🎧
-
----
-
-## Category mapping improvements
-
-This project includes an enhanced genre → category mapper implemented in `src/utils/categoryMapping.ts`. It is a rule-based, priority-aware heuristic (not a trained ML model) designed to improve category discovery and Spotify search results. Key points:
-
-- Priority-based and weighted matching for more accurate classification
-- Improved detection for Asian-language genres (Unicode-aware)
-- Keyword support and optimized search terms for better Spotify API queries
-- Utility functions available: `mapGenreToCategory`, `mapGenresToCategories`, `getCategorySearchTerms`, `suggestCategories`, `analyzeGenreDiversity`, and `cleanGenreData`
-
-See `CATEGORY_IMPROVEMENTS.md` for a full explanation, examples, and migration notes.
