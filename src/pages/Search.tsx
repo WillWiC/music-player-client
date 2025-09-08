@@ -224,7 +224,26 @@ const SearchPage: React.FC = () => {
                       <CircularProgress sx={{ color: 'primary.main' }} />
                     </div>
                   ) : tracks.length === 0 ? (
-                    <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">Try searching for an artist, song, or album above.</div>
+                    <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+                      {query ? (
+                        <div>
+                          <div className="mb-4">
+                            <svg className="w-12 h-12 text-gray-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-lg font-medium mb-2">No tracks found for "{query}"</p>
+                          <p className="text-sm text-gray-500">Try different keywords or check your spelling</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p>Try searching for an artist, song, or album above.</p>
+                          {!token && (
+                            <p className="text-xs text-yellow-400 mt-2">Sign in to search and play music</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {tracks.map(track => (
