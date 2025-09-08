@@ -602,7 +602,7 @@ const Dashboard: React.FC = () => {
       )}
     </div>
     {/* Quick Stats Grid */}
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
       <button
         onClick={() => scrollToSection('recently')}
         className="group p-2 sm:p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm transform hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-green-500/20"
