@@ -15,7 +15,7 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
     id: 'kpop',
     name: 'K-Pop',
     color: '#ff6b9d',
-    icon: '🇰🇷',
+  icon: 'KR',
     description: 'Korean pop music and K-culture',
     priority: 10,
     spotifyGenres: [
@@ -26,20 +26,17 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
     keywords: ['korean', 'k-', 'korea', 'hangul', '한국', 'bts', 'blackpink']
   },
   {
-    id: 'asian-pop',
-    name: 'Asian Pop',
+    id: 'chinese-pop',
+    name: 'Chinese Pop',
     color: '#ff7675',
-    icon: '🌏',
-    description: 'Popular music from across Asia',
+    icon: 'CN',
+    description: 'Popular music from China and Chinese-speaking regions',
     priority: 9,
     spotifyGenres: [
       'mandopop', 'cantopop', 'chinese pop', 'taiwanese pop', 'hong kong pop',
-      'j-pop', 'japanese pop', 'jpop', 'thai pop', 'vietnamese pop',
-      'filipino pop', 'singapore pop', 'malaysian pop', 'indonesian pop',
-      'chinese rock', 'japanese rock', 'city pop', 'j-rock',
-      'thai indie', 'pinoy pop', 'cpop', 'enka'
+      'chinese rock', 'cpop', 'mandarin pop', 'cantonese pop'
     ],
-    keywords: ['chinese', 'japanese', 'thai', 'filipino', 'vietnamese', 'malaysian', 'indonesian', 'mandarin', 'cantonese']
+    keywords: ['chinese', 'mandarin', 'cantonese', 'china', 'taiwan', 'hong kong', 'mandopop', 'cantopop']
   },
   {
     id: 'pop',
@@ -250,8 +247,8 @@ export function mapGenreToCategory(spotifyGenre: string): string | null {
       if (containsAsianChars || ASIAN_KEYWORDS.some(k => k.startsWith('k') && genre.includes(k))) {
         matchStrength = Math.max(matchStrength, 90);
       }
-    } else if (category.id === 'asian-pop') {
-      // Asian Pop for other Asian content
+    } else if (category.id === 'chinese-pop') {
+      // Chinese Pop for Chinese content
       if (containsAsianChars || ASIAN_KEYWORDS.some(k => !k.startsWith('k') && genre.includes(k))) {
         matchStrength = Math.max(matchStrength, 85);
       }
@@ -355,8 +352,8 @@ export function suggestCategories(recentGenres: string[], maxSuggestions = 5): C
   
   // Get related categories (same "family" or complementary genres)
   const relatedMap: { [categoryId: string]: string[] } = {
-    'kpop': ['asian-pop', 'pop'],
-    'asian-pop': ['kpop', 'pop'],
+    'kpop': ['chinese-pop', 'pop'],
+    'chinese-pop': ['kpop', 'pop'],
     'pop': ['indie', 'rnb', 'edm'],
     'hiphop': ['rnb', 'latin'],
     'edm': ['pop', 'indie'],

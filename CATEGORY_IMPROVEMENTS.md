@@ -10,6 +10,7 @@
 
 ### 2. Expanded Category Coverage
 - **Added 3 new categories**: Latin, Country, and Classical
+- **Refined Asian music categorization**: Separated K-Pop and Chinese Pop for better cultural representation
 - **Increased total categories**: From 9 to 12 comprehensive music categories
 - **Enhanced genre lists**: Each category now includes 50-100% more specific subgenres
 - **Better representation**: More inclusive coverage of world music and regional styles
@@ -55,13 +56,13 @@
 
 #### Regional Music Detection
 - **Korean content**: Detects Hangul characters, K- prefixes, and Korean cultural terms
-- **Asian languages**: Recognizes Chinese characters, Japanese text, and regional identifiers  
+- **Chinese content**: Recognizes Chinese characters, Mandarin/Cantonese terms, and regional identifiers  
 - **Cultural context**: Uses artist names and cultural keywords for better classification
 
 #### Search Optimization
 - **Spotify API friendly**: Optimized search terms improve API response quality
 - **Fallback strategies**: Multiple search approaches for difficult-to-categorize content
-- **Regional handling**: Special search strategies for K-Pop and Asian Pop content
+- **Regional handling**: Special search strategies for K-Pop and Chinese Pop content
 
 #### Smart Prioritization
 - **High-demand categories**: K-Pop and Hip-Hop get higher priority due to popularity
@@ -98,8 +99,8 @@ const category = mapGenreToCategory('k-pop'); // Returns 'kpop'
 const categories = mapGenresToCategories(['pop', 'dance pop', 'electropop']); // Returns ['pop']
 
 // Smart suggestions based on listening history
-const suggestions = suggestCategories(['k-pop', 'korean pop'], 3); 
-// Returns [K-Pop, Asian Pop, Pop] categories
+const suggestions = suggestCategories(['k-pop', 'korean pop', 'mandopop', 'cantopop'], 3); 
+// Returns [K-Pop, Chinese Pop, Pop] categories
 
 // Genre diversity analysis
 const analysis = analyzeGenreDiversity(['jazz', 'rock', 'classical']);

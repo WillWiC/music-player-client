@@ -131,9 +131,9 @@ const Category: React.FC = () => {
       
       for (const genre of genreSearches) {
         try {
-          // For K-Pop and Asian Pop, Spotify's genre fields are inconsistent.
+          // For K-Pop and Chinese Pop, Spotify's genre fields are inconsistent.
           // Use a keyword search (broad) instead of strict genre:"..." to improve results.
-          const useGenreQualifier = !(categoryId === 'kpop' || categoryId === 'asian-pop');
+          const useGenreQualifier = !(categoryId === 'kpop' || categoryId === 'chinese-pop');
 
           // Search for artists (use genre:"..." when reliable, otherwise keyword)
           const artistQuery = useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : `${encodeURIComponent(genre)}`;
@@ -201,8 +201,8 @@ const Category: React.FC = () => {
         return mapGenresToCategories(artistGenres).includes(categoryId!);
       });
 
-      // If no artists matched by genre mapping for kpop/asian-pop, fall back to the deduped search results
-      const candidateArtists = (categoryId === 'kpop' || categoryId === 'asian-pop') && relevantArtists.length === 0
+      // If no artists matched by genre mapping for kpop/chinese-pop, fall back to the deduped search results
+      const candidateArtists = (categoryId === 'kpop' || categoryId === 'chinese-pop') && relevantArtists.length === 0
         ? uniqueArtistsRaw
         : relevantArtists;
 
@@ -216,7 +216,7 @@ const Category: React.FC = () => {
       const containsHangul = (s?: string) => !!s && /[\uAC00-\uD7AF]/.test(s);
       const containsCJK = (s?: string) => !!s && /[\u4E00-\u9FFF\u3040-\u30FF]/.test(s);
 
-      // For kpop/asian-pop, try to prioritize artists whose name or genres indicate the region
+      // For kpop/chinese-pop, try to prioritize artists whose name or genres indicate the region
       if (categoryId === 'kpop') {
         const prioritized = sortedArtists.filter(a => {
           const g = (a.genres || []).map(x => x.toLowerCase());
@@ -225,13 +225,13 @@ const Category: React.FC = () => {
         // If we found prioritized artists, use them; otherwise fall back to popularity-sorted list
         const kpopFinal = (prioritized.length ? prioritized.slice(0, 20) : sortedArtists.slice(0, 20));
         setArtists(kpopFinal);
-      } else if (categoryId === 'asian-pop') {
+      } else if (categoryId === 'chinese-pop') {
         const prioritized = sortedArtists.filter(a => {
           const g = (a.genres || []).map(x => x.toLowerCase());
-          return containsCJK(a.name) || g.some(x => x.includes('mandopop') || x.includes('cantopop') || x.includes('j-pop') || x.includes('japanese') || x.includes('chinese'));
+          return containsCJK(a.name) || g.some(x => x.includes('mandopop') || x.includes('cantopop') || x.includes('chinese'));
         });
-        const asianFinal = (prioritized.length ? prioritized.slice(0, 20) : sortedArtists.slice(0, 20));
-        setArtists(asianFinal);
+        const chineseFinal = (prioritized.length ? prioritized.slice(0, 20) : sortedArtists.slice(0, 20));
+        setArtists(chineseFinal);
       } else {
         // For pop and others, be stricter: prefer artists with higher popularity (>=50) and images for pop
         let finalArtists: Artist[] = [];
@@ -253,7 +253,7 @@ const Category: React.FC = () => {
         track && track.id && index === self.findIndex(t => t && t.id === track.id)
       );
 
-      // If no tracks found via search (common for kpop/asian-pop), try fetching first tracks from related playlists
+      // If no tracks found via search (common for kpop/chinese-pop), try fetching first tracks from related playlists
       if (uniqueTracksRaw.length === 0 && uniquePlaylists.length > 0) {
         const fallbackTracks: Track[] = [];
         for (const pl of uniquePlaylists.slice(0, 6)) {
@@ -437,7 +437,9 @@ const Category: React.FC = () => {
                   boxShadow: `0 20px 40px ${category.color}20`
                 }}
               >
-                {category.icon}
+                <div style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
+                  {category.icon}
+                </div>
               </div>
               <div className="flex-1">
                 <h1 className="text-5xl font-black text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
@@ -470,7 +472,7 @@ const Category: React.FC = () => {
                   }} 
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-2xl animate-pulse">
+                  <div className="text-2xl animate-pulse" style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
                     {category?.icon || '🎵'}
                   </div>
                 </div>
@@ -871,7 +873,9 @@ const Category: React.FC = () => {
             <div className="text-center py-32">
               <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-3xl p-12 max-w-lg mx-auto backdrop-blur-sm border border-white/10 shadow-2xl">
                 <div className="text-8xl mb-6 opacity-50">
-                  {category.icon}
+                  <span style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
+                    {category.icon}
+                  </span>
                 </div>
                 <h3 className="text-gray-300 font-bold text-xl mb-3">No content available</h3>
                 <p className="text-gray-500 mb-8 leading-relaxed">
