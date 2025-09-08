@@ -214,7 +214,15 @@ const Library: React.FC = () => {
                     <div key={artist.id} className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg">
                       <img src={artist.images?.[0]?.url} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white font-semibold truncate">{artist.name}</div>
+                        <div
+                          className="text-sm text-white font-semibold truncate cursor-pointer hover:text-green-300 transition-colors"
+                          role="link"
+                          tabIndex={0}
+                          onClick={() => navigate(`/artist/${artist.id}`)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/artist/${artist.id}`); }}
+                        >
+                          {artist.name}
+                        </div>
                         <div className="text-xs text-gray-400">{artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : ''}</div>
                       </div>
                       <div className="flex-shrink-0">

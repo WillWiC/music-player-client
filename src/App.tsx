@@ -109,7 +109,7 @@ const MediaPage: React.FC = () => {
           <MediaView 
             id={id} 
             type={type} 
-            onBack={() => navigate('/dashboard')} 
+            onBack={() => navigate(-1)} 
           />
         </div>
       </div>

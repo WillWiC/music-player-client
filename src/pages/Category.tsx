@@ -597,9 +597,15 @@ const Category: React.FC = () => {
                             </div>
                             
                             <div className="text-center max-w-full">
-                              <h3 className="text-white font-bold text-base mb-1 truncate group-hover:text-green-300 transition-colors duration-300">
+                              <div
+                                className="text-white font-bold text-base mb-1 truncate group-hover:text-green-300 transition-colors duration-300 cursor-pointer hover:text-green-300"
+                                role="link"
+                                tabIndex={0}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
+                              >
                                 {artist.name}
-                              </h3>
+                              </div>
                               <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                                 <span>{artist.followers ? formatCount(artist.followers.total) : '0'} followers</span>
                                 {artist.genres && artist.genres.length > 0 && (

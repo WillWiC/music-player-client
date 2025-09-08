@@ -5,7 +5,9 @@ import { usePlayer } from '../context/player';
 import { useToast } from '../context/toast';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress } from '@mui/material';
+import { CircularProgress, IconButton, Tooltip } from '@mui/material';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 import type { Artist as ArtistType, Album, Track } from '../types/spotify';
 import { formatCount } from '../utils/numberFormat';
 
@@ -217,6 +219,9 @@ const Artist: React.FC = () => {
 
   const displayedTracks = showAllTracks ? topTracks : topTracks.slice(0, 5);
   const displayedAlbums = showAllAlbums ? albums : albums.slice(0, 6);
+  // Top track and playing state for the main Play button
+  const topTrack = topTracks[0];
+  const isTopTrackPlaying = !!(topTrack && currentTrack?.id === topTrack.id && isPlaying);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 text-white">
@@ -255,6 +260,17 @@ const Artist: React.FC = () => {
 
               {/* Artist Info */}
               <div className="flex-1 text-center lg:text-left">
+                <div className="mb-4">
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Back
+                  </button>
+                </div>
                 <div className="mb-2">
                   <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm rounded-full backdrop-blur-sm">
                     Artist
@@ -293,16 +309,24 @@ const Artist: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-center lg:justify-start gap-4 mt-6">
-                  {topTracks.length > 0 && (
-                    <button
-                      onClick={() => handleTrackPlay(topTracks[0])}
-                      className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-full transition-all duration-300 hover:scale-105 shadow-lg"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                      Play
-                    </button>
+                  {topTrack && (
+                    <Tooltip title={isTopTrackPlaying ? 'Pause' : 'Play'}>
+                      <IconButton
+                        onClick={() => handleTrackPlay(topTrack)}
+                        aria-pressed={isTopTrackPlaying}
+                        aria-label={isTopTrackPlaying ? 'Pause top track' : 'Play top track'}
+                        size="large"
+                        sx={{
+                          bgcolor: isTopTrackPlaying ? 'rgba(29,185,84,0.12)' : '#1DB954',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: isTopTrackPlaying ? 'rgba(29,185,84,0.18)' : '#1ed760'
+                          }
+                        }}
+                      >
+                        {isTopTrackPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                      </IconButton>
+                    </Tooltip>
                   )}
                   
                   {token && (
@@ -361,17 +385,17 @@ const Artist: React.FC = () => {
                     className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                     onClick={() => handleTrackPlay(track)}
                   >
-                    <div className="flex-shrink-0 w-6 text-gray-400 text-sm font-medium group-hover:hidden">
+                    <div className="flex-shrink-0 w-8 text-gray-400 text-sm font-medium group-hover:hidden">
                       {index + 1}
                     </div>
-                    <div className="flex-shrink-0 w-6 hidden group-hover:flex items-center justify-center">
+                    <div className="flex-shrink-0 w-8 hidden group-hover:flex items-center justify-center">
                       {currentTrack?.id === track.id && isPlaying ? (
-                        <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        <svg className="w-5 h-5 text-[#1DB954] transition-transform duration-200 hover:scale-125" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6 4h2v12H6V4zm6 0h2v12h-2V4z" clipRule="evenodd" />
                         </svg>
                       ) : (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        <svg className="w-5 h-5 text-white transition-transform duration-200 hover:scale-125" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
