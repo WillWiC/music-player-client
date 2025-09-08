@@ -14,8 +14,19 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
     color: '#ff6b9d',
     icon: '🇰🇷',
     spotifyGenres: [
-      'k-pop', 'k-rap', 'k-indie', 'k-rock', 'korean pop',
-      'girl group', 'boy band', 'kpop', 'korean'
+      'k-pop', 'k-rap', 'korean pop',
+      'kpop'
+    ]
+  },
+  {
+    id: 'asian-pop',
+    name: 'Asian Pop',
+    color: '#ff7675',
+    icon: '🌏',
+    spotifyGenres: [
+      'mandopop', 'cantopop', 'chinese pop', 'taiwanese pop', 'hong kong pop',
+      'j-pop', 'japanese pop', 'jpop', 'thai pop', 'vietnamese pop',
+      'filipino pop', 'singapore pop', 'malaysian pop', 'indonesian pop'
     ]
   },
   {
@@ -25,7 +36,8 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
     icon: '🎵',
     spotifyGenres: [
       'pop', 'dance pop', 'electropop', 'synth-pop', 'indie pop',
-      'art pop', 'power pop', 'chamber pop', 'baroque pop'
+      'art pop', 'power pop', 'chamber pop', 'baroque pop', 'teen pop',
+      'europop', 'latin pop'
     ]
   },
   {
@@ -95,16 +107,64 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
 
 // Map Spotify genre to our custom category
 export function mapGenreToCategory(spotifyGenre: string): string | null {
-  const genre = spotifyGenre.toLowerCase();
-  
+  const genre = spotifyGenre.toLowerCase().trim();
+
+  // Keywords commonly used for Asian-language genres or regional markers
+  const ASIAN_KEYWORDS = [
+    'k-', 'korean', 'kpop', 'mandopop', 'cantopop', 'chinese', 'j-', 'jpop', 'j-pop', 'japanese',
+    'taiwan', 'taiwanese', 'hong kong', 'hongkong', 'thai', 'vietnamese', 'filipino',
+    'singapore', 'malaysian', 'indonesian', 'trot'
+  ];
+
+  // Very permissive ASCII check — if genre contains non-ASCII chars we consider it non-English
+  const isAscii = (s: string) => /^[\x00-\x7F]+$/.test(s);
+
   for (const category of CUSTOM_CATEGORIES) {
-    if (category.spotifyGenres.some(sg => 
-      genre.includes(sg.toLowerCase()) || sg.toLowerCase().includes(genre)
-    )) {
-      return category.id;
+    for (const sg of category.spotifyGenres) {
+      const searchGenre = sg.toLowerCase();
+
+      // K-Pop: strict matching for k- / korean / kpop / trot
+      if (category.id === 'kpop') {
+        if (
+          genre === searchGenre ||
+          genre === 'kpop' ||
+          (genre.startsWith('k-') && searchGenre.startsWith('k-')) ||
+          (genre.includes('korean') && searchGenre.includes('korean')) ||
+          genre === 'trot'
+        ) {
+          return category.id;
+        }
+        continue;
+      }
+
+      // Asian Pop: look for regional/Asian keywords (mandopop, cantopop, j-pop, etc.)
+      if (category.id === 'asian-pop') {
+        if (
+          genre === searchGenre ||
+          ASIAN_KEYWORDS.some(k => genre.includes(k)) ||
+          searchGenre.length > 3 && genre.includes(searchGenre)
+        ) {
+          return category.id;
+        }
+        continue;
+      }
+
+      // For other categories (pop, hiphop, edm, rock, indie, jazz, rnb):
+      // - require the genre string to be ASCII-only (likely English)
+      // - exclude any Asian keywords to prevent misclassification
+      if (!isAscii(genre)) continue;
+      if (ASIAN_KEYWORDS.some(k => genre.includes(k))) continue;
+
+      if (
+        genre === searchGenre ||
+        (searchGenre.length > 3 && genre.includes(searchGenre)) ||
+        (genre.length > 3 && searchGenre.includes(genre))
+      ) {
+        return category.id;
+      }
     }
   }
-  
+
   return null;
 }
 
