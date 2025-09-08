@@ -8,6 +8,7 @@ import { CircularProgress, IconButton } from '@mui/material';
 import { PlayArrow, ArrowBack, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
 import { getCategoryById, mapGenresToCategories, type CustomCategory } from '../utils/categoryMapping';
+import { formatCount } from '../utils/numberFormat';
 
 interface Playlist {
   id: string;
@@ -109,16 +110,12 @@ const Category: React.FC = () => {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [artists.length]);  // Compute per-item pixel width accounting for gap and padding when containerWidth is known
-  const itemWidth = React.useMemo(() => {
-    if (!containerWidth || visibleCount <= 0) return 0;
-    const gapPx = 32; // Tailwind gap-8 => 2rem => 32px
-    const paddingPx = 64; // px-8 container left+right => 4rem => 64px
-    const available = Math.max(0, containerWidth - paddingPx);
-    const raw = Math.floor(available / visibleCount);
-    const cap = 220; // maximum per-item width to keep cards compact
-    return Math.max(80, Math.min(raw, cap));
-  }, [containerWidth, visibleCount]);  const maxArtistStart = React.useMemo(() => {
-    return Math.max(0, artists.length - visibleCount);
+  const maxArtistStart = React.useMemo(() => {
+    // Compute start index for the last page using non-overlapping pages.
+    // This allows the final page to contain fewer than `visibleCount` items
+    // instead of backfilling from the previous page.
+    const pages = Math.ceil(artists.length / Math.max(1, visibleCount));
+    return Math.max(0, (pages - 1) * visibleCount);
   }, [artists.length, visibleCount]);
 
   // Fetch artists and playlists for the category
@@ -604,7 +601,7 @@ const Category: React.FC = () => {
                                 {artist.name}
                               </h3>
                               <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-                                <span>{artist.followers ? `${Math.floor(artist.followers.total / 1000)}K` : '0'} followers</span>
+                                <span>{artist.followers ? formatCount(artist.followers.total) : '0'} followers</span>
                                 {artist.genres && artist.genres.length > 0 && (
                                   <>
                                     <span>•</span>

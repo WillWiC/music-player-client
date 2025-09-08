@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import { formatCount } from '../utils/numberFormat';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import {
@@ -214,7 +215,7 @@ const Library: React.FC = () => {
                       <img src={artist.images?.[0]?.url} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-white font-semibold truncate">{artist.name}</div>
-                        <div className="text-xs text-gray-400">{artist.followers?.total ? `${artist.followers.total.toLocaleString()} followers` : ''}</div>
+                        <div className="text-xs text-gray-400">{artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : ''}</div>
                       </div>
                       <div className="flex-shrink-0">
                         <a href={artist.external_urls?.spotify} target="_blank" rel="noreferrer" className="text-xs text-green-300 underline">Open</a>
