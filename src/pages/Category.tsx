@@ -96,17 +96,18 @@ const Category: React.FC = () => {
       
       // Filter and deduplicate artists by genre matching
       const relevantArtists = allArtists.filter(artist => {
+        if (!artist || !artist.genres) return false;
         const artistGenres = artist.genres || [];
         return mapGenresToCategories(artistGenres).includes(categoryId!);
       });
       
       // Remove duplicates
       const uniqueArtists = relevantArtists.filter((artist, index, self) =>
-        index === self.findIndex(a => a.id === artist.id)
+        artist && artist.id && index === self.findIndex(a => a && a.id === artist.id)
       ).slice(0, 20); // Limit results
       
       const uniquePlaylists = allPlaylists.filter((playlist, index, self) =>
-        index === self.findIndex(p => p.id === playlist.id)
+        playlist && playlist.id && index === self.findIndex(p => p && p.id === playlist.id)
       ).slice(0, 20); // Limit results
       
       setArtists(uniqueArtists);
