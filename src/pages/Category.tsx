@@ -59,7 +59,6 @@ const Category: React.FC = () => {
   const [artists, setArtists] = React.useState<Artist[]>([]);
   const [artistStart, setArtistStart] = React.useState(0);
   const [visibleCount, setVisibleCount] = React.useState(5);
-  const [containerWidth, setContainerWidth] = React.useState(0);
   const viewportRef = React.useRef<HTMLDivElement | null>(null);
   const [tracks, setTracks] = React.useState<Track[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
@@ -100,9 +99,6 @@ const Category: React.FC = () => {
     const onResize = () => {
       // Always show 5 artists per row as requested
       setVisibleCount(5);
-      // Measure the visible viewport for pixel-perfect sliding
-      const w = viewportRef.current?.clientWidth || 0;
-      setContainerWidth(w);
       // Reset artist start if it's beyond valid range
       setArtistStart(prev => Math.min(prev, Math.max(0, artists.length - 5)));
     };
@@ -515,7 +511,7 @@ const Category: React.FC = () => {
                     <div className="flex items-center gap-6">
                       <div>
                         <h2 className="text-5xl font-black text-transparent bg-gradient-to-r from-white via-white to-gray-300 bg-clip-text mb-2">
-                          Popular Artists
+                          Recently Popular Artists
                         </h2>
                         <p className="text-gray-300 text-lg">Top performers in {category?.name}</p>
                       </div>
@@ -532,12 +528,7 @@ const Category: React.FC = () => {
                           ({artistStart + 1}-{Math.min(artistStart + visibleCount, artists.length)} showing)
                         </span>
                       </div>
-                      <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
-                        <span>Use</span>
-                        <kbd className="px-2 py-1 bg-white/10 rounded text-white">←</kbd>
-                        <kbd className="px-2 py-1 bg-white/10 rounded text-white">→</kbd>
-                        <span>to navigate</span>
-                      </div>
+                      {/* keyboard hint removed as per design preference */}
                     </div>
                   </div>
 
@@ -549,17 +540,35 @@ const Category: React.FC = () => {
                       if (e.key === 'ArrowLeft') setArtistStart(s => Math.max(0, s - visibleCount));
                     }}
                   >
-                    <button
-                      aria-label="Previous Artists"
-                      className="absolute left-0 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full bg-gradient-to-r from-black/60 to-black/40 hover:from-black/80 hover:to-black/60 border border-white/20 backdrop-blur-sm transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl"
-                      onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
-                      disabled={artistStart <= 0}
-                    >
-                      <ChevronLeft sx={{ 
-                        color: artistStart <= 0 ? 'rgba(255,255,255,0.3)' : 'white',
-                        fontSize: '24px'
-                      }} />
-                    </button>
+                    <div className="absolute left-0 top-0 h-full w-20 z-20 flex items-center justify-center pointer-events-auto">
+                      <div className="w-full h-full flex items-center justify-center group">
+                        <IconButton
+                          aria-label="Previous Artists"
+                          onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
+                          disabled={artistStart <= 0}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          sx={{
+                            background: 'linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4))',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: 'white',
+                            width: 48,
+                            height: 48,
+                            transition: 'all 0.25s ease',
+                            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                            '&:hover': {
+                              background: 'linear-gradient(90deg, rgba(0,0,0,0.82), rgba(0,0,0,0.6))',
+                              transform: 'translateX(-4px) scale(1.02)'
+                            },
+                            '&.Mui-disabled': {
+                              background: 'linear-gradient(90deg, rgba(0,0,0,0.25), rgba(0,0,0,0.15))',
+                              color: 'rgba(255,255,255,0.3)'
+                            }
+                          }}
+                        >
+                          <ChevronLeft sx={{ color: artistStart <= 0 ? 'rgba(255,255,255,0.3)' : 'white', fontSize: 24 }} />
+                        </IconButton>
+                      </div>
+                    </div>
 
                     <div className="overflow-hidden px-8 py-4 bg-gradient-to-r from-white/[0.02] to-white/[0.05] rounded-3xl border border-white/10 backdrop-blur-sm shadow-2xl" ref={viewportRef}>
                       <div className="grid grid-cols-5 gap-6">
@@ -621,17 +630,35 @@ const Category: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      aria-label="Next Artists"
-                      className="absolute right-0 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full bg-gradient-to-r from-black/60 to-black/40 hover:from-black/80 hover:to-black/60 border border-white/20 backdrop-blur-sm transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl"
-                      onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
-                      disabled={artistStart >= maxArtistStart}
-                    >
-                      <ChevronRight sx={{ 
-                        color: artistStart >= maxArtistStart ? 'rgba(255,255,255,0.3)' : 'white',
-                        fontSize: '24px'
-                      }} />
-                    </button>
+                    <div className="absolute right-0 top-0 h-full w-20 z-20 flex items-center justify-center pointer-events-auto">
+                      <div className="w-full h-full flex items-center justify-center group">
+                        <IconButton
+                          aria-label="Next Artists"
+                          onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
+                          disabled={artistStart >= maxArtistStart}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          sx={{
+                            background: 'linear-gradient(90deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6))',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: 'white',
+                            width: 48,
+                            height: 48,
+                            transition: 'all 0.25s ease',
+                            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                            '&:hover': {
+                              background: 'linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.82))',
+                              transform: 'translateX(4px) scale(1.02)'
+                            },
+                            '&.Mui-disabled': {
+                              background: 'linear-gradient(90deg, rgba(0,0,0,0.15), rgba(0,0,0,0.25))',
+                              color: 'rgba(255,255,255,0.3)'
+                            }
+                          }}
+                        >
+                          <ChevronRight sx={{ color: artistStart >= maxArtistStart ? 'rgba(255,255,255,0.3)' : 'white', fontSize: 24 }} />
+                        </IconButton>
+                      </div>
+                    </div>
                     
                     {/* Page indicators */}
                     {Math.ceil(artists.length / visibleCount) > 1 && (
