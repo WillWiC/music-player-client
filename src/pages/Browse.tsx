@@ -3,65 +3,25 @@ import { useAuth } from '../context/auth';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress } from '@mui/material';
-import { useToast } from '../context/toast';
-
-interface Category {
-  id: string;
-  name: string;
-  icons: Array<{ url: string; height: number; width: number }>;
-}
+import { getAllCategories, type CustomCategory } from '../utils/categoryMapping';
 
 const Browse: React.FC = () => {
   const { token, isLoading } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
   
-  const [categories, setCategories] = React.useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = React.useState(false);
+  const [categories, setCategories] = React.useState<CustomCategory[]>([]);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [error, setError] = React.useState<string>('');
 
-  // Fetch categories from Spotify
-  const fetchCategories = React.useCallback(async () => {
-    if (!token || loadingCategories) return;
-    
-    setLoadingCategories(true);
-    setError('');
-    
-    try {
-      const response = await fetch('https://api.spotify.com/v1/browse/categories?limit=50', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setCategories(data.categories?.items || []);
-      
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
-      setError('Failed to load categories. Please try again.');
-      toast.showToast('Unable to load categories', 'error');
-    } finally {
-      setLoadingCategories(false);
-    }
-  }, [token, loadingCategories, toast]);
-
-  // Load categories when component mounts
+  // Load our custom categories
   React.useEffect(() => {
-    if (token && !isLoading) {
-      fetchCategories();
-    }
-  }, [token, isLoading, fetchCategories]);
+    const customCategories = getAllCategories();
+    setCategories(customCategories);
+  }, []);
 
   // Handle category click
-  const handleCategoryClick = (category: Category) => {
-    // For now, navigate to search with category name as query
-    // Later this could be expanded to dedicated category pages
-    navigate(`/search?q=${encodeURIComponent(category.name)}`);
+  const handleCategoryClick = (category: CustomCategory) => {
+    // Navigate to dedicated category page
+    navigate(`/category/${category.id}`);
   };
 
   // Guest experience
@@ -103,31 +63,8 @@ const Browse: React.FC = () => {
             <p className="text-gray-400">Discover music by genre and mood</p>
           </div>
 
-          {/* Loading State */}
-          {loadingCategories && (
-            <div className="flex items-center justify-center py-20">
-              <CircularProgress size={60} sx={{ color: '#22c55e' }} />
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && !loadingCategories && (
-            <div className="text-center py-20">
-              <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-8 max-w-md mx-auto">
-                <h3 className="text-red-400 font-semibold mb-2">Unable to Load Categories</h3>
-                <p className="text-gray-400 mb-4">{error}</p>
-                <button 
-                  onClick={fetchCategories}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Categories Grid */}
-          {!loadingCategories && !error && categories.length > 0 && (
+          {categories.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {categories.map((category) => (
                 <div 
@@ -135,21 +72,17 @@ const Browse: React.FC = () => {
                   onClick={() => handleCategoryClick(category)}
                   className="group cursor-pointer"
                 >
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm aspect-square">
+                  <div 
+                    className="relative overflow-hidden rounded-xl border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105 backdrop-blur-sm aspect-square"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${category.color}20, ${category.color}10)` 
+                    }}
+                  >
                     
-                    {/* Category Image */}
-                    <div className="absolute inset-0">
-                      <img 
-                        src={category.icons?.[0]?.url || '/vite.svg'} 
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                    </div>
-                    
-                    {/* Category Name Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <h3 className="text-white font-bold text-sm truncate group-hover:text-green-400 transition-colors">
+                    {/* Category Icon */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                      <div className="text-4xl mb-2">{category.icon}</div>
+                      <h3 className="text-white font-bold text-sm group-hover:text-green-400 transition-colors">
                         {category.name}
                       </h3>
                     </div>
@@ -163,17 +96,11 @@ const Browse: React.FC = () => {
           )}
 
           {/* No Categories State */}
-          {!loadingCategories && !error && categories.length === 0 && (
+          {categories.length === 0 && (
             <div className="text-center py-20">
               <div className="bg-white/5 rounded-2xl p-8 max-w-md mx-auto">
-                <h3 className="text-gray-400 font-semibold mb-2">No Categories Found</h3>
-                <p className="text-gray-500 mb-4">Unable to find any music categories at the moment</p>
-                <button 
-                  onClick={fetchCategories}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
-                >
-                  Refresh
-                </button>
+                <h3 className="text-gray-400 font-semibold mb-2">No Categories Available</h3>
+                <p className="text-gray-500 mb-4">Categories are being loaded</p>
               </div>
             </div>
           )}

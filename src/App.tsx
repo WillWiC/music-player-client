@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import Browse from './pages/Browse';
+import Category from './pages/Category';
 import Library from './pages/Library';
 import Account from './pages/Account';
 import Settings from './pages/Settings';
@@ -127,6 +128,7 @@ const AppContent: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/search" element={<Search />} />
         <Route path="/browse" element={<Browse />} />
+        <Route path="/category/:categoryId" element={<Category />} />
         <Route path="/library" element={<Library />} />
         <Route path="/account" element={<Account />} />
         <Route path="/settings" element={<Settings />} />
