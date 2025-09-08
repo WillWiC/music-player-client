@@ -545,7 +545,7 @@ const Category: React.FC = () => {
                   </div>
 
                   <div 
-                    className="relative group"
+                    className="relative"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowRight') setArtistStart(s => Math.min(s + visibleCount, maxArtistStart));
