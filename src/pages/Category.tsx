@@ -66,6 +66,7 @@ const Category: React.FC = () => {
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [error, setError] = React.useState<string>('');
+  const isLoadingRef = React.useRef(false);
 
   // Add CSS animations
   React.useEffect(() => {
@@ -118,8 +119,12 @@ const Category: React.FC = () => {
 
   // Fetch artists and playlists for the category using the new Spotify API hook
   const fetchCategoryContent = React.useCallback(async () => {
-    if (!category || loadingPlaylists) return;
+    if (!category) return;
     
+    // Prevent multiple concurrent requests using ref
+    if (isLoadingRef.current) return;
+    
+    isLoadingRef.current = true;
     setLoadingPlaylists(true);
     setError('');
     
@@ -353,8 +358,9 @@ const Category: React.FC = () => {
       toast.showToast('Unable to load category content', 'error');
     } finally {
       setLoadingPlaylists(false);
+      isLoadingRef.current = false;
     }
-  }, [category, categoryId, makeRequest, toast, loadingPlaylists]);
+  }, [category, categoryId, makeRequest, toast]);
 
   // Load content after category is loaded
   React.useEffect(() => {
