@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import { useAuth } from '../context/auth';
+import { refreshSpotifyTokenDetailed, isAccessTokenExpired } from '../utils/tokenRefresh';
 import {
   Paper,
   Typography,
@@ -15,8 +17,13 @@ import {
   Button,
   Divider,
   Snackbar,
-  Alert
+  Alert,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { Refresh, Visibility, VisibilityOff, CheckCircle, Error } from '@mui/icons-material';
 
 type PlaybackQuality = 'low' | 'normal' | 'high';
 
@@ -30,6 +37,7 @@ const STORAGE_KEYS = {
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const { refreshAccessTokenNow, isGuest } = useAuth();
 
   // Load initial values from localStorage with sane defaults
   const [darkMode, setDarkMode] = React.useState<boolean>(() => {
@@ -119,67 +127,49 @@ const Settings: React.FC = () => {
   }
 
   const refreshNow = async () => {
-    const refreshToken = localStorage.getItem('spotify_refresh_token');
-    if (!refreshToken) {
-      setSnackbarMessage('No refresh token available');
+    if (isGuest) {
+      setSnackbarMessage('Cannot refresh token in guest mode');
       setSnackbarOpen(true);
       return;
     }
+
     setRefreshStatus('loading');
     try {
-      const server = import.meta.env.VITE_AUTH_SERVER_URL || 'http://localhost:3001';
-      const res = await fetch(`${server.replace(/\/$/, '')}/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+      console.log('Refreshing token using new system...');
+      const result = await refreshAccessTokenNow();
 
-      let data: any = null;
-      try { data = await res.json(); } catch (e) { /* ignore parse errors */ }
-
-      if (!res.ok) {
-        const bodyText = data && typeof data === 'object' ? JSON.stringify(data) : await res.text().catch(() => '');
-        throw new Error(`refresh failed: ${res.status} ${bodyText}`);
-      }
-
-      if (!data || !data.access_token) {
-        throw new Error('no access_token in response');
-      }
-
-      // update token immediately in UI and localStorage
-      localStorage.setItem('spotify_token', data.access_token);
-      setTokenValue(data.access_token);
-
-      if (data.expires_in) {
-        const expiryTs = Date.now() + data.expires_in * 1000;
-        localStorage.setItem('spotify_token_expiry', String(expiryTs));
-        setTokenExpiryTs(expiryTs);
-        const diff = expiryTs - Date.now();
-        setTimeRemaining(diff > 0 ? msToTime(diff) : 'Expired');
-      } else {
-        const prev = localStorage.getItem('spotify_token_expiry');
-        if (prev) {
-          const prevNum = parseInt(prev, 10);
-          setTokenExpiryTs(prevNum);
-          const diff = prevNum - Date.now();
-          setTimeRemaining(diff > 0 ? msToTime(diff) : 'Expired');
-        } else {
-          setTokenExpiryTs(null);
-          setTimeRemaining('—');
+      if (result.success) {
+        // Update UI state with new token info
+        if (result.newToken) {
+          setTokenValue(result.newToken);
         }
+        
+        // Update expiry info
+        const expiryStr = localStorage.getItem('spotify_token_expiry');
+        if (expiryStr) {
+          const expiryTs = parseInt(expiryStr, 10);
+          setTokenExpiryTs(expiryTs);
+          const diff = expiryTs - Date.now();
+          setTimeRemaining(diff > 0 ? msToTime(diff) : 'Expired');
+        }
+
+        setHasRefreshToken(!!localStorage.getItem('spotify_refresh_token'));
+        
+        // Notify other parts of the app about token update
+        window.dispatchEvent(new Event('spotify_token_updated'));
+
+        setRefreshStatus('success');
+        setSnackbarMessage('Access token refreshed successfully!');
+        setSnackbarOpen(true);
+      } else {
+        setRefreshStatus('error');
+        setSnackbarMessage(result.error || 'Token refresh failed');
+        setSnackbarOpen(true);
       }
-
-      setHasRefreshToken(!!localStorage.getItem('spotify_refresh_token'));
-      // notify AuthProvider and other parts of the app about token update
-      window.dispatchEvent(new Event('spotify_token_updated'));
-
-      setRefreshStatus('success');
-      setSnackbarMessage('Access token refreshed');
-      setSnackbarOpen(true);
     } catch (err) {
-      console.error('Refresh error', err);
+      console.error('Refresh error:', err);
       setRefreshStatus('error');
-      setSnackbarMessage(String(err instanceof Error ? err.message : 'Refresh failed'));
+      setSnackbarMessage('Unexpected error during token refresh');
       setSnackbarOpen(true);
     } finally {
       setTimeout(() => setRefreshStatus('idle'), 2000);
@@ -258,30 +248,153 @@ const Settings: React.FC = () => {
           </Paper>
 
           <Paper className="p-6 bg-white/5 border border-white/10 rounded-lg mt-6">
-            <Typography sx={{ color: 'white', fontWeight: 700, mb: 2 }}>Auth / Token</Typography>
+            <Typography sx={{ color: 'white', fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              Auth / Token Management
+              {isGuest && <Chip label="Guest Mode" size="small" color="warning" />}
+            </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.85)' }}>Access token expiry: <strong style={{ color: 'white' }}>{tokenExpiryTs ? new Date(tokenExpiryTs).toLocaleString() : '—'}</strong></Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)' }}>Time remaining: <strong style={{ color: 'white' }}>{timeRemaining}</strong></Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)' }}>Refresh token present: <strong style={{ color: 'white' }}>{hasRefreshToken ? 'Yes' : 'No'}</strong></Typography>
-
-              <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                <Button variant="contained" color="primary" onClick={refreshNow} disabled={refreshStatus === 'loading' || !hasRefreshToken}>
-                  {refreshStatus === 'loading' ? 'Refreshing…' : 'Refresh now'}
-                </Button>
-                <Button variant="outlined" color="inherit" onClick={() => { localStorage.removeItem('spotify_token'); localStorage.removeItem('spotify_token_expiry'); setTokenExpiryTs(null); setSnackbarMessage('Access token cleared'); setSnackbarOpen(true); }}>Clear token</Button>
+              {/* Token Status Section */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Access token expiry: 
+                  <strong style={{ color: 'white' }}>
+                    {tokenExpiryTs ? new Date(tokenExpiryTs).toLocaleString() : '—'}
+                  </strong>
+                  {tokenExpiryTs && isAccessTokenExpired() && <Chip label="Expired" size="small" color="error" />}
+                </Typography>
+                
+                <Typography sx={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Time remaining: 
+                  <strong style={{ color: timeRemaining === 'Expired' ? '#f44336' : 'white' }}>
+                    {timeRemaining}
+                  </strong>
+                </Typography>
+                
+                <Typography sx={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Refresh token: 
+                  <strong style={{ color: 'white' }}>
+                    {hasRefreshToken ? 'Available' : 'Missing'}
+                  </strong>
+                  {hasRefreshToken ? 
+                    <CheckCircle sx={{ color: '#4caf50', fontSize: 18 }} /> : 
+                    <Error sx={{ color: '#f44336', fontSize: 18 }} />
+                  }
+                </Typography>
               </Box>
+
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={refreshNow} 
+                  disabled={refreshStatus === 'loading' || !hasRefreshToken || isGuest}
+                  startIcon={
+                    refreshStatus === 'loading' ? <CircularProgress size={16} /> : <Refresh />
+                  }
+                  sx={{ 
+                    bgcolor: refreshStatus === 'success' ? '#4caf50' : undefined,
+                    '&:hover': {
+                      bgcolor: refreshStatus === 'success' ? '#45a049' : undefined
+                    }
+                  }}
+                >
+                  {refreshStatus === 'loading' ? 'Refreshing...' : 
+                   refreshStatus === 'success' ? 'Refreshed!' :
+                   'Refresh Token'}
+                </Button>
+                
+                <Button 
+                  variant="outlined" 
+                  color="inherit" 
+                  onClick={() => { 
+                    localStorage.removeItem('spotify_token'); 
+                    localStorage.removeItem('spotify_token_expiry'); 
+                    setTokenExpiryTs(null); 
+                    setTokenValue(null);
+                    setSnackbarMessage('Access token cleared'); 
+                    setSnackbarOpen(true); 
+                  }}
+                  disabled={!tokenValue}
+                >
+                  Clear Token
+                </Button>
+                
+                {!isGuest && (
+                  <Button 
+                    variant="outlined" 
+                    color="secondary" 
+                    onClick={async () => {
+                      const result = await refreshSpotifyTokenDetailed();
+                      if (result.success) {
+                        setSnackbarMessage('Token refreshed using utility function!');
+                      } else {
+                        setSnackbarMessage(`Utility refresh failed: ${result.error}`);
+                      }
+                      setSnackbarOpen(true);
+                    }}
+                  >
+                    Test Utility Refresh
+                  </Button>
+                )}
+              </Box>
+
               <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+
+              {/* Token Display Section */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.85)' }}>Access token (id):</Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Typography sx={{ color: 'white', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                    {tokenValue ? (showToken ? tokenValue : `${tokenValue.slice(0, 8)}...${tokenValue.slice(-8)}`) : '—'}
+                <Typography sx={{ color: 'rgba(255,255,255,0.85)' }}>Access Token:</Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Typography sx={{ 
+                    color: 'white', 
+                    fontFamily: 'monospace', 
+                    wordBreak: 'break-all',
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    p: 1,
+                    borderRadius: 1,
+                    flex: 1,
+                    minWidth: 200
+                  }}>
+                    {tokenValue ? 
+                      (showToken ? tokenValue : `${tokenValue.slice(0, 12)}...${tokenValue.slice(-12)}`) : 
+                      'No token available'
+                    }
                   </Typography>
-                  <Button size="small" variant="outlined" onClick={() => { navigator.clipboard?.writeText(tokenValue || ''); setSnackbarMessage('Token copied'); setSnackbarOpen(true); }}>Copy</Button>
-                  <Button size="small" variant="text" onClick={() => setShowToken(s => !s)}>{showToken ? 'Hide' : 'Show'}</Button>
+                  
+                  <Tooltip title={showToken ? "Hide token" : "Show full token"}>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => setShowToken(s => !s)}
+                      disabled={!tokenValue}
+                      sx={{ color: 'white' }}
+                    >
+                      {showToken ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => { 
+                      if (tokenValue) {
+                        navigator.clipboard?.writeText(tokenValue); 
+                        setSnackbarMessage('Token copied to clipboard'); 
+                        setSnackbarOpen(true); 
+                      }
+                    }}
+                    disabled={!tokenValue}
+                  >
+                    Copy
+                  </Button>
                 </Box>
               </Box>
+
+              {/* Help Text */}
+              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', mt: 1 }}>
+                💡 The refresh token allows automatic renewal of your access token without re-login. 
+                {isGuest && " Guest mode doesn't support token refresh."}
+              </Typography>
             </Box>
           </Paper>
 

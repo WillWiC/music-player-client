@@ -10,6 +10,11 @@ interface AuthContextType {
   logout: () => void;
   clearAll: () => void;
   refreshToken: () => Promise<boolean>;
+  refreshAccessTokenNow: () => Promise<{
+    success: boolean;
+    error?: string;
+    newToken?: string;
+  }>;
   isLoading: boolean;
 }
 
@@ -32,6 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   // ref to hold refresh timer id so we can clear it on unmount / logout
   const refreshTimeoutRef = useRef<number | null>(null);
+  // ref to prevent concurrent refresh attempts
+  const refreshPromiseRef = useRef<Promise<boolean> | null>(null);
 
   // Fetch user data when token is available
   useEffect(() => {
@@ -387,6 +394,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Use server-side refresh endpoint to exchange refresh_token for new access_token
   const refreshAccessToken = async (refreshToken: string, retryCount = 0): Promise<boolean> => {
+    // If there's already a refresh in progress, wait for it to complete
+    if (refreshPromiseRef.current) {
+      console.log('Refresh already in progress, waiting for completion...');
+      return await refreshPromiseRef.current;
+    }
+    
+    // Create and store the refresh promise
+    const refreshPromise = performTokenRefresh(refreshToken, retryCount);
+    refreshPromiseRef.current = refreshPromise;
+    
+    try {
+      const result = await refreshPromise;
+      return result;
+    } finally {
+      // Clear the promise reference when done
+      refreshPromiseRef.current = null;
+    }
+  };
+
+  const performTokenRefresh = async (refreshToken: string, retryCount = 0): Promise<boolean> => {
     const maxRetries = 2;
     
     try {
@@ -428,7 +455,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.status >= 500 && retryCount < maxRetries) {
           console.log(`Server error (${res.status}), retrying in ${(retryCount + 1) * 2} seconds...`);
           await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-          return await refreshAccessToken(refreshToken, retryCount + 1);
+          // Use the most current refresh token for retry
+          const retryRefreshToken = localStorage.getItem('spotify_refresh_token') || refreshToken;
+          return await performTokenRefresh(retryRefreshToken, retryCount + 1);
         }
         
         throw new Error(`TOKEN_REFRESH_FAILED: ${errorData.error || 'Unknown error'}`);
@@ -447,8 +476,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('spotify_token', data.access_token);
       
       // Handle new refresh token if provided
-      if (data.refresh_token && data.refresh_token !== refreshToken) {
+      if (data.refresh_token) {
         console.log('Received new refresh token, updating storage');
+        console.log('Old refresh token:', currentRefreshToken ? `${currentRefreshToken.substring(0, 10)}...` : 'None');
+        console.log('New refresh token:', `${data.refresh_token.substring(0, 10)}...`);
         localStorage.setItem('spotify_refresh_token', data.refresh_token);
       } else {
         console.log('No new refresh token provided, keeping existing one');
@@ -481,7 +512,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if ((error.name === 'AbortError' || error.message?.includes('Failed to fetch')) && retryCount < maxRetries) {
         console.log(`Network error, retrying in ${(retryCount + 1) * 3} seconds...`);
         await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
-        return await refreshAccessToken(refreshToken, retryCount + 1);
+        // Use the most current refresh token for retry
+        const retryRefreshToken = localStorage.getItem('spotify_refresh_token') || refreshToken;
+        return await performTokenRefresh(retryRefreshToken, retryCount + 1);
       }
       
       // For critical errors, clear auth state and require re-login
@@ -539,15 +572,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await refreshAccessToken(refreshToken);
   };
 
+  // Simple refresh function with better error handling and return info
+  const refreshAccessTokenNow = async (): Promise<{
+    success: boolean;
+    error?: string;
+    newToken?: string;
+  }> => {
+    try {
+      const refreshToken = localStorage.getItem('spotify_refresh_token');
+      
+      if (!refreshToken) {
+        return {
+          success: false,
+          error: 'No refresh token available. Please log in again.'
+        };
+      }
+
+      if (isGuest) {
+        return {
+          success: false,
+          error: 'Cannot refresh token in guest mode.'
+        };
+      }
+
+      console.log('Refreshing access token...');
+      const success = await refreshAccessToken(refreshToken);
+      
+      if (success) {
+        const newToken = localStorage.getItem('spotify_token');
+        return {
+          success: true,
+          newToken: newToken || undefined
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Token refresh failed. Please try logging in again.'
+        };
+      }
+    } catch (error) {
+      console.error('Error in refreshAccessTokenNow:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  };
+
   const value = {
     token,
     user,
-  isGuest,
+    isGuest,
     login,
-  loginAsGuest,
+    loginAsGuest,
     logout,
     clearAll,
     refreshToken: manualRefreshToken,
+    refreshAccessTokenNow,
     isLoading
   };
 
