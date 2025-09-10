@@ -9,6 +9,7 @@ interface AuthContextType {
   loginAsGuest: () => void;
   logout: () => void;
   clearAll: () => void;
+  refreshToken: () => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -356,51 +357,143 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Schedule a token refresh in ms; will call server /refresh with stored refresh token
   const scheduleTokenRefresh = (ms: number) => {
     if (!ms || ms <= 0) return;
+    
+    // Clear any existing refresh timer
     if (refreshTimeoutRef.current) {
       window.clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
     }
+    
     // Ensure we don't schedule extremely long timers; cap to 24h
     const toSchedule = Math.min(ms, 24 * 60 * 60 * 1000);
-    refreshTimeoutRef.current = window.setTimeout(() => {
+    console.log(`Scheduling token refresh in ${Math.round(toSchedule / 1000 / 60)} minutes`);
+    
+    refreshTimeoutRef.current = window.setTimeout(async () => {
       const refreshToken = localStorage.getItem('spotify_refresh_token');
-      if (refreshToken) {
-        refreshAccessToken(refreshToken);
+      if (refreshToken && !isGuest) {
+        console.log('Attempting scheduled token refresh...');
+        const success = await refreshAccessToken(refreshToken);
+        
+        if (!success) {
+          console.log('Scheduled token refresh failed, will retry in 5 minutes');
+          // If refresh fails, try again in 5 minutes
+          scheduleTokenRefresh(5 * 60 * 1000);
+        }
+      } else {
+        console.log('No refresh token available or user is in guest mode, skipping refresh');
       }
     }, toSchedule) as unknown as number;
   };
 
   // Use server-side refresh endpoint to exchange refresh_token for new access_token
-  const refreshAccessToken = async (refreshToken: string) => {
+  const refreshAccessToken = async (refreshToken: string, retryCount = 0): Promise<boolean> => {
+    const maxRetries = 2;
+    
     try {
       const server = import.meta.env.VITE_AUTH_SERVER_URL || 'http://localhost:3001';
+      console.log(`Attempting to refresh token (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
       const res = await fetch(`${server.replace(/\/$/, '')}/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ refresh_token: refreshToken }),
+        signal: controller.signal
       });
-      if (!res.ok) throw new Error('Refresh failed');
-      const data = await res.json();
-      if (data.access_token) {
-        setToken(data.access_token);
-        localStorage.setItem('spotify_token', data.access_token);
-        if (data.expires_in) {
-          const expiryTs = Date.now() + data.expires_in * 1000;
-          localStorage.setItem('spotify_token_expiry', String(expiryTs));
-          // schedule next refresh one minute before expiry
-          scheduleTokenRefresh(Math.max(0, data.expires_in * 1000 - 60 * 1000));
-        } else {
-          // default to 1 hour
-          scheduleTokenRefresh(3600 * 1000 - 60 * 1000);
+      
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'unknown_error' }));
+        console.error('Token refresh failed:', res.status, errorData);
+        
+        // Handle specific error cases
+        if (res.status === 400 && errorData.error === 'invalid_refresh_token') {
+          console.log('Refresh token is invalid or expired, clearing auth data');
+          // Clear invalid refresh token
+          localStorage.removeItem('spotify_refresh_token');
+          throw new Error('INVALID_REFRESH_TOKEN');
         }
+        
+        // For server errors (5xx), retry if we haven't exceeded max retries
+        if (res.status >= 500 && retryCount < maxRetries) {
+          console.log(`Server error (${res.status}), retrying in ${(retryCount + 1) * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+          return await refreshAccessToken(refreshToken, retryCount + 1);
+        }
+        
+        throw new Error(`TOKEN_REFRESH_FAILED: ${errorData.error || 'Unknown error'}`);
       }
+      
+      const data = await res.json();
+      
+      if (!data.access_token) {
+        throw new Error('INVALID_RESPONSE: Missing access_token');
+      }
+      
+      console.log('Token refresh successful');
+      
+      // Update token in state and storage
+      setToken(data.access_token);
+      localStorage.setItem('spotify_token', data.access_token);
+      
+      // Handle new refresh token if provided
+      if (data.refresh_token) {
+        console.log('Received new refresh token, updating storage');
+        localStorage.setItem('spotify_refresh_token', data.refresh_token);
+      }
+      
+      // Update expiry and schedule next refresh
+      if (data.expires_in) {
+        const expiryTs = Date.now() + data.expires_in * 1000;
+        localStorage.setItem('spotify_token_expiry', String(expiryTs));
+        // Schedule next refresh 5 minutes before expiry for safety margin
+        const refreshDelay = Math.max(0, data.expires_in * 1000 - 5 * 60 * 1000);
+        console.log(`Scheduling next token refresh in ${Math.round(refreshDelay / 1000 / 60)} minutes`);
+        scheduleTokenRefresh(refreshDelay);
+      } else {
+        // Default to refresh in 55 minutes if expires_in not provided
+        console.log('No expires_in provided, scheduling refresh in 55 minutes');
+        scheduleTokenRefresh(55 * 60 * 1000);
+      }
+      
+      return true;
+      
     } catch (err) {
       console.error('Error refreshing access token:', err);
-      // If refresh fails, clear token and require re-login
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('spotify_token');
-      localStorage.removeItem('spotify_token_expiry');
-      // keep refresh token so user can try again, or clear depending on policy
+      
+      const error = err as Error;
+      
+      // Handle network errors with retry logic
+      if ((error.name === 'AbortError' || error.message?.includes('Failed to fetch')) && retryCount < maxRetries) {
+        console.log(`Network error, retrying in ${(retryCount + 1) * 3} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+        return await refreshAccessToken(refreshToken, retryCount + 1);
+      }
+      
+      // For critical errors, clear auth state and require re-login
+      if (error.message === 'INVALID_REFRESH_TOKEN') {
+        console.log('Invalid refresh token, requiring re-login');
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('spotify_token');
+        localStorage.removeItem('spotify_refresh_token');
+        localStorage.removeItem('spotify_token_expiry');
+        // Could show a toast notification here about needing to log in again
+      } else {
+        // For other errors, keep refresh token but clear access token
+        console.log('Token refresh failed, keeping refresh token for retry');
+        setToken(null);
+        localStorage.removeItem('spotify_token');
+        localStorage.removeItem('spotify_token_expiry');
+      }
+      
+      return false;
     }
   };
 
@@ -426,6 +519,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('spotify_token_updated', handler);
   }, []);
 
+  // Manual token refresh function that can be called by components
+  const manualRefreshToken = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('spotify_refresh_token');
+    if (!refreshToken || isGuest) {
+      console.log('No refresh token available or user is in guest mode');
+      return false;
+    }
+    
+    console.log('Manual token refresh requested');
+    return await refreshAccessToken(refreshToken);
+  };
+
   const value = {
     token,
     user,
@@ -434,6 +539,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   loginAsGuest,
     logout,
     clearAll,
+    refreshToken: manualRefreshToken,
     isLoading
   };
 

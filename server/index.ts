@@ -80,7 +80,21 @@ app.get('/callback', async (req, res) => {
 // Refresh endpoint: client sends refresh_token and server exchanges it for a new access token
 app.post('/refresh', async (req, res) => {
   const refresh_token = req.body?.refresh_token;
-  if (!refresh_token) return res.status(400).json({ error: 'refresh_token required' });
+  if (!refresh_token) {
+    return res.status(400).json({ 
+      error: 'refresh_token required',
+      details: 'Missing refresh_token in request body'
+    });
+  }
+
+  // Validate that we have necessary environment variables
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error('Missing CLIENT_ID or CLIENT_SECRET environment variables');
+    return res.status(500).json({ 
+      error: 'server_configuration_error',
+      details: 'Missing required server configuration'
+    });
+  }
 
   const tokenUrl = 'https://accounts.spotify.com/api/token';
   const body = querystring.stringify({
@@ -90,6 +104,7 @@ app.post('/refresh', async (req, res) => {
   const authHeader = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
 
   try {
+    console.log('Attempting to refresh token...');
     const tokenRes = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -98,12 +113,57 @@ app.post('/refresh', async (req, res) => {
       },
       body,
     });
+
+    if (!tokenRes.ok) {
+      const errorText = await tokenRes.text();
+      console.error(`Spotify token refresh failed: ${tokenRes.status} - ${errorText}`);
+      
+      // Handle specific Spotify errors
+      if (tokenRes.status === 400) {
+        return res.status(400).json({ 
+          error: 'invalid_refresh_token',
+          details: 'The refresh token is invalid or expired. Please log in again.',
+          spotify_error: errorText
+        });
+      }
+      
+      throw new Error(`Spotify API error: ${tokenRes.status} - ${errorText}`);
+    }
+
     const data = await tokenRes.json();
-    // forward access_token and expires_in to client
-    res.json({ access_token: data.access_token, expires_in: data.expires_in });
+    
+    // Validate response data
+    if (!data.access_token) {
+      console.error('Spotify response missing access_token:', data);
+      return res.status(500).json({ 
+        error: 'invalid_response',
+        details: 'Spotify response missing access_token'
+      });
+    }
+
+    console.log('Token refresh successful');
+    
+    // Send successful response with new tokens
+    const response: any = {
+      access_token: data.access_token,
+      expires_in: data.expires_in || 3600, // Default to 1 hour if not provided
+      token_type: data.token_type || 'Bearer'
+    };
+
+    // If Spotify provides a new refresh token, include it
+    if (data.refresh_token) {
+      response.refresh_token = data.refresh_token;
+    }
+
+    res.json(response);
+    
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'refresh failed' });
+    console.error('Error during token refresh:', err);
+    res.status(500).json({ 
+      error: 'refresh_failed',
+      details: 'Failed to refresh access token. Please try logging in again.',
+      message: err.message
+    });
   }
 });
 

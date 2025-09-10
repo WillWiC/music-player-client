@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useToast } from '../context/toast';
+import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { CircularProgress, IconButton, Tooltip } from '@mui/material';
@@ -15,6 +16,7 @@ const Artist: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { token, isLoading: authLoading } = useAuth();
+  const { makeRequest } = useSpotifyApi();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const toast = useToast();
   
@@ -40,9 +42,9 @@ const Artist: React.FC = () => {
   // Error handling
   const [error, setError] = React.useState<string>('');
 
-  // Fetch artist data
+  // Fetch artist data using the new Spotify API hook
   React.useEffect(() => {
-    if (!token || !id || authLoading) return;
+    if (!id || authLoading) return;
 
     const fetchArtistData = async () => {
       setLoading(true);
@@ -50,108 +52,91 @@ const Artist: React.FC = () => {
       
       try {
         // Fetch artist info
-        const artistResponse = await fetch(`https://api.spotify.com/v1/artists/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const artistUrl = buildSpotifyUrl(`artists/${id}`);
+        const { data: artistData, error: artistError } = await makeRequest(artistUrl);
         
-        if (!artistResponse.ok) {
-          throw new Error(`Failed to fetch artist: ${artistResponse.status}`);
+        if (artistError || !artistData) {
+          throw new Error('Failed to fetch artist data');
         }
         
-        const artistData = await artistResponse.json();
         setArtist(artistData);
 
-        // Fetch if user is following this artist
-        if (token) {
-          try {
-            const followResponse = await fetch(`https://api.spotify.com/v1/me/following/contains?type=artist&ids=${id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (followResponse.ok) {
-              const followData = await followResponse.json();
-              setIsFollowing(followData[0] || false);
-            }
-          } catch (error) {
-            console.warn('Failed to check following status:', error);
-          }
+        // Parallel API calls for better performance
+        const [followResult, tracksResult, albumsResult, relatedResult] = await Promise.allSettled([
+          // Check if user is following this artist
+          makeRequest(buildSpotifyUrl('me/following/contains', { 
+            type: 'artist', 
+            ids: id 
+          })),
+          // Fetch top tracks
+          makeRequest(buildSpotifyUrl(`artists/${id}/top-tracks`, { market: 'US' })),
+          // Fetch albums
+          makeRequest(buildSpotifyUrl(`artists/${id}/albums`, {
+            include_groups: 'album,single',
+            market: 'US',
+            limit: 20
+          })),
+          // Fetch related artists
+          makeRequest(buildSpotifyUrl(`artists/${id}/related-artists`))
+        ]);
+
+        // Process follow status
+        if (followResult.status === 'fulfilled' && followResult.value.data && !followResult.value.error) {
+          setIsFollowing(followResult.value.data[0] || false);
         }
 
-        // Fetch top tracks
-        setLoadingTracks(true);
-        try {
-          const tracksResponse = await fetch(`https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          if (tracksResponse.ok) {
-            const tracksData = await tracksResponse.json();
-            setTopTracks(tracksData.tracks || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch top tracks:', error);
-        } finally {
-          setLoadingTracks(false);
+        // Process top tracks
+        if (tracksResult.status === 'fulfilled' && tracksResult.value.data && !tracksResult.value.error) {
+          setTopTracks(tracksResult.value.data.tracks || []);
+        } else {
+          console.warn('Failed to fetch top tracks');
         }
 
-        // Fetch albums
-        setLoadingAlbums(true);
-        try {
-          const albumsResponse = await fetch(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album,single&market=US&limit=20`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          if (albumsResponse.ok) {
-            const albumsData = await albumsResponse.json();
-            setAlbums(albumsData.items || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch albums:', error);
-        } finally {
-          setLoadingAlbums(false);
+        // Process albums
+        if (albumsResult.status === 'fulfilled' && albumsResult.value.data && !albumsResult.value.error) {
+          setAlbums(albumsResult.value.data.items || []);
+        } else {
+          console.warn('Failed to fetch albums');
         }
 
-        // Fetch related artists
-        setLoadingRelated(true);
-        try {
-          const relatedResponse = await fetch(`https://api.spotify.com/v1/artists/${id}/related-artists`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          if (relatedResponse.ok) {
-            const relatedData = await relatedResponse.json();
-            setRelatedArtists(relatedData.artists || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch related artists:', error);
-        } finally {
-          setLoadingRelated(false);
+        // Process related artists
+        if (relatedResult.status === 'fulfilled' && relatedResult.value.data && !relatedResult.value.error) {
+          setRelatedArtists(relatedResult.value.data.artists || []);
+        } else {
+          console.warn('Failed to fetch related artists');
         }
 
       } catch (error) {
         console.error('Failed to fetch artist data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load artist');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load artist';
+        setError(errorMessage);
         toast.showToast('Failed to load artist data', 'error');
       } finally {
         setLoading(false);
+        setLoadingTracks(false);
+        setLoadingAlbums(false);
+        setLoadingRelated(false);
       }
     };
 
     fetchArtistData();
-  }, [token, id, authLoading, toast]);
+  }, [id, authLoading, makeRequest, toast]);
 
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
-    if (!token || !id || loadingFollow) return;
+    if (!id || loadingFollow) return;
     
     setLoadingFollow(true);
     try {
       const method = isFollowing ? 'DELETE' : 'PUT';
-      const response = await fetch(`https://api.spotify.com/v1/me/following?type=artist&ids=${id}`, {
+      const url = buildSpotifyUrl('me/following', { type: 'artist', ids: id });
+      
+      const { error } = await makeRequest(url, {
         method,
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' }
       });
       
-      if (response.ok) {
+      if (!error) {
         setIsFollowing(!isFollowing);
         toast.showToast(
           isFollowing ? 'Unfollowed artist' : 'Following artist', 
@@ -329,7 +314,7 @@ const Artist: React.FC = () => {
                     </Tooltip>
                   )}
                   
-                  {token && (
+                  {token && token !== 'GUEST' && (
                     <button
                       onClick={handleFollowToggle}
                       disabled={loadingFollow}

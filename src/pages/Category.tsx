@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
+import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { CircularProgress, IconButton } from '@mui/material';
@@ -50,6 +51,7 @@ interface Track {
 const Category: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const { token, isLoading } = useAuth();
+  const { makeRequest } = useSpotifyApi();
   const navigate = useNavigate();
   const toast = useToast();
   const { play } = usePlayer();
@@ -114,51 +116,9 @@ const Category: React.FC = () => {
     return Math.max(0, (pages - 1) * visibleCount);
   }, [artists.length, visibleCount]);
 
-  // Cache for API responses to avoid duplicate requests
-  const apiCache = React.useRef<Map<string, any>>(new Map());
-  
-  // Clear cache when category changes to ensure fresh data
-  React.useEffect(() => {
-    apiCache.current.clear();
-  }, [categoryId]);
-  
-  // Optimized fetch with caching and error handling
-  const cachedFetch = React.useCallback(async (url: string): Promise<Response | null> => {
-    if (apiCache.current.has(url)) {
-      const cachedData = apiCache.current.get(url);
-      return {
-        ok: true,
-        json: async () => cachedData
-      } as Response;
-    }
-    
-    try {
-      const response = await fetch(url, { 
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(8000) // 8s timeout per request
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Limit cache size to prevent memory issues
-        if (apiCache.current.size > 50) {
-          const firstKey = apiCache.current.keys().next().value;
-          if (firstKey) apiCache.current.delete(firstKey);
-        }
-        apiCache.current.set(url, data);
-        return { ok: true, json: async () => data } as Response;
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        console.error('API request failed:', url, err);
-      }
-    }
-    return null;
-  }, [token]);
-
-  // Fetch artists and playlists for the category
+  // Fetch artists and playlists for the category using the new Spotify API hook
   const fetchCategoryContent = React.useCallback(async () => {
-    if (!token || !category || loadingPlaylists) return;
+    if (!category || loadingPlaylists) return;
     
     setLoadingPlaylists(true);
     setError('');
@@ -166,7 +126,7 @@ const Category: React.FC = () => {
     try {
       // Use optimized search terms for better API results
       const searchTerms = getCategorySearchTerms(categoryId!);
-      const genreSearches = searchTerms.slice(0, 4); // Use optimized terms instead of raw spotifyGenres
+      const genreSearches = searchTerms.slice(0, 4); // Use optimized terms
       
       // Pre-allocate Sets for efficient deduplication
       const artistIds = new Set<string>();
@@ -180,53 +140,70 @@ const Category: React.FC = () => {
       // Determine search strategy based on category
       const useGenreQualifier = !(categoryId === 'kpop' || categoryId === 'chinese-pop');
       
-      // Parallel API requests for better performance
+      // Parallel API requests using the new hook
       const searchPromises = genreSearches.map(async (genre) => {
         const results = { artists: [] as Artist[], playlists: [] as Playlist[], tracks: [] as Track[] };
         
         try {
-          // Create all request URLs
-          const artistQuery = useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : `${encodeURIComponent(genre)}`;
-          const artistUrl = `https://api.spotify.com/v1/search?q=${artistQuery}&type=artist&limit=12`;
-          const playlistUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&limit=12`;
-          const trackQuery = useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : encodeURIComponent(genre);
-          const trackUrl = `https://api.spotify.com/v1/search?q=${trackQuery}&type=track&limit=18`;
+          // Create search queries
+          const artistQuery = useGenreQualifier ? `genre:"${genre}"` : genre;
+          const trackQuery = useGenreQualifier ? `genre:"${genre}"` : genre;
           
-          // Execute all requests in parallel
-          const [artistResponse, playlistResponse, trackResponse] = await Promise.allSettled([
-            cachedFetch(artistUrl),
-            cachedFetch(playlistUrl),
-            cachedFetch(trackUrl)
+          // Build URLs using the utility function
+          const artistUrl = buildSpotifyUrl('search', {
+            q: artistQuery,
+            type: 'artist',
+            limit: 12
+          });
+          
+          const playlistUrl = buildSpotifyUrl('search', {
+            q: genre,
+            type: 'playlist', 
+            limit: 12
+          });
+          
+          const trackUrl = buildSpotifyUrl('search', {
+            q: trackQuery,
+            type: 'track',
+            limit: 18
+          });
+          
+          // Execute all requests in parallel using the hook
+          const [artistResult, playlistResult, trackResult] = await Promise.allSettled([
+            makeRequest(artistUrl),
+            makeRequest(playlistUrl),
+            makeRequest(trackUrl)
           ]);
           
           // Process artist results
-          if (artistResponse.status === 'fulfilled' && artistResponse.value) {
-            const artistData = await artistResponse.value.json();
-            const artists = artistData.artists?.items || [];
+          if (artistResult.status === 'fulfilled' && artistResult.value.data && !artistResult.value.error) {
+            const artists = artistResult.value.data.artists?.items || [];
             results.artists = artists.filter((a: Artist) => a && a.id && !artistIds.has(a.id));
             results.artists.forEach((a: Artist) => artistIds.add(a.id));
           }
           
           // Process playlist results
-          if (playlistResponse.status === 'fulfilled' && playlistResponse.value) {
-            const playlistData = await playlistResponse.value.json();
-            const playlists = playlistData.playlists?.items || [];
+          if (playlistResult.status === 'fulfilled' && playlistResult.value.data && !playlistResult.value.error) {
+            const playlists = playlistResult.value.data.playlists?.items || [];
             results.playlists = playlists.filter((p: Playlist) => p && p.id && !playlistIds.has(p.id));
             results.playlists.forEach((p: Playlist) => playlistIds.add(p.id));
           }
           
           // Process track results with fallback for genre qualifier
-          if (trackResponse.status === 'fulfilled' && trackResponse.value) {
-            const trackData = await trackResponse.value.json();
-            let tracks = trackData.tracks?.items || [];
+          if (trackResult.status === 'fulfilled' && trackResult.value.data && !trackResult.value.error) {
+            let tracks = trackResult.value.data.tracks?.items || [];
             
-            // Fallback search if genre qualifier didn't work and returned few results
+            // Fallback search if genre qualifier didn't work well
             if (useGenreQualifier && tracks.length < 5) {
-              const fallbackUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=track&limit=18`;
-              const fallbackResponse = await cachedFetch(fallbackUrl);
-              if (fallbackResponse) {
-                const fallbackData = await fallbackResponse.json();
-                tracks = fallbackData.tracks?.items || tracks;
+              const fallbackUrl = buildSpotifyUrl('search', {
+                q: genre,
+                type: 'track',
+                limit: 18
+              });
+              
+              const fallbackResult = await makeRequest(fallbackUrl);
+              if (fallbackResult.data && !fallbackResult.error) {
+                tracks = fallbackResult.data.tracks?.items || tracks;
               }
             }
             
@@ -253,7 +230,7 @@ const Category: React.FC = () => {
         }
       });
       
-      // Optimized artist processing with early filtering and smart categorization
+      // Process artists with optimized algorithm (same as before)
       const processArtists = (artists: Artist[]) => {
         if (artists.length === 0) return [];
         
@@ -261,7 +238,6 @@ const Category: React.FC = () => {
         const hangulRegex = /[\uAC00-\uD7AF]/;
         const cjkRegex = /[\u4E00-\u9FFF\u3040-\u30FF]/;
         
-        // Create scoring function for relevance
         const scoreArtist = (artist: Artist) => {
           let score = 0;
           const genres = (artist.genres || []).map(g => g.toLowerCase());
@@ -291,45 +267,43 @@ const Category: React.FC = () => {
           return score;
         };
         
-        // Filter and score artists in one pass
-        const scoredArtists = artists
+        return artists
           .filter(a => a && a.id && a.name) // Basic validation
           .map(artist => ({ artist, score: scoreArtist(artist) }))
           .filter(({ score }) => score > 20) // Minimum relevance threshold
           .sort((a, b) => b.score - a.score) // Sort by score descending
           .slice(0, 25) // Take top candidates
           .map(({ artist }) => artist);
-        
-        return scoredArtists;
       };
       
-      // Process artists with optimized algorithm
+      // Process data
       const processedArtists = processArtists(allArtists);
       setArtists(processedArtists);
 
-      // Optimized playlist processing
+      // Process playlists
       const processedPlaylists = allPlaylists
-        .filter(p => p && p.id && p.name && (p.tracks?.total || 0) > 5) // Quality filter
-        .sort((a, b) => (b.tracks?.total || 0) - (a.tracks?.total || 0)) // Sort by track count
-        .slice(0, 24); // Limit results
+        .filter(p => p && p.id && p.name && (p.tracks?.total || 0) > 5)
+        .sort((a, b) => (b.tracks?.total || 0) - (a.tracks?.total || 0))
+        .slice(0, 24);
       setPlaylists(processedPlaylists);
 
-      // Smart track processing with fallback strategy
+      // Handle tracks with fallback to playlist tracks
       let processedTracks = allTracks;
       
-      // If no tracks found via search, try fetching from top playlists
       if (processedTracks.length === 0 && processedPlaylists.length > 0) {
         const fallbackTracks: Track[] = [];
         const playlistPromises = processedPlaylists
-          .slice(0, 4) // Use top 4 playlists
+          .slice(0, 4)
           .map(async (playlist) => {
             try {
-              const response = await cachedFetch(
-                `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=8&fields=items(track(id,name,artists,album,duration_ms,external_urls,uri,preview_url,popularity))`
-              );
-              if (response) {
-                const data = await response.json();
-                return (data.items || [])
+              const url = buildSpotifyUrl(`playlists/${playlist.id}/tracks`, {
+                limit: 8,
+                fields: 'items(track(id,name,artists,album,duration_ms,external_urls,uri,preview_url,popularity))'
+              });
+              
+              const result = await makeRequest(url);
+              if (result.data && !result.error) {
+                return (result.data.items || [])
                   .map((item: any) => item.track)
                   .filter((track: Track) => track && track.id && !trackIds.has(track.id));
               }
@@ -362,13 +336,11 @@ const Category: React.FC = () => {
           const aPop = (a as any).popularity || 0;
           const bPop = (b as any).popularity || 0;
 
-          // For K-Pop and Pop, prioritize recent releases
           if (categoryId === 'pop' || categoryId === 'kpop') {
-            if (Math.abs(bDate - aDate) > 31536000000) return bDate - aDate; // > 1 year difference
-            return bPop - aPop; // Otherwise sort by popularity
+            if (Math.abs(bDate - aDate) > 31536000000) return bDate - aDate;
+            return bPop - aPop;
           }
           
-          // For other genres, prioritize popularity
           return bPop - aPop || bDate - aDate;
         })
         .slice(0, 30);
@@ -382,32 +354,31 @@ const Category: React.FC = () => {
     } finally {
       setLoadingPlaylists(false);
     }
-  }, [token, category, categoryId, toast]);
+  }, [category, categoryId, makeRequest, toast, loadingPlaylists]);
 
   // Load content after category is loaded
   React.useEffect(() => {
-    if (category && token && !isLoading) {
+    if (category && !isLoading) {
       fetchCategoryContent();
     }
-  }, [category, token, isLoading, fetchCategoryContent]);
+  }, [category, isLoading, fetchCategoryContent]);
 
   // Handle playlist play
   const handlePlaylistPlay = async (playlist: Playlist) => {
     try {
-      const tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=1`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const url = buildSpotifyUrl(`playlists/${playlist.id}/tracks`, { limit: 1 });
+      const { data, error } = await makeRequest(url);
       
-      if (tracksResponse.ok) {
-        const tracksData = await tracksResponse.json();
-        const firstTrack = tracksData.items?.[0]?.track;
-        if (firstTrack) {
-          await play(firstTrack);
-        } else {
-          toast.showToast('This playlist appears to be empty', 'error');
-        }
-      } else {
+      if (error) {
         toast.showToast('Unable to play playlist', 'error');
+        return;
+      }
+      
+      const firstTrack = data?.items?.[0]?.track;
+      if (firstTrack) {
+        await play(firstTrack);
+      } else {
+        toast.showToast('This playlist appears to be empty', 'error');
       }
     } catch (err) {
       console.error('Play playlist error:', err);
@@ -418,20 +389,19 @@ const Category: React.FC = () => {
   // Handle artist play (play their top track)
   const handleArtistPlay = async (artist: Artist) => {
     try {
-      const tracksResponse = await fetch(`https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const url = buildSpotifyUrl(`artists/${artist.id}/top-tracks`, { market: 'US' });
+      const { data, error } = await makeRequest(url);
       
-      if (tracksResponse.ok) {
-        const tracksData = await tracksResponse.json();
-        const topTrack = tracksData.tracks?.[0];
-        if (topTrack) {
-          await play(topTrack);
-        } else {
-          toast.showToast('No tracks found for this artist', 'error');
-        }
-      } else {
+      if (error) {
         toast.showToast('Unable to play artist', 'error');
+        return;
+      }
+      
+      const topTrack = data?.tracks?.[0];
+      if (topTrack) {
+        await play(topTrack);
+      } else {
+        toast.showToast('No tracks found for this artist', 'error');
       }
     } catch (err) {
       console.error('Play artist error:', err);
