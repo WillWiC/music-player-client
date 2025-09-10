@@ -235,7 +235,7 @@ const Category: React.FC = () => {
         }
       });
       
-      // Process artists with optimized algorithm (same as before)
+      // Enhanced artist processing algorithm with category-specific strict filtering
       const processArtists = (artists: Artist[]) => {
         if (artists.length === 0) return [];
         
@@ -246,39 +246,473 @@ const Category: React.FC = () => {
         const scoreArtist = (artist: Artist) => {
           let score = 0;
           const genres = (artist.genres || []).map(g => g.toLowerCase());
+          const popularity = artist.popularity || 0;
+          const followers = artist.followers?.total || 0;
+          const artistName = artist.name.toLowerCase();
           
-          // Base popularity score (0-100)
-          score += (artist.popularity || 0);
-          
-          // Image quality bonus
-          if ((artist.images?.length || 0) > 0) score += 20;
-          
-          // Category-specific scoring
+          // Category-specific relevance filtering BEFORE quality checks
           if (categoryId === 'kpop') {
-            if (genres.includes('k-pop') || genres.some(g => g.includes('korean'))) score += 50;
-            if (hangulRegex.test(artist.name)) score += 30;
+            const hasKoreanGenre = genres.some(g => 
+              g.includes('k-pop') || g.includes('k-rap') || g.includes('korean') || 
+              g === 'kpop' || g.includes('k pop')
+            );
+            const hasKoreanName = hangulRegex.test(artist.name);
+            const hasKoreanKeywords = artistName.includes('korea') || 
+                                    artistName.includes('korean') ||
+                                    genres.some(g => g.includes('seoul') || g.includes('korea'));
+            
+            // STRICT: Must have Korean connection to be considered for K-pop
+            if (!hasKoreanGenre && !hasKoreanName && !hasKoreanKeywords) {
+              return 0; // Completely reject non-Korean artists
+            }
+            
+            // Higher follower requirements for K-pop category
+            if (followers < 100000 && popularity < 40) return 0;
+            
           } else if (categoryId === 'chinese-pop') {
-            if (genres.some(g => g.includes('mandopop') || g.includes('cantopop') || g.includes('chinese'))) score += 50;
-            if (cjkRegex.test(artist.name)) score += 30;
+            const hasChineseGenre = genres.some(g => 
+              g.includes('mandopop') || g.includes('cantopop') || g.includes('chinese') ||
+              g.includes('cpop') || g.includes('mandarin') || g.includes('cantonese')
+            );
+            const hasChineseName = cjkRegex.test(artist.name);
+            const hasChineseKeywords = artistName.includes('china') || 
+                                     artistName.includes('chinese') ||
+                                     artistName.includes('taiwan') ||
+                                     artistName.includes('hong kong');
+            
+            // STRICT: Must have Chinese connection
+            if (!hasChineseGenre && !hasChineseName && !hasChineseKeywords) {
+              return 0;
+            }
+            
+            if (followers < 50000 && popularity < 35) return 0;
+            
           } else if (categoryId === 'pop') {
-            if (artist.popularity && artist.popularity >= 60) score += 25;
-            if (genres.includes('pop') || genres.includes('dance pop')) score += 15;
+            const hasPopGenre = genres.some(g => 
+              g.includes('pop') && !g.includes('k-pop') && !g.includes('mandopop') && !g.includes('cantopop')
+            );
+            const isMainstreamPop = popularity >= 50 && followers > 500000;
+            
+            // Must have pop connection and mainstream appeal
+            if (!hasPopGenre && !isMainstreamPop) return 0;
+            if (followers < 200000 && popularity < 45) return 0;
+            
+          } else if (categoryId === 'hiphop') {
+            const hasHipHopGenre = genres.some(g => 
+              g.includes('hip hop') || g.includes('rap') || g.includes('trap') || 
+              g.includes('hip-hop') || g === 'rap'
+            );
+            const hasHipHopKeywords = artistName.includes('rapper') || 
+                                    artistName.includes('mc ') ||
+                                    genres.some(g => g.includes('urban') || g.includes('gangsta'));
+            
+            if (!hasHipHopGenre && !hasHipHopKeywords) return 0;
+            if (followers < 100000 && popularity < 35) return 0;
+            
+          } else if (categoryId === 'edm') {
+            const hasEDMGenre = genres.some(g => 
+              g.includes('edm') || g.includes('electronic') || g.includes('house') || 
+              g.includes('techno') || g.includes('trance') || g.includes('dubstep') ||
+              g.includes('electro') || g.includes('dance')
+            );
+            
+            if (!hasEDMGenre) return 0;
+            if (followers < 50000 && popularity < 30) return 0;
+            
+          } else if (categoryId === 'rock') {
+            const hasRockGenre = genres.some(g => 
+              g.includes('rock') || g.includes('metal') || g.includes('punk') || 
+              g.includes('grunge') || g.includes('alternative')
+            );
+            
+            if (!hasRockGenre) return 0;
+            if (followers < 80000 && popularity < 32) return 0;
+            
+          } else if (categoryId === 'indie') {
+            const hasIndieGenre = genres.some(g => 
+              g.includes('indie') || g.includes('alternative') || g.includes('lo-fi') ||
+              g.includes('bedroom pop') || g.includes('dream pop') || g.includes('shoegaze')
+            );
+            
+            if (!hasIndieGenre) return 0;
+            if (followers < 30000 && popularity < 25) return 0;
+            
+          } else if (categoryId === 'jazz') {
+            const hasJazzGenre = genres.some(g => 
+              g.includes('jazz') || g.includes('bebop') || g.includes('swing') ||
+              g.includes('fusion') || g.includes('blues')
+            );
+            
+            if (!hasJazzGenre) return 0;
+            if (followers < 20000 && popularity < 25) return 0;
+            
+          } else if (categoryId === 'rnb') {
+            const hasRnBGenre = genres.some(g => 
+              g.includes('r&b') || g.includes('soul') || g.includes('neo soul') ||
+              g.includes('funk') || g.includes('motown') || g.includes('rnb')
+            );
+            
+            if (!hasRnBGenre) return 0;
+            if (followers < 80000 && popularity < 35) return 0;
+            
+          } else if (categoryId === 'latin') {
+            const hasLatinGenre = genres.some(g => 
+              g.includes('latin') || g.includes('reggaeton') || g.includes('salsa') ||
+              g.includes('bachata') || g.includes('merengue') || g.includes('cumbia') ||
+              g.includes('spanish') || g.includes('mexican')
+            );
+            
+            if (!hasLatinGenre) return 0;
+            if (followers < 100000 && popularity < 35) return 0;
+            
+          } else if (categoryId === 'country') {
+            const hasCountryGenre = genres.some(g => 
+              g.includes('country') || g.includes('folk') || g.includes('americana') ||
+              g.includes('bluegrass') || g.includes('western')
+            );
+            
+            if (!hasCountryGenre) return 0;
+            if (followers < 50000 && popularity < 30) return 0;
+            
+          } else if (categoryId === 'classical') {
+            const hasClassicalGenre = genres.some(g => 
+              g.includes('classical') || g.includes('orchestral') || g.includes('opera') ||
+              g.includes('baroque') || g.includes('symphony') || g.includes('chamber')
+            );
+            
+            if (!hasClassicalGenre) return 0;
+            if (followers < 10000 && popularity < 20) return 0;
           }
           
-          // Genre mapping relevance
-          const mappedCategories = mapGenresToCategories(artist.genres || []);
-          if (mappedCategories.includes(categoryId!)) score += 40;
+          // General quality gate after category-specific filtering
+          if (popularity < 30 && followers < 50000) return 0;
+          if (popularity === 0 && followers === 0) return 0;
           
-          return score;
+          
+          // Enhanced base popularity scoring with exponential weighting for high popularity
+          if (popularity >= 80) {
+            score += popularity * 3.0; // Even higher premium for top artists
+          } else if (popularity >= 60) {
+            score += popularity * 2.5; 
+          } else if (popularity >= 40) {
+            score += popularity * 2.0; 
+          } else {
+            score += popularity * 1.0; 
+          }
+          
+          // Follower-based scoring with logarithmic scaling
+          if (followers > 0) {
+            const followerScore = Math.min(Math.log10(followers) * 20, 120);
+            score += followerScore;
+          }
+          
+          // Profile completeness bonus
+          if ((artist.images?.length || 0) > 0) score += 30;
+          if (artist.genres && artist.genres.length > 0) score += 20;
+          
+          // Category-specific enhanced scoring with strict authenticity requirements
+          if (categoryId === 'kpop') {
+            let kpopBonus = 0;
+            
+            if (genres.includes('k-pop')) kpopBonus += 100;
+            if (genres.includes('k-rap')) kpopBonus += 80;
+            if (genres.some(g => g.includes('korean'))) kpopBonus += 70;
+            if (hangulRegex.test(artist.name)) kpopBonus += 80;
+            
+            // Major K-pop artist detection (high followers + Korean connection)
+            if (followers > 5000000 && (hangulRegex.test(artist.name) || genres.some(g => g.includes('k-')))) {
+              kpopBonus += 150;
+            }
+            
+            score += kpopBonus;
+            
+          } else if (categoryId === 'chinese-pop') {
+            let cpopBonus = 0;
+            
+            if (genres.some(g => g.includes('mandopop') || g.includes('cantopop'))) cpopBonus += 100;
+            if (genres.some(g => g.includes('chinese'))) cpopBonus += 80;
+            if (cjkRegex.test(artist.name)) cpopBonus += 70;
+            
+            score += cpopBonus;
+            
+          } else if (categoryId === 'pop') {
+            // For general pop, ensure mainstream appeal
+            if (popularity >= 70 && followers > 1000000) score += 100;
+            if (popularity >= 50) score += 60;
+            if (genres.includes('pop') || genres.includes('dance pop')) {
+              score += popularity >= 60 ? 80 : 40;
+            }
+            
+          } else if (categoryId === 'hiphop') {
+            let hiphopBonus = 0;
+            
+            if (genres.some(g => g.includes('hip hop') || g.includes('rap'))) hiphopBonus += 80;
+            if (genres.some(g => g.includes('trap'))) hiphopBonus += 70;
+            if (popularity >= 60) hiphopBonus += 60;
+            
+            score += hiphopBonus;
+            
+          } else if (categoryId === 'edm') {
+            let edmBonus = 0;
+            
+            if (genres.some(g => g.includes('edm') || g.includes('electronic'))) edmBonus += 80;
+            if (genres.some(g => g.includes('house') || g.includes('techno'))) edmBonus += 70;
+            if (genres.some(g => g.includes('dubstep') || g.includes('trance'))) edmBonus += 70;
+            
+            score += edmBonus;
+            
+          } else if (categoryId === 'rock') {
+            let rockBonus = 0;
+            
+            if (genres.some(g => g.includes('rock'))) rockBonus += 80;
+            if (genres.some(g => g.includes('metal') || g.includes('punk'))) rockBonus += 70;
+            if (genres.some(g => g.includes('alternative') || g.includes('grunge'))) rockBonus += 65;
+            if (followers > 1000000) rockBonus += 50;
+            
+            score += rockBonus;
+            
+          } else if (categoryId === 'indie') {
+            let indieBonus = 0;
+            
+            if (genres.some(g => g.includes('indie'))) indieBonus += 80;
+            if (genres.some(g => g.includes('alternative'))) indieBonus += 70;
+            if (genres.some(g => g.includes('lo-fi') || g.includes('bedroom pop'))) indieBonus += 60;
+            
+            score += indieBonus;
+            
+          } else if (categoryId === 'jazz') {
+            let jazzBonus = 0;
+            
+            if (genres.some(g => g.includes('jazz'))) jazzBonus += 80;
+            if (genres.some(g => g.includes('bebop') || g.includes('swing'))) jazzBonus += 70;
+            if (genres.some(g => g.includes('fusion') || g.includes('smooth jazz'))) jazzBonus += 65;
+            
+            score += jazzBonus;
+            
+          } else if (categoryId === 'rnb') {
+            let rnbBonus = 0;
+            
+            if (genres.some(g => g.includes('r&b') || g.includes('rnb'))) rnbBonus += 80;
+            if (genres.some(g => g.includes('soul') || g.includes('neo soul'))) rnbBonus += 75;
+            if (genres.some(g => g.includes('funk') || g.includes('motown'))) rnbBonus += 70;
+            
+            score += rnbBonus;
+            
+          } else if (categoryId === 'latin') {
+            let latinBonus = 0;
+            
+            if (genres.some(g => g.includes('latin'))) latinBonus += 80;
+            if (genres.some(g => g.includes('reggaeton') || g.includes('salsa'))) latinBonus += 75;
+            if (genres.some(g => g.includes('bachata') || g.includes('merengue'))) latinBonus += 70;
+            
+            score += latinBonus;
+            
+          } else if (categoryId === 'country') {
+            let countryBonus = 0;
+            
+            if (genres.some(g => g.includes('country'))) countryBonus += 80;
+            if (genres.some(g => g.includes('folk') || g.includes('americana'))) countryBonus += 70;
+            if (genres.some(g => g.includes('bluegrass') || g.includes('western'))) countryBonus += 65;
+            
+            score += countryBonus;
+            
+          } else if (categoryId === 'classical') {
+            let classicalBonus = 0;
+            
+            if (genres.some(g => g.includes('classical'))) classicalBonus += 80;
+            if (genres.some(g => g.includes('orchestral') || g.includes('symphony'))) classicalBonus += 75;
+            if (genres.some(g => g.includes('opera') || g.includes('baroque'))) classicalBonus += 70;
+            
+            score += classicalBonus;
+          }
+          
+          // Genre mapping relevance with enhanced weighting
+          const mappedCategories = mapGenresToCategories(artist.genres || []);
+          if (mappedCategories.includes(categoryId!)) {
+            score += popularity >= 50 ? 80 : 50;
+          }
+          
+          return Math.round(score);
         };
         
-        return artists
-          .filter(a => a && a.id && a.name) // Basic validation
+        
+        // Apply ultra-strict filtering and scoring
+        const scoredArtists = artists
+          .filter(a => a && a.id && a.name && typeof a.name === 'string') // Basic validation
           .map(artist => ({ artist, score: scoreArtist(artist) }))
-          .filter(({ score }) => score > 20) // Minimum relevance threshold
-          .sort((a, b) => b.score - a.score) // Sort by score descending
-          .slice(0, 25) // Take top candidates
+          .filter(({ score, artist }) => {
+            // Reject zero-score artists (failed category relevance check)
+            if (score <= 0) return false;
+            
+            const popularity = artist.popularity || 0;
+            const followers = artist.followers?.total || 0;
+            const genres = (artist.genres || []).map(g => g.toLowerCase());
+            
+            // Category-specific enhanced quality gates
+            if (categoryId === 'kpop') {
+              // ULTRA-STRICT for K-pop: Must pass multiple Korean authenticity checks
+              const hasKoreanGenre = genres.some(g => g.includes('k-pop') || g.includes('korean') || g.includes('k-rap'));
+              const hasKoreanName = hangulRegex.test(artist.name);
+              const hasDecentFollowing = followers > 200000 || popularity > 45;
+              
+              // Must have Korean connection AND decent following
+              if (!(hasKoreanGenre || hasKoreanName) || !hasDecentFollowing) {
+                return false;
+              }
+              
+              // Extra check: reject obvious non-Korean artists even if they somehow got through
+              const suspiciousNames = ['bruno mars', 'katy perry', 'taylor swift', 'ariana grande', 'justin bieber'];
+              if (suspiciousNames.some(name => artist.name.toLowerCase().includes(name))) {
+                return false;
+              }
+              
+            } else if (categoryId === 'chinese-pop') {
+              const hasChineseGenre = genres.some(g => g.includes('mandopop') || g.includes('cantopop') || g.includes('chinese'));
+              const hasChineseName = cjkRegex.test(artist.name);
+              
+              if (!(hasChineseGenre || hasChineseName) || (followers < 100000 && popularity < 40)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'pop') {
+              // For general pop, require mainstream success
+              if (popularity < 45 && followers < 500000) return false;
+              
+              // Reject artists that clearly belong to other categories
+              const nonPopGenres = ['k-pop', 'mandopop', 'cantopop', 'hip hop', 'rap', 'rock', 'metal', 'country', 'classical'];
+              if (genres.some(g => nonPopGenres.some(npg => g.includes(npg))) && popularity < 60) {
+                return false;
+              }
+              
+            } else if (categoryId === 'hiphop') {
+              const hasHipHopGenre = genres.some(g => g.includes('hip hop') || g.includes('rap') || g.includes('trap'));
+              
+              if (!hasHipHopGenre || (followers < 150000 && popularity < 40)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'edm') {
+              const hasEDMGenre = genres.some(g => g.includes('edm') || g.includes('electronic') || g.includes('house') || g.includes('techno'));
+              
+              if (!hasEDMGenre || (followers < 80000 && popularity < 35)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'rock') {
+              const hasRockGenre = genres.some(g => g.includes('rock') || g.includes('metal') || g.includes('punk'));
+              
+              if (!hasRockGenre || (followers < 120000 && popularity < 38)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'indie') {
+              const hasIndieGenre = genres.some(g => g.includes('indie') || g.includes('alternative'));
+              
+              if (!hasIndieGenre || (followers < 50000 && popularity < 30)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'jazz') {
+              const hasJazzGenre = genres.some(g => g.includes('jazz'));
+              
+              if (!hasJazzGenre || (followers < 30000 && popularity < 28)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'rnb') {
+              const hasRnBGenre = genres.some(g => g.includes('r&b') || g.includes('soul') || g.includes('rnb'));
+              
+              if (!hasRnBGenre || (followers < 100000 && popularity < 38)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'latin') {
+              const hasLatinGenre = genres.some(g => g.includes('latin') || g.includes('reggaeton') || g.includes('salsa'));
+              
+              if (!hasLatinGenre || (followers < 150000 && popularity < 38)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'country') {
+              const hasCountryGenre = genres.some(g => g.includes('country') || g.includes('folk') || g.includes('americana'));
+              
+              if (!hasCountryGenre || (followers < 80000 && popularity < 35)) {
+                return false;
+              }
+              
+            } else if (categoryId === 'classical') {
+              const hasClassicalGenre = genres.some(g => g.includes('classical') || g.includes('orchestral') || g.includes('opera'));
+              
+              if (!hasClassicalGenre || (followers < 20000 && popularity < 25)) {
+                return false;
+              }
+            }
+            
+            // Universal minimum quality threshold
+            const minScore = {
+              'kpop': 80,
+              'chinese-pop': 70, 
+              'pop': 60,
+              'hiphop': 65,
+              'edm': 55,
+              'rock': 58,
+              'indie': 45,
+              'jazz': 40,
+              'rnb': 62,
+              'latin': 65,
+              'country': 50,
+              'classical': 35
+            }[categoryId!] || 45;
+            
+            return score >= minScore;
+          })
+          .sort((a, b) => {
+            // Multi-factor sorting with category-specific priorities
+            if (categoryId === 'kpop') {
+              // For K-pop, prioritize authenticity over pure popularity
+              const aKorean = (a.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(a.artist.name);
+              const bKorean = (b.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(b.artist.name);
+              
+              if (aKorean !== bKorean) {
+                return bKorean ? 1 : -1; // Korean artists first
+              }
+            } else if (categoryId === 'chinese-pop') {
+              // For Chinese pop, prioritize authentic Chinese artists
+              const aChinese = (a.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(a.artist.name);
+              const bChinese = (b.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(b.artist.name);
+              
+              if (aChinese !== bChinese) {
+                return bChinese ? 1 : -1;
+              }
+            } else if (categoryId === 'hiphop') {
+              // For hip-hop, prioritize authentic rap/hip-hop artists
+              const aHipHop = (a.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
+              const bHipHop = (b.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
+              
+              if (aHipHop !== bHipHop) {
+                return bHipHop ? 1 : -1;
+              }
+            } else if (categoryId === 'jazz') {
+              // For jazz, prioritize traditional jazz over fusion
+              const aTraditionalJazz = (a.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
+              const bTraditionalJazz = (b.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
+              
+              if (aTraditionalJazz !== bTraditionalJazz) {
+                return bTraditionalJazz ? 1 : -1;
+              }
+            }
+            
+            // Then sort by score, popularity, followers
+            if (Math.abs(b.score - a.score) > 15) return b.score - a.score;
+            if (Math.abs((b.artist.popularity || 0) - (a.artist.popularity || 0)) > 8) {
+              return (b.artist.popularity || 0) - (a.artist.popularity || 0);
+            }
+            return (b.artist.followers?.total || 0) - (a.artist.followers?.total || 0);
+          })
+          .slice(0, 25) // Limit candidates
           .map(({ artist }) => artist);
+        
+        return scoredArtists;
       };
       
       // Process data
