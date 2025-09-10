@@ -665,54 +665,133 @@ const Category: React.FC = () => {
             }[categoryId!] || 45;
             
             return score >= minScore;
-          })
-          .sort((a, b) => {
-            // Multi-factor sorting with category-specific priorities
-            if (categoryId === 'kpop') {
-              // For K-pop, prioritize authenticity over pure popularity
-              const aKorean = (a.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(a.artist.name);
-              const bKorean = (b.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(b.artist.name);
-              
-              if (aKorean !== bKorean) {
-                return bKorean ? 1 : -1; // Korean artists first
-              }
-            } else if (categoryId === 'chinese-pop') {
-              // For Chinese pop, prioritize authentic Chinese artists
-              const aChinese = (a.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(a.artist.name);
-              const bChinese = (b.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(b.artist.name);
-              
-              if (aChinese !== bChinese) {
-                return bChinese ? 1 : -1;
-              }
-            } else if (categoryId === 'hiphop') {
-              // For hip-hop, prioritize authentic rap/hip-hop artists
-              const aHipHop = (a.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
-              const bHipHop = (b.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
-              
-              if (aHipHop !== bHipHop) {
-                return bHipHop ? 1 : -1;
-              }
-            } else if (categoryId === 'jazz') {
-              // For jazz, prioritize traditional jazz over fusion
-              const aTraditionalJazz = (a.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
-              const bTraditionalJazz = (b.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
-              
-              if (aTraditionalJazz !== bTraditionalJazz) {
-                return bTraditionalJazz ? 1 : -1;
-              }
-            }
-            
-            // Then sort by score, popularity, followers
-            if (Math.abs(b.score - a.score) > 15) return b.score - a.score;
-            if (Math.abs((b.artist.popularity || 0) - (a.artist.popularity || 0)) > 8) {
-              return (b.artist.popularity || 0) - (a.artist.popularity || 0);
-            }
-            return (b.artist.followers?.total || 0) - (a.artist.followers?.total || 0);
-          })
-          .slice(0, 25) // Limit candidates
-          .map(({ artist }) => artist);
+          });
+
+        // 🎯 HYBRID FALLBACK SYSTEM - Ensures every category has content
+        let strictResults = scoredArtists.length;
         
-        return scoredArtists;
+        if (scoredArtists.length < 8) {
+          console.log(`Category ${categoryId} has only ${scoredArtists.length} strict artists, applying hybrid fallback...`);
+          
+          // Fallback Tier 1: Relax quality requirements by 40%
+          const fallback1 = artists
+            .filter(a => a && a.id && a.name && typeof a.name === 'string')
+            .filter(artist => !scoredArtists.some(sa => sa.artist.id === artist.id)) // No duplicates
+            .map(artist => ({ artist, score: scoreArtist(artist) * 0.8 })) // Penalty for fallback
+            .filter(({ score, artist }) => {
+              if (score <= 0) return false;
+              
+              const popularity = artist.popularity || 0;
+              const followers = artist.followers?.total || 0;
+              const genres = (artist.genres || []).map(g => g.toLowerCase());
+              
+              // Relaxed category-specific checks
+              let hasRelevance = false;
+              
+              if (categoryId === 'kpop') {
+                hasRelevance = genres.some(g => g.includes('k-') || g.includes('korean')) || 
+                              hangulRegex.test(artist.name) ||
+                              (genres.some(g => g.includes('pop')) && popularity > 50);
+              } else if (categoryId === 'chinese-pop') {
+                hasRelevance = genres.some(g => g.includes('mandopop') || g.includes('cantopop') || g.includes('chinese')) ||
+                              cjkRegex.test(artist.name) ||
+                              (genres.some(g => g.includes('pop')) && popularity > 45);
+              } else {
+                // Generic relaxed matching
+                const categoryKeywords = {
+                  'pop': ['pop', 'dance pop', 'electropop'],
+                  'hiphop': ['hip', 'rap', 'urban', 'trap'],
+                  'edm': ['electronic', 'dance', 'house', 'edm', 'techno'],
+                  'rock': ['rock', 'alternative', 'metal', 'punk'],
+                  'indie': ['indie', 'alternative', 'art'],
+                  'jazz': ['jazz', 'blues', 'swing', 'soul'],
+                  'rnb': ['r&b', 'soul', 'funk', 'neo'],
+                  'latin': ['latin', 'spanish', 'reggaeton', 'salsa'],
+                  'country': ['country', 'folk', 'americana'],
+                  'classical': ['classical', 'orchestra', 'symphony']
+                };
+                
+                const keywords = categoryKeywords[categoryId as keyof typeof categoryKeywords] || [];
+                hasRelevance = keywords.some(keyword => genres.some(g => g.includes(keyword)));
+              }
+              
+              return hasRelevance && (popularity > 20 || followers > 15000) && score > 15;
+            })
+            .slice(0, 8); // Limit fallback additions
+            
+          scoredArtists.push(...fallback1);
+          console.log(`Added ${fallback1.length} tier-1 fallback artists for ${categoryId}`);
+        }
+        
+        // Fallback Tier 2: High-popularity artists regardless of perfect genre match
+        if (scoredArtists.length < 5) {
+          console.log(`Category ${categoryId} still needs more content, adding high-popularity fallback...`);
+          
+          const fallback2 = artists
+            .filter(a => a && a.id && a.name && typeof a.name === 'string')
+            .filter(artist => !scoredArtists.some(sa => sa.artist.id === artist.id))
+            .filter(artist => {
+              const popularity = artist.popularity || 0;
+              const followers = artist.followers?.total || 0;
+              // Only very popular artists for this fallback
+              return popularity > 65 || followers > 800000;
+            })
+            .map(artist => ({ artist, score: (artist.popularity || 0) + 25 }))
+            .slice(0, 3); // Very limited high-pop fallback
+            
+          scoredArtists.push(...fallback2);
+          console.log(`Added ${fallback2.length} high-popularity fallback artists for ${categoryId}`);
+        }
+
+        // Sort all results (strict + fallback)  
+        const finalResults = scoredArtists.sort((a, b) => {
+          // Multi-factor sorting with category-specific priorities
+          if (categoryId === 'kpop') {
+            // For K-pop, prioritize authenticity over pure popularity
+            const aKorean = (a.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(a.artist.name);
+            const bKorean = (b.artist.genres || []).some(g => g.toLowerCase().includes('k-')) || hangulRegex.test(b.artist.name);
+            
+            if (aKorean !== bKorean) {
+              return bKorean ? 1 : -1; // Korean artists first
+            }
+          } else if (categoryId === 'chinese-pop') {
+            // For Chinese pop, prioritize authentic Chinese artists
+            const aChinese = (a.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(a.artist.name);
+            const bChinese = (b.artist.genres || []).some(g => g.toLowerCase().includes('mandopop') || g.toLowerCase().includes('cantopop')) || cjkRegex.test(b.artist.name);
+            
+            if (aChinese !== bChinese) {
+              return bChinese ? 1 : -1;
+            }
+          } else if (categoryId === 'hiphop') {
+            // For hip-hop, prioritize authentic rap/hip-hop artists
+            const aHipHop = (a.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
+            const bHipHop = (b.artist.genres || []).some(g => g.toLowerCase().includes('hip hop') || g.toLowerCase().includes('rap'));
+            
+            if (aHipHop !== bHipHop) {
+              return bHipHop ? 1 : -1;
+            }
+          } else if (categoryId === 'jazz') {
+            // For jazz, prioritize traditional jazz over fusion
+            const aTraditionalJazz = (a.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
+            const bTraditionalJazz = (b.artist.genres || []).some(g => g.toLowerCase().includes('jazz') && !g.includes('fusion'));
+            
+            if (aTraditionalJazz !== bTraditionalJazz) {
+              return bTraditionalJazz ? 1 : -1;
+            }
+          }
+          
+          // Then sort by score, popularity, followers
+          if (Math.abs(b.score - a.score) > 15) return b.score - a.score;
+          if (Math.abs((b.artist.popularity || 0) - (a.artist.popularity || 0)) > 8) {
+            return (b.artist.popularity || 0) - (a.artist.popularity || 0);
+          }
+          return (b.artist.followers?.total || 0) - (a.artist.followers?.total || 0);
+        })
+        .slice(0, 25) // Limit final candidates
+        .map(({ artist }) => artist);
+        
+        console.log(`Final results for ${categoryId}: ${strictResults} strict + ${finalResults.length - strictResults} fallback = ${finalResults.length} total`);
+        return finalResults;
       };
       
       // Process data
