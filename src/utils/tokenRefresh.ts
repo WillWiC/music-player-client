@@ -7,6 +7,14 @@
  * Simple function to refresh the access token
  * @returns Promise<boolean> - true if successful, false otherwise
  */
+export const refreshAccessToken = async (): Promise<boolean> => {
+  return await refreshSpotifyToken();
+};
+
+/**
+ * Simple function to refresh the access token
+ * @returns Promise<boolean> - true if successful, false otherwise
+ */
 export const refreshSpotifyToken = async (): Promise<boolean> => {
   try {
     const refreshToken = localStorage.getItem('spotify_refresh_token');

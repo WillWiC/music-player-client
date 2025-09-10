@@ -10,6 +10,7 @@ interface AuthContextType {
   logout: () => void;
   clearAll: () => void;
   refreshToken: () => Promise<boolean>;
+  refreshAccessToken: () => Promise<boolean>;
   refreshAccessTokenNow: () => Promise<{
     success: boolean;
     error?: string;
@@ -164,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Token expired, try to refresh if we have a refresh token
             if (storedRefresh) {
               console.log('Stored token expired, attempting refresh...');
-              refreshAccessToken(storedRefresh);
+              refreshAccessTokenInternal(storedRefresh);
             } else {
               console.log('Stored token expired and no refresh token available, clearing token');
               setToken(null);
@@ -379,7 +380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const refreshToken = localStorage.getItem('spotify_refresh_token');
       if (refreshToken && !isGuest) {
         console.log('Attempting scheduled token refresh...');
-        const success = await refreshAccessToken(refreshToken);
+        const success = await refreshAccessTokenInternal(refreshToken);
         
         if (!success) {
           console.log('Scheduled token refresh failed, will retry in 5 minutes');
@@ -393,7 +394,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Use server-side refresh endpoint to exchange refresh_token for new access_token
-  const refreshAccessToken = async (refreshToken: string, retryCount = 0): Promise<boolean> => {
+  const refreshAccessTokenInternal = async (refreshToken: string, retryCount = 0): Promise<boolean> => {
     // If there's already a refresh in progress, wait for it to complete
     if (refreshPromiseRef.current) {
       console.log('Refresh already in progress, waiting for completion...');
@@ -569,10 +570,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     console.log('Manual token refresh requested');
-    return await refreshAccessToken(refreshToken);
+    return await refreshAccessTokenInternal(refreshToken);
   };
 
   // Simple refresh function with better error handling and return info
+  const refreshAccessToken = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('spotify_refresh_token');
+    if (!refreshToken || isGuest) {
+      console.log('No refresh token available or user is in guest mode');
+      return false;
+    }
+    
+    console.log('Refreshing access token...');
+    return await refreshAccessTokenInternal(refreshToken);
+  };
+
+  // Enhanced refresh function with detailed response
   const refreshAccessTokenNow = async (): Promise<{
     success: boolean;
     error?: string;
@@ -596,7 +609,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('Refreshing access token...');
-      const success = await refreshAccessToken(refreshToken);
+      const success = await refreshAccessTokenInternal(refreshToken);
       
       if (success) {
         const newToken = localStorage.getItem('spotify_token');
@@ -628,6 +641,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     clearAll,
     refreshToken: manualRefreshToken,
+    refreshAccessToken,
     refreshAccessTokenNow,
     isLoading
   };

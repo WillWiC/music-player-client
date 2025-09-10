@@ -10,13 +10,21 @@ This document explains how to use the token refresh functionality in the music p
 import { useAuth } from '../context/auth';
 
 const MyComponent = () => {
-  const { refreshToken, refreshAccessTokenNow } = useAuth();
+  const { refreshToken, refreshAccessToken, refreshAccessTokenNow } = useAuth();
   
-  // Simple refresh (returns boolean)
+  // Simple refresh (returns boolean) - legacy name
   const handleRefresh = async () => {
     const success = await refreshToken();
     if (success) {
       console.log('Token refreshed!');
+    }
+  };
+
+  // Simple refresh (returns boolean) - clear name
+  const handleAccessTokenRefresh = async () => {
+    const success = await refreshAccessToken();
+    if (success) {
+      console.log('Access token refreshed!');
     }
   };
   
@@ -36,14 +44,18 @@ const MyComponent = () => {
 
 ```tsx
 import { 
+  refreshAccessToken,
   refreshSpotifyToken, 
   refreshSpotifyTokenDetailed,
   getValidAccessToken,
   makeSpotifyRequest 
 } from '../utils/tokenRefresh';
 
-// Simple refresh
-const success = await refreshSpotifyToken();
+// Simple refresh - clear name
+const success = await refreshAccessToken();
+
+// Simple refresh - legacy name  
+const success2 = await refreshSpotifyToken();
 
 // Detailed refresh
 const result = await refreshSpotifyTokenDetailed();
@@ -79,14 +91,16 @@ const MyComponent = () => {
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| `refreshToken()` | `Promise<boolean>` | Simple refresh, returns success status |
+| `refreshToken()` | `Promise<boolean>` | Simple refresh (legacy name) |
+| `refreshAccessToken()` | `Promise<boolean>` | Simple refresh (clear name) |
 | `refreshAccessTokenNow()` | `Promise<{success, error?, newToken?}>` | Detailed refresh with error info |
 
 ### Utility Functions
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| `refreshSpotifyToken()` | `Promise<boolean>` | Standalone refresh function |
+| `refreshAccessToken()` | `Promise<boolean>` | Simple refresh (clear name) |
+| `refreshSpotifyToken()` | `Promise<boolean>` | Simple refresh (legacy name) |
 | `refreshSpotifyTokenDetailed()` | `Promise<{success, error?, newToken?, expiresIn?}>` | Detailed standalone refresh |
 | `isAccessTokenExpired()` | `boolean` | Check if current token is expired |
 | `getValidAccessToken()` | `Promise<string \| null>` | Get valid token, refresh if needed |
