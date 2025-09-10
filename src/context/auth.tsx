@@ -391,7 +391,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const server = import.meta.env.VITE_AUTH_SERVER_URL || 'http://localhost:3001';
+      
+      // Always use the most recent refresh token from localStorage
+      const currentRefreshToken = localStorage.getItem('spotify_refresh_token') || refreshToken;
       console.log(`Attempting to refresh token (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+      console.log('Using refresh token:', currentRefreshToken ? `${currentRefreshToken.substring(0, 10)}...` : 'None');
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -402,7 +406,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({ refresh_token: currentRefreshToken }),
         signal: controller.signal
       });
       
@@ -443,9 +447,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('spotify_token', data.access_token);
       
       // Handle new refresh token if provided
-      if (data.refresh_token) {
+      if (data.refresh_token && data.refresh_token !== refreshToken) {
         console.log('Received new refresh token, updating storage');
         localStorage.setItem('spotify_refresh_token', data.refresh_token);
+      } else {
+        console.log('No new refresh token provided, keeping existing one');
+        // Keep the existing refresh token - don't update it
+        // This is important because Spotify doesn't always return a new refresh token
       }
       
       // Update expiry and schedule next refresh

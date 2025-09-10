@@ -87,6 +87,12 @@ app.post('/refresh', async (req, res) => {
     });
   }
 
+  console.log('Refresh token request received:', {
+    refresh_token_preview: `${refresh_token.substring(0, 10)}...`,
+    client_id: CLIENT_ID ? 'Set' : 'Missing',
+    client_secret: CLIENT_SECRET ? 'Set' : 'Missing'
+  });
+
   // Validate that we have necessary environment variables
   if (!CLIENT_ID || !CLIENT_SECRET) {
     console.error('Missing CLIENT_ID or CLIENT_SECRET environment variables');
@@ -104,7 +110,7 @@ app.post('/refresh', async (req, res) => {
   const authHeader = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
 
   try {
-    console.log('Attempting to refresh token...');
+    console.log('Attempting to refresh token with Spotify...');
     const tokenRes = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -113,6 +119,8 @@ app.post('/refresh', async (req, res) => {
       },
       body,
     });
+
+    console.log('Spotify response status:', tokenRes.status);
 
     if (!tokenRes.ok) {
       const errorText = await tokenRes.text();
@@ -131,6 +139,12 @@ app.post('/refresh', async (req, res) => {
     }
 
     const data = await tokenRes.json();
+    console.log('Spotify refresh response:', {
+      has_access_token: !!data.access_token,
+      has_refresh_token: !!data.refresh_token,
+      expires_in: data.expires_in,
+      new_refresh_token_preview: data.refresh_token ? `${data.refresh_token.substring(0, 10)}...` : 'None'
+    });
     
     // Validate response data
     if (!data.access_token) {
@@ -153,6 +167,9 @@ app.post('/refresh', async (req, res) => {
     // If Spotify provides a new refresh token, include it
     if (data.refresh_token) {
       response.refresh_token = data.refresh_token;
+      console.log('Returning new refresh token to client');
+    } else {
+      console.log('Spotify did not provide new refresh token - client should keep existing one');
     }
 
     res.json(response);
