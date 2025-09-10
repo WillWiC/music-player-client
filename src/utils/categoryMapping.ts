@@ -191,71 +191,80 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
   }
 ];
 
-// Enhanced mapping function with better matching logic
+// Enhanced mapping function with better matching logic and performance optimization
 export function mapGenreToCategory(spotifyGenre: string): string | null {
   const genre = spotifyGenre.toLowerCase().trim();
   
-  // Special character detection for Asian content
+  // Early return for empty strings
+  if (!genre) return null;
+  
+  // Special character detection for Asian content (cached regex)
   const containsNonLatin = /[^\x00-\x7F]/.test(genre);
   const containsAsianChars = /[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(genre);
   
-  // Enhanced Asian keywords with more comprehensive coverage
-  const ASIAN_KEYWORDS = [
-    'k-', 'korean', 'kpop', 'korea', 'hangul',
-    'mandopop', 'cantopop', 'chinese', 'china', 'mandarin', 'cantonese', 'cpop',
-    'j-', 'jpop', 'j-pop', 'japanese', 'japan', 'enka', 'city pop',
-    'taiwan', 'taiwanese', 'hong kong', 'hongkong', 'singapore', 'singaporean',
-    'thai', 'thailand', 'vietnamese', 'vietnam', 'filipino', 'philippines', 'pinoy',
-    'malaysian', 'malaysia', 'indonesian', 'indonesia', 'trot'
-  ];
-
-  // Sort categories by priority (higher priority first)
-  const sortedCategories = [...CUSTOM_CATEGORIES].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  // Pre-compiled keyword sets for faster lookup
+  const KPOP_KEYWORDS = new Set(['k-', 'korean', 'kpop', 'korea', 'hangul', 'trot']);
+  const CHINESE_KEYWORDS = new Set(['mandopop', 'cantopop', 'chinese', 'china', 'mandarin', 'cantonese', 'cpop', 'taiwan', 'taiwanese', 'hong kong', 'hongkong']);
+  
+  // Check for exact matches first (most common case)
+  const exactMatchMap = new Map<string, string>();
+  CUSTOM_CATEGORIES.forEach(category => {
+    category.spotifyGenres.forEach(sg => {
+      exactMatchMap.set(sg.toLowerCase(), category.id);
+    });
+  });
+  
+  if (exactMatchMap.has(genre)) {
+    return exactMatchMap.get(genre)!;
+  }
+  
+  // Sort categories by priority (higher priority first) - cached
+  const sortedCategories = CUSTOM_CATEGORIES.slice().sort((a, b) => (b.priority || 0) - (a.priority || 0));
   
   for (const category of sortedCategories) {
     let matchStrength = 0;
     
-    // Check exact genre matches (highest weight)
+    // Quick keyword-based pre-filtering for Asian categories
+    if (category.id === 'kpop') {
+      const hasKPopKeywords = Array.from(KPOP_KEYWORDS).some(k => genre.includes(k));
+      if (!hasKPopKeywords && !containsAsianChars) continue; // Skip if no Korean indicators
+    } else if (category.id === 'chinese-pop') {
+      const hasChineseKeywords = Array.from(CHINESE_KEYWORDS).some(k => genre.includes(k));
+      if (!hasChineseKeywords && !containsAsianChars) continue; // Skip if no Chinese indicators
+    }
+    
+    // Check partial genre matches with optimized string operations
     for (const sg of category.spotifyGenres) {
       const searchGenre = sg.toLowerCase();
       
-      if (genre === searchGenre) {
-        matchStrength = 100;
-        break;
-      }
-      
-      // Partial matches with different weights
+      // Use includes for performance - more cache-friendly than regex
       if (searchGenre.length > 3 && genre.includes(searchGenre)) {
         matchStrength = Math.max(matchStrength, 80);
+        break; // First match is usually best
       } else if (genre.length > 3 && searchGenre.includes(genre)) {
         matchStrength = Math.max(matchStrength, 70);
       }
     }
     
     // Check keyword matches for additional context
-    if (category.keywords && matchStrength < 100) {
+    if (category.keywords && matchStrength < 80) {
       for (const keyword of category.keywords) {
         if (genre.includes(keyword.toLowerCase())) {
           matchStrength = Math.max(matchStrength, 60);
+          break; // First keyword match is sufficient
         }
       }
     }
     
-    // Special handling for regional categories
-    if (category.id === 'kpop') {
-      // K-Pop gets priority for Korean content
-      if (containsAsianChars || ASIAN_KEYWORDS.some(k => k.startsWith('k') && genre.includes(k))) {
-        matchStrength = Math.max(matchStrength, 90);
-      }
-    } else if (category.id === 'chinese-pop') {
-      // Chinese Pop for Chinese content
-      if (containsAsianChars || ASIAN_KEYWORDS.some(k => !k.startsWith('k') && genre.includes(k))) {
-        matchStrength = Math.max(matchStrength, 85);
-      }
-    } else {
+    // Special handling for regional categories with character detection
+    if (category.id === 'kpop' && containsAsianChars) {
+      matchStrength = Math.max(matchStrength, 85);
+    } else if (category.id === 'chinese-pop' && containsAsianChars) {
+      matchStrength = Math.max(matchStrength, 80);
+    } else if (!['kpop', 'chinese-pop'].includes(category.id)) {
       // For non-Asian categories, penalize if contains Asian characteristics
-      if (containsNonLatin || ASIAN_KEYWORDS.some(k => genre.includes(k))) {
-        matchStrength *= 0.3; // Reduce match strength significantly
+      if (containsNonLatin || Array.from(KPOP_KEYWORDS).some(k => genre.includes(k)) || Array.from(CHINESE_KEYWORDS).some(k => genre.includes(k))) {
+        matchStrength *= 0.4; // Reduce match strength
       }
     }
     
@@ -268,33 +277,62 @@ export function mapGenreToCategory(spotifyGenre: string): string | null {
   return null;
 }
 
-// Enhanced mapping for multiple genres with weighted scoring
+// Enhanced mapping for multiple genres with weighted scoring and memoization
+const genreMappingCache = new Map<string, string[]>();
+
 export function mapGenresToCategories(spotifyGenres: string[]): string[] {
+  // Create cache key for memoization
+  const cacheKey = spotifyGenres.slice().sort().join('|');
+  if (genreMappingCache.has(cacheKey)) {
+    return genreMappingCache.get(cacheKey)!;
+  }
+  
+  // Early return for empty input
+  if (!spotifyGenres.length) return [];
+  
   const categoryScores: { [categoryId: string]: number } = {};
   const categoryMatches: { [categoryId: string]: number } = {};
   
-  for (const genre of spotifyGenres) {
+  // Pre-process genres to avoid duplicate work
+  const processedGenres = spotifyGenres
+    .filter(genre => genre && typeof genre === 'string')
+    .map(genre => genre.toLowerCase().trim())
+    .filter((genre, index, array) => array.indexOf(genre) === index); // Remove duplicates
+  
+  for (const genre of processedGenres) {
     const categoryId = mapGenreToCategory(genre);
     if (categoryId) {
       categoryMatches[categoryId] = (categoryMatches[categoryId] || 0) + 1;
       
-      // Calculate weighted score based on genre specificity
+      // Calculate weighted score based on genre specificity and category priority
       const category = getCategoryById(categoryId);
       if (category) {
         const genreSpecificity = genre.split(' ').length; // More specific genres get higher weight
-        const priorityBonus = (category.priority || 1) * 0.1;
-        categoryScores[categoryId] = (categoryScores[categoryId] || 0) + genreSpecificity + priorityBonus;
+        const priorityBonus = (category.priority || 1) * 0.15; // Increased priority influence
+        const lengthBonus = Math.min(genre.length / 10, 2); // Longer genre names often more specific
+        categoryScores[categoryId] = (categoryScores[categoryId] || 0) + genreSpecificity + priorityBonus + lengthBonus;
       }
     }
   }
   
   // Return categories sorted by weighted score, then by match frequency
-  return Object.entries(categoryScores)
+  const result = Object.entries(categoryScores)
     .sort(([catA, scoreA], [catB, scoreB]) => {
-      if (scoreB !== scoreA) return scoreB - scoreA;
-      return (categoryMatches[catB] || 0) - (categoryMatches[catA] || 0);
+      if (Math.abs(scoreB - scoreA) > 0.5) return scoreB - scoreA; // Significant score difference
+      return (categoryMatches[catB] || 0) - (categoryMatches[catA] || 0); // Fall back to frequency
     })
-    .map(([categoryId]) => categoryId);
+    .map(([categoryId]) => categoryId)
+    .slice(0, 8); // Limit to top 8 categories for performance
+  
+  // Cache the result for future lookups
+  if (genreMappingCache.size > 100) {
+    // Clear oldest entries to prevent memory leaks
+    const firstKey = genreMappingCache.keys().next().value;
+    if (firstKey) genreMappingCache.delete(firstKey);
+  }
+  genreMappingCache.set(cacheKey, result);
+  
+  return result;
 }
 
 // Get category by ID
@@ -383,28 +421,58 @@ export function suggestCategories(recentGenres: string[], maxSuggestions = 5): C
     .filter(Boolean) as CustomCategory[];
 }
 
-// Get optimal search terms for a category (helps improve Spotify API results)
+// Get optimal search terms for a category (optimized for Spotify API performance)
+const searchTermsCache = new Map<string, string[]>();
+
 export function getCategorySearchTerms(categoryId: string): string[] {
+  // Return cached result if available
+  if (searchTermsCache.has(categoryId)) {
+    return searchTermsCache.get(categoryId)!;
+  }
+  
   const category = getCategoryById(categoryId);
   if (!category) return [];
   
   const searchTerms = new Set<string>();
   
-  // Add primary genres (most important)
-  category.spotifyGenres.slice(0, 5).forEach(genre => searchTerms.add(genre));
-  
-  // Add high-value keywords
-  if (category.keywords) {
-    category.keywords.slice(0, 3).forEach(keyword => searchTerms.add(keyword));
+  // Strategy: prioritize most effective search terms based on category type
+  if (categoryId === 'kpop') {
+    // For K-Pop, use broader terms that work better with Spotify's search
+    searchTerms.add('k-pop');
+    searchTerms.add('korean');
+    searchTerms.add('kpop');
+    searchTerms.add('korea');
+  } else if (categoryId === 'chinese-pop') {
+    // For Chinese Pop, focus on terms that yield better results
+    searchTerms.add('mandopop');
+    searchTerms.add('cantopop');
+    searchTerms.add('chinese pop');
+    searchTerms.add('cpop');
+  } else {
+    // For other categories, use the most specific genres first
+    const sortedGenres = category.spotifyGenres
+      .slice(0, 6) // Limit to top 6 most relevant
+      .sort((a, b) => b.length - a.length); // Longer terms usually more specific
+    
+    sortedGenres.forEach(genre => searchTerms.add(genre));
+    
+    // Add high-value keywords for broader reach
+    if (category.keywords) {
+      category.keywords
+        .slice(0, 2) // Only top 2 keywords
+        .forEach(keyword => searchTerms.add(keyword));
+    }
   }
   
-  // Add category name variations
+  // Add category name as fallback
   searchTerms.add(category.name.toLowerCase());
-  if (category.name.includes(' ')) {
-    searchTerms.add(category.name.replace(' ', ''));
-  }
   
-  return Array.from(searchTerms);
+  const result = Array.from(searchTerms).slice(0, 5); // Limit to 5 terms for optimal performance
+  
+  // Cache the result
+  searchTermsCache.set(categoryId, result);
+  
+  return result;
 }
 
 // Analyze genre diversity in a collection

@@ -114,6 +114,48 @@ const Category: React.FC = () => {
     return Math.max(0, (pages - 1) * visibleCount);
   }, [artists.length, visibleCount]);
 
+  // Cache for API responses to avoid duplicate requests
+  const apiCache = React.useRef<Map<string, any>>(new Map());
+  
+  // Clear cache when category changes to ensure fresh data
+  React.useEffect(() => {
+    apiCache.current.clear();
+  }, [categoryId]);
+  
+  // Optimized fetch with caching and error handling
+  const cachedFetch = React.useCallback(async (url: string): Promise<Response | null> => {
+    if (apiCache.current.has(url)) {
+      const cachedData = apiCache.current.get(url);
+      return {
+        ok: true,
+        json: async () => cachedData
+      } as Response;
+    }
+    
+    try {
+      const response = await fetch(url, { 
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(8000) // 8s timeout per request
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Limit cache size to prevent memory issues
+        if (apiCache.current.size > 50) {
+          const firstKey = apiCache.current.keys().next().value;
+          if (firstKey) apiCache.current.delete(firstKey);
+        }
+        apiCache.current.set(url, data);
+        return { ok: true, json: async () => data } as Response;
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('API request failed:', url, err);
+      }
+    }
+    return null;
+  }, [token]);
+
   // Fetch artists and playlists for the category
   const fetchCategoryContent = React.useCallback(async () => {
     if (!token || !category || loadingPlaylists) return;
@@ -125,177 +167,213 @@ const Category: React.FC = () => {
       // Use optimized search terms for better API results
       const searchTerms = getCategorySearchTerms(categoryId!);
       const genreSearches = searchTerms.slice(0, 4); // Use optimized terms instead of raw spotifyGenres
-      let allArtists: Artist[] = [];
-      let allPlaylists: Playlist[] = [];
-      let allTracks: Track[] = [];
       
-      for (const genre of genreSearches) {
+      // Pre-allocate Sets for efficient deduplication
+      const artistIds = new Set<string>();
+      const playlistIds = new Set<string>();
+      const trackIds = new Set<string>();
+      
+      const allArtists: Artist[] = [];
+      const allPlaylists: Playlist[] = [];
+      const allTracks: Track[] = [];
+      
+      // Determine search strategy based on category
+      const useGenreQualifier = !(categoryId === 'kpop' || categoryId === 'chinese-pop');
+      
+      // Parallel API requests for better performance
+      const searchPromises = genreSearches.map(async (genre) => {
+        const results = { artists: [] as Artist[], playlists: [] as Playlist[], tracks: [] as Track[] };
+        
         try {
-          // For K-Pop and Chinese Pop, Spotify's genre fields are inconsistent.
-          // Use a keyword search (broad) instead of strict genre:"..." to improve results.
-          const useGenreQualifier = !(categoryId === 'kpop' || categoryId === 'chinese-pop');
-
-          // Search for artists (use genre:"..." when reliable, otherwise keyword)
+          // Create all request URLs
           const artistQuery = useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : `${encodeURIComponent(genre)}`;
-          const artistResponse = await fetch(
-            `https://api.spotify.com/v1/search?q=${artistQuery}&type=artist&limit=10`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-
-          if (artistResponse.ok) {
-            const artistData = await artistResponse.json();
+          const artistUrl = `https://api.spotify.com/v1/search?q=${artistQuery}&type=artist&limit=12`;
+          const playlistUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&limit=12`;
+          const trackQuery = useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : encodeURIComponent(genre);
+          const trackUrl = `https://api.spotify.com/v1/search?q=${trackQuery}&type=track&limit=18`;
+          
+          // Execute all requests in parallel
+          const [artistResponse, playlistResponse, trackResponse] = await Promise.allSettled([
+            cachedFetch(artistUrl),
+            cachedFetch(playlistUrl),
+            cachedFetch(trackUrl)
+          ]);
+          
+          // Process artist results
+          if (artistResponse.status === 'fulfilled' && artistResponse.value) {
+            const artistData = await artistResponse.value.json();
             const artists = artistData.artists?.items || [];
-            allArtists = [...allArtists, ...artists];
+            results.artists = artists.filter((a: Artist) => a && a.id && !artistIds.has(a.id));
+            results.artists.forEach((a: Artist) => artistIds.add(a.id));
           }
-
-          // Playlists: keep broad keyword search (playlists are reliable)
-          const playlistResponse = await fetch(
-            `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&limit=10`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-
-          if (playlistResponse.ok) {
-            const playlistData = await playlistResponse.json();
+          
+          // Process playlist results
+          if (playlistResponse.status === 'fulfilled' && playlistResponse.value) {
+            const playlistData = await playlistResponse.value.json();
             const playlists = playlistData.playlists?.items || [];
-            allPlaylists = [...allPlaylists, ...playlists];
+            results.playlists = playlists.filter((p: Playlist) => p && p.id && !playlistIds.has(p.id));
+            results.playlists.forEach((p: Playlist) => playlistIds.add(p.id));
           }
-
-          // Tracks: try genre:"..." when allowed, otherwise keyword. If no result, we'll fallback later.
-          let trackResponse = await fetch(
-            `https://api.spotify.com/v1/search?q=${useGenreQualifier ? `genre:"${encodeURIComponent(genre)}"` : encodeURIComponent(genre)}&type=track&limit=15`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-
-          // If the genre-qualified search failed or returned nothing and we used the qualifier, try keyword fallback
-          if ((!trackResponse.ok || (await trackResponse.clone().json()).tracks?.items?.length === 0) && useGenreQualifier) {
-            try {
-              trackResponse = await fetch(
-                `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=track&limit=15`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-            } catch (e) {
-              // ignore; we'll handle below
+          
+          // Process track results with fallback for genre qualifier
+          if (trackResponse.status === 'fulfilled' && trackResponse.value) {
+            const trackData = await trackResponse.value.json();
+            let tracks = trackData.tracks?.items || [];
+            
+            // Fallback search if genre qualifier didn't work and returned few results
+            if (useGenreQualifier && tracks.length < 5) {
+              const fallbackUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=track&limit=18`;
+              const fallbackResponse = await cachedFetch(fallbackUrl);
+              if (fallbackResponse) {
+                const fallbackData = await fallbackResponse.json();
+                tracks = fallbackData.tracks?.items || tracks;
+              }
             }
-          }
-
-          if (trackResponse.ok) {
-            const trackData = await trackResponse.json();
-            const tracks = trackData.tracks?.items || [];
-            allTracks = [...allTracks, ...tracks];
+            
+            results.tracks = tracks.filter((t: Track) => t && t.id && !trackIds.has(t.id));
+            results.tracks.forEach((t: Track) => trackIds.add(t.id));
           }
           
         } catch (err) {
           console.error(`Failed to search for genre: ${genre}`, err);
         }
-      }
+        
+        return results;
+      });
       
-      // Deduplicate all artists returned by searches
-      const uniqueArtistsRaw = allArtists.filter((artist, index, self) =>
-        artist && artist.id && index === self.findIndex(a => a && a.id === artist.id)
-      );
-
-      // Filter by mapped genres when available
-      const relevantArtists = uniqueArtistsRaw.filter(artist => {
-        if (!artist || !artist.genres) return false;
-        const artistGenres = artist.genres || [];
-        return mapGenresToCategories(artistGenres).includes(categoryId!);
-      });
-
-      // If no artists matched by genre mapping for kpop/chinese-pop, fall back to the deduped search results
-      const candidateArtists = (categoryId === 'kpop' || categoryId === 'chinese-pop') && relevantArtists.length === 0
-        ? uniqueArtistsRaw
-        : relevantArtists;
-
-      // Prefer more modern/popular artists: sort by popularity desc, prefer those with images
-      const sortedArtists = candidateArtists
-        .filter(a => a && a.id)
-        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-        .sort((a, b) => ((b.images?.length || 0) - (a.images?.length || 0)));
-
-      // Helper to detect Hangul (Korean) and CJK characters
-      const containsHangul = (s?: string) => !!s && /[\uAC00-\uD7AF]/.test(s);
-      const containsCJK = (s?: string) => !!s && /[\u4E00-\u9FFF\u3040-\u30FF]/.test(s);
-
-      // For kpop/chinese-pop, try to prioritize artists whose name or genres indicate the region
-      if (categoryId === 'kpop') {
-        const prioritized = sortedArtists.filter(a => {
-          const g = (a.genres || []).map(x => x.toLowerCase());
-          return g.includes('k-pop') || g.some(x => x.includes('korean')) || containsHangul(a.name);
-        });
-        // If we found prioritized artists, use them; otherwise fall back to popularity-sorted list
-        const kpopFinal = (prioritized.length ? prioritized.slice(0, 20) : sortedArtists.slice(0, 20));
-        setArtists(kpopFinal);
-      } else if (categoryId === 'chinese-pop') {
-        const prioritized = sortedArtists.filter(a => {
-          const g = (a.genres || []).map(x => x.toLowerCase());
-          return containsCJK(a.name) || g.some(x => x.includes('mandopop') || x.includes('cantopop') || x.includes('chinese'));
-        });
-        const chineseFinal = (prioritized.length ? prioritized.slice(0, 20) : sortedArtists.slice(0, 20));
-        setArtists(chineseFinal);
-      } else {
-        // For pop and others, be stricter: prefer artists with higher popularity (>=50) and images for pop
-        let finalArtists: Artist[] = [];
-        if (categoryId === 'pop') {
-          const popular = sortedArtists.filter(a => (a.popularity || 0) >= 50 && (a.images?.length || 0) > 0);
-          finalArtists = popular.length ? popular.slice(0, 20) : sortedArtists.slice(0, 20);
-        } else {
-          finalArtists = sortedArtists.slice(0, 20);
+      // Wait for all searches to complete
+      const searchResults = await Promise.allSettled(searchPromises);
+      
+      // Combine results efficiently
+      searchResults.forEach(result => {
+        if (result.status === 'fulfilled') {
+          allArtists.push(...result.value.artists);
+          allPlaylists.push(...result.value.playlists);
+          allTracks.push(...result.value.tracks);
         }
-        setArtists(finalArtists);
-      }
-
-      const uniquePlaylists = allPlaylists.filter((playlist, index, self) =>
-        playlist && playlist.id && index === self.findIndex(p => p && p.id === playlist.id)
-      ).slice(0, 20); // Limit results
-
-      // Remove duplicate tracks and limit results
-      let uniqueTracksRaw = allTracks.filter((track, index, self) =>
-        track && track.id && index === self.findIndex(t => t && t.id === track.id)
-      );
-
-      // If no tracks found via search (common for kpop/chinese-pop), try fetching first tracks from related playlists
-      if (uniqueTracksRaw.length === 0 && uniquePlaylists.length > 0) {
-        const fallbackTracks: Track[] = [];
-        for (const pl of uniquePlaylists.slice(0, 6)) {
-          try {
-            const resp = await fetch(`https://api.spotify.com/v1/playlists/${pl.id}/tracks?limit=6`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (resp.ok) {
-              const data = await resp.json();
-              const items = data.items || [];
-              for (const it of items) {
-                if (it && it.track) fallbackTracks.push(it.track);
-              }
-            }
-          } catch (e) {
-            // ignore individual playlist failures
+      });
+      
+      // Optimized artist processing with early filtering and smart categorization
+      const processArtists = (artists: Artist[]) => {
+        if (artists.length === 0) return [];
+        
+        // Pre-compile regex patterns for better performance
+        const hangulRegex = /[\uAC00-\uD7AF]/;
+        const cjkRegex = /[\u4E00-\u9FFF\u3040-\u30FF]/;
+        
+        // Create scoring function for relevance
+        const scoreArtist = (artist: Artist) => {
+          let score = 0;
+          const genres = (artist.genres || []).map(g => g.toLowerCase());
+          
+          // Base popularity score (0-100)
+          score += (artist.popularity || 0);
+          
+          // Image quality bonus
+          if ((artist.images?.length || 0) > 0) score += 20;
+          
+          // Category-specific scoring
+          if (categoryId === 'kpop') {
+            if (genres.includes('k-pop') || genres.some(g => g.includes('korean'))) score += 50;
+            if (hangulRegex.test(artist.name)) score += 30;
+          } else if (categoryId === 'chinese-pop') {
+            if (genres.some(g => g.includes('mandopop') || g.includes('cantopop') || g.includes('chinese'))) score += 50;
+            if (cjkRegex.test(artist.name)) score += 30;
+          } else if (categoryId === 'pop') {
+            if (artist.popularity && artist.popularity >= 60) score += 25;
+            if (genres.includes('pop') || genres.includes('dance pop')) score += 15;
           }
-        }
+          
+          // Genre mapping relevance
+          const mappedCategories = mapGenresToCategories(artist.genres || []);
+          if (mappedCategories.includes(categoryId!)) score += 40;
+          
+          return score;
+        };
+        
+        // Filter and score artists in one pass
+        const scoredArtists = artists
+          .filter(a => a && a.id && a.name) // Basic validation
+          .map(artist => ({ artist, score: scoreArtist(artist) }))
+          .filter(({ score }) => score > 20) // Minimum relevance threshold
+          .sort((a, b) => b.score - a.score) // Sort by score descending
+          .slice(0, 25) // Take top candidates
+          .map(({ artist }) => artist);
+        
+        return scoredArtists;
+      };
+      
+      // Process artists with optimized algorithm
+      const processedArtists = processArtists(allArtists);
+      setArtists(processedArtists);
 
-        uniqueTracksRaw = fallbackTracks.filter((track, index, self) =>
-          track && track.id && index === self.findIndex(t => t && t.id === track.id)
-        );
+      // Optimized playlist processing
+      const processedPlaylists = allPlaylists
+        .filter(p => p && p.id && p.name && (p.tracks?.total || 0) > 5) // Quality filter
+        .sort((a, b) => (b.tracks?.total || 0) - (a.tracks?.total || 0)) // Sort by track count
+        .slice(0, 24); // Limit results
+      setPlaylists(processedPlaylists);
+
+      // Smart track processing with fallback strategy
+      let processedTracks = allTracks;
+      
+      // If no tracks found via search, try fetching from top playlists
+      if (processedTracks.length === 0 && processedPlaylists.length > 0) {
+        const fallbackTracks: Track[] = [];
+        const playlistPromises = processedPlaylists
+          .slice(0, 4) // Use top 4 playlists
+          .map(async (playlist) => {
+            try {
+              const response = await cachedFetch(
+                `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=8&fields=items(track(id,name,artists,album,duration_ms,external_urls,uri,preview_url,popularity))`
+              );
+              if (response) {
+                const data = await response.json();
+                return (data.items || [])
+                  .map((item: any) => item.track)
+                  .filter((track: Track) => track && track.id && !trackIds.has(track.id));
+              }
+            } catch (err) {
+              console.error('Failed to fetch playlist tracks:', err);
+            }
+            return [];
+          });
+
+        const playlistResults = await Promise.allSettled(playlistPromises);
+        playlistResults.forEach(result => {
+          if (result.status === 'fulfilled') {
+            result.value.forEach((track: Track) => {
+              if (!trackIds.has(track.id)) {
+                fallbackTracks.push(track);
+                trackIds.add(track.id);
+              }
+            });
+          }
+        });
+        
+        processedTracks = fallbackTracks;
       }
 
-      // Sort tracks: for pop/kpop prefer recent release_date then popularity; otherwise prefer popularity
-      const tracksWithMeta = uniqueTracksRaw.map(t => t as Track);
-      tracksWithMeta.sort((a, b) => {
-        const aDate = a.album?.release_date ? new Date(a.album.release_date).getTime() : 0;
-        const bDate = b.album?.release_date ? new Date(b.album.release_date).getTime() : 0;
+      // Sort and limit tracks
+      const finalTracks = processedTracks
+        .sort((a, b) => {
+          const aDate = a.album?.release_date ? new Date(a.album.release_date).getTime() : 0;
+          const bDate = b.album?.release_date ? new Date(b.album.release_date).getTime() : 0;
+          const aPop = (a as any).popularity || 0;
+          const bPop = (b as any).popularity || 0;
 
-        if (categoryId === 'pop' || categoryId === 'kpop') {
-          if (bDate !== aDate) return bDate - aDate; // recent first
-          return ((b as any).popularity || 0) - ((a as any).popularity || 0);
-        }
-
-        return ((b as any).popularity || 0) - ((a as any).popularity || 0) || bDate - aDate;
-      });
-
-  const uniqueTracks = tracksWithMeta.slice(0, 30);
-
-  setPlaylists(uniquePlaylists);
-      setTracks(uniqueTracks);
+          // For K-Pop and Pop, prioritize recent releases
+          if (categoryId === 'pop' || categoryId === 'kpop') {
+            if (Math.abs(bDate - aDate) > 31536000000) return bDate - aDate; // > 1 year difference
+            return bPop - aPop; // Otherwise sort by popularity
+          }
+          
+          // For other genres, prioritize popularity
+          return bPop - aPop || bDate - aDate;
+        })
+        .slice(0, 30);
+      
+      setTracks(finalTracks);
       
     } catch (err) {
       console.error('Failed to fetch category content:', err);
