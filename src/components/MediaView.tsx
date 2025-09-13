@@ -43,13 +43,67 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     return textArea.value;
   };
 
+  // Function to fetch all tracks from an album with pagination
+  const fetchAllAlbumTracks = async (albumId: string) => {
+    if (!token) return;
+
+    let allTracks: any[] = [];
+    let nextUrl = `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50`;
+
+    while (nextUrl) {
+      try {
+        const response = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        allTracks = [...allTracks, ...(data.items || [])];
+        nextUrl = data.next; // Spotify provides the next URL for pagination
+      } catch (error) {
+        console.error('Failed to fetch album tracks:', error);
+        throw error;
+      }
+    }
+
+    setTracks(allTracks);
+  };
+
+  // Function to fetch all tracks from a playlist with pagination
+  const fetchAllPlaylistTracks = async (playlistId: string) => {
+    if (!token) return;
+
+    let allTracks: any[] = [];
+    let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+
+    while (nextUrl) {
+      try {
+        const response = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        allTracks = [...allTracks, ...(data.items || [])];
+        nextUrl = data.next; // Spotify provides the next URL for pagination
+      } catch (error) {
+        console.error('Failed to fetch playlist tracks:', error);
+        throw error;
+      }
+    }
+
+    setTracks(allTracks);
+  };
+
   useEffect(() => {
     const fetchMediaData = async () => {
       if (!token || !id) return;
 
       setLoading(true);
       try {
-        let mediaResponse, tracksResponse;
+        let mediaResponse;
         
         if (type === 'album') {
           // Fetch album data
@@ -70,18 +124,15 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
         // Fetch tracks
         if (type === 'album') {
-          // For albums, tracks are already included in the album response
-          setTracks(mediaDataResult.tracks?.items || []);
+          // For albums, check if tracks are included, otherwise fetch separately with pagination
+          if (mediaDataResult.tracks?.items) {
+            setTracks(mediaDataResult.tracks.items);
+          } else {
+            await fetchAllAlbumTracks(id);
+          }
         } else {
-          // For playlists, fetch tracks separately
-          tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${id}/tracks?limit=50`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (!tracksResponse.ok) throw new Error(`HTTP ${tracksResponse.status}`);
-          
-          const tracksData = await tracksResponse.json();
-          setTracks(tracksData.items || []);
+          // For playlists, fetch all tracks with pagination
+          await fetchAllPlaylistTracks(id);
         }
         
         setError('');

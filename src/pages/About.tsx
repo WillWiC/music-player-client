@@ -33,8 +33,8 @@ const About: React.FC = () => {
           </section>
 
           <section className="mt-6">
-            <h2 className="text-2xl font-semibold mb-2">Contributing</h2>
-            <p className="text-gray-300">This project is open for contributions. Please open issues or pull requests on the repository for bug reports and feature requests.</p>
+            <h2 className="text-2xl font-semibold mb-2">License</h2>
+            <p className="text-gray-300">This project is for educational/demonstration purpose only. It is not for public use or distribution.</p>
           </section>
         </div>
       </main>

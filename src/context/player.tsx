@@ -338,12 +338,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nextTrack = async () => {
       try {
+        const currentTrackBeforeSkip = storePlayer.currentTrack;
+        
         // Prefer SDK/local player when available
         try {
           if (playerRef.current && !storePlayer.isRemotePlaying) {
             // @ts-ignore - nextTrack may exist on the SDK player
             if (typeof (playerRef.current as any).nextTrack === 'function') {
               await (playerRef.current as any).nextTrack();
+              
+              // Check if playback stopped after skip (no next track in queue)
+              setTimeout(async () => {
+                await fetchPlaybackState();
+                if (!storePlayer.playing && currentTrackBeforeSkip) {
+                  // Playback stopped, trigger manual skip handling
+                  console.log('🎵 Playback stopped after skip, will trigger recommendation');
+                  // We'll emit a custom event that the recommendation service can listen to
+                  window.dispatchEvent(new CustomEvent('manual-skip', { 
+                    detail: { track: currentTrackBeforeSkip } 
+                  }));
+                }
+              }, 1000);
               return;
             }
           }
@@ -352,12 +367,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         // Fallback to Web API for remote devices or if SDK method unavailable
-        await fetch('https://api.spotify.com/v1/me/player/next', {
+        const response = await fetch('https://api.spotify.com/v1/me/player/next', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` }
         });
-        // Refresh state after track change
-        setTimeout(fetchPlaybackState, 500);
+        
+        // Check if the request was successful
+        if (response.ok) {
+          // Refresh state after track change
+          setTimeout(async () => {
+            await fetchPlaybackState();
+            if (!storePlayer.playing && currentTrackBeforeSkip) {
+              // Playback stopped, trigger manual skip handling
+              console.log('🎵 Playback stopped after Web API skip, will trigger recommendation');
+              window.dispatchEvent(new CustomEvent('manual-skip', { 
+                detail: { track: currentTrackBeforeSkip } 
+              }));
+            }
+          }, 1000);
+        }
       } catch (err) {
         console.error('nextTrack error', err);
       }

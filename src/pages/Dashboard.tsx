@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User, Playlist, RecentlyPlayedItem, Track } from '../types/spotify';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import PlaylistRecommendations from '../components/PlaylistRecommendations';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { Box, CircularProgress } from '@mui/material';
 import { useToast } from '../context/toast';
@@ -115,18 +116,18 @@ const Dashboard: React.FC = () => {
     // Check rapid-duplicate prevention using ref
     const isAllowedSource = isReplay || source === 'current track change';
     if (lastAddedRef.current && lastAddedRef.current.trackId === trackId && typeof lastAddedRef.current.timestamp === 'number' && now - lastAddedRef.current.timestamp < 2000 && !isAllowedSource) {
-      const lastDelta = typeof lastAddedRef.current.timestamp === 'number' ? now - lastAddedRef.current.timestamp : 'unknown';
-      console.log(`❌ Preventing rapid duplicate addition of track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} (last added ${lastDelta}ms ago)`);
+      // Reduced logging for rapid duplicates - only log significant attempts
       return;
     }
 
     // Update the last added tracker
     lastAddedRef.current = { trackId, timestamp: now };
 
+    // Minimal logging for track additions
     if (isReplay) {
-      console.log(`🔄 Replaying track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'} - moving to top of recently played`);
+      console.log(`🔄 Replaying: ${trackName}`);
     } else {
-      console.log(`✅ Adding track: ${trackName} (ID: ${trackId}) from source: ${source || 'unknown'}`);
+      console.log(`✅ Adding: ${trackName} (${source || 'unknown'})`);
     }
 
     const playedItem = {
@@ -137,8 +138,6 @@ const Dashboard: React.FC = () => {
 
     // Use functional updater to avoid external dependency on recentlyPlayed
     setRecentlyPlayed(prev => {
-      console.log(`📋 Before adding: recentlyPlayed has ${prev.length} tracks`);
-
       // If duplicate by name+artist exists and not a replay, skip
       const existsByNameArtist = prev.some(item => {
         const existingTrack = item.track;
@@ -150,14 +149,12 @@ const Dashboard: React.FC = () => {
       });
 
       if (existsByNameArtist && !isReplay) {
-        console.log(`❌ Track ${trackName} by ${normalizedTrack.artists?.[0]?.name} already exists (different ID but same name/artist), skipping addition from source: ${source || 'unknown'}`);
         return prev;
       }
 
       // Also check if this exact track ID is already at the top
       const isAlreadyMostRecent = prev.length > 0 && prev[0]?.track?.id === trackId;
       if (isAlreadyMostRecent && !isReplay) {
-        console.log(`❌ Track ${trackName} (ID: ${trackId}) is already the most recent track, skipping addition from source: ${source || 'unknown'}`);
         return prev;
       }
 
@@ -173,9 +170,6 @@ const Dashboard: React.FC = () => {
         const isDuplicateByName = itemName === newName && itemArtist === newArtist;
         const isDuplicate = isDuplicateById || isDuplicateByName;
 
-        if (isDuplicate) {
-          console.log(`🗑️ Removing existing instance of track: ${item.track?.name} (ID: ${itemId}) - ${isDuplicateById ? 'same ID' : 'same name+artist'}`);
-        }
         return !isDuplicate;
       });
 
@@ -193,9 +187,6 @@ const Dashboard: React.FC = () => {
         const uniqueKeyByNameArtist = `${name}-${artist}`;
 
         if (!id || seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist)) {
-          if (id && (seen.has(uniqueKeyById) || seenNameArtist.has(uniqueKeyByNameArtist))) {
-            console.log(`🔄 Final deduplication: removing duplicate ${item.track?.name} by ${artist}`);
-          }
           return false;
         }
         seen.add(uniqueKeyById);
@@ -204,12 +195,9 @@ const Dashboard: React.FC = () => {
       });
 
       const result = deduped.slice(0, 12); // Only keep the latest 12 songs
-      console.log(`📋 After adding: recentlyPlayed now has ${result.length} tracks`);
-
       return result;
     });
 
-    console.log(`✨ Track processed successfully: ${trackName} (ID: ${trackId})`);
   }, []);
 
   // Scroll to top functionality
@@ -245,7 +233,6 @@ const Dashboard: React.FC = () => {
   const refreshRecentlyPlayed = React.useCallback(async () => {
     if (!token || isRefreshing) return;
     
-    console.log('Refreshing recently played tracks...');
     setIsRefreshing(true);
     setLoadingRecently(true);
     
@@ -283,7 +270,6 @@ const Dashboard: React.FC = () => {
         let localTracks = prev;
         // If localStorage is empty, use API tracks
         if (!localTracks || localTracks.length === 0) {
-          console.log('No local recentlyPlayed, using API tracks');
           return uniqueTracks.slice(0, 12);
         }
         // Otherwise, add only new API tracks not present locally
@@ -300,7 +286,6 @@ const Dashboard: React.FC = () => {
         // Sort by played_at to maintain chronological order
         merged.sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime());
         const result = merged.slice(0, 12);
-        console.log(`Refreshed recently played: ${result.length} tracks (${uniqueTracks.length} from API, ${result.length - uniqueTracks.length} local)`);
         return result;
       });
       
@@ -423,16 +408,16 @@ const Dashboard: React.FC = () => {
   React.useEffect(() => {
     if (!currentTrack) return;
 
-    console.log('🎵 Current track changed:', currentTrack.name, 'by', currentTrack.artists?.[0]?.name, 'isPlaying:', isPlaying);
+    // Only log significant track changes, not every minor update
+    console.log('🎵 Track changed:', currentTrack.name, 'by', currentTrack.artists?.[0]?.name);
     
     // Add a small delay to ensure the track is actually playing and to avoid race conditions
     const timeoutId = setTimeout(() => {
-      console.log('🎵 Adding current track to recently played after delay');
       addToLocallyPlayed(currentTrack, 'current track change');
     }, 500); // 500ms delay
 
     return () => clearTimeout(timeoutId);
-  }, [currentTrack, addToLocallyPlayed]);
+  }, [currentTrack?.id, addToLocallyPlayed]); // Only trigger on actual track ID changes
 
   // Click-outside handling
 
@@ -507,6 +492,7 @@ const Dashboard: React.FC = () => {
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
           <span className="text-green-300 font-semibold">Live Dashboard</span>
         </div>
+        
         {/* Device Status Indicator */}
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm text-xs ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
           <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
@@ -529,7 +515,7 @@ const Dashboard: React.FC = () => {
       {!token ? (
         <div className="mb-4">
           <p className="text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
-            Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls, save playlists, and get personalized recommendations.
+            Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls and save playlists.
           </p>
         </div>
       ) : user?.display_name && (
@@ -546,18 +532,6 @@ const Dashboard: React.FC = () => {
     {/* Quick Actions: balanced 4-up grid */}
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <button
-        onClick={() => scrollToSection('recently')}
-        aria-label="Recent Plays"
-        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
-      >
-        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
-          <span className="text-lg font-bold text-green-400">♪</span>
-        </div>
-        <div className="text-sm font-semibold text-white">Recent Plays</div>
-        <div className="text-xs text-gray-400">Continue listening</div>
-      </button>
-
-      <button
         onClick={() => scrollToSection('playlists')}
         aria-label="Playlists"
         className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
@@ -567,6 +541,18 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="text-sm font-semibold text-white">Playlists</div>
         <div className="text-xs text-gray-400">Your collections</div>
+      </button>
+
+      <button
+        onClick={() => scrollToSection('recently')}
+        aria-label="Recent Plays"
+        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+      >
+        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
+          <span className="text-lg font-bold text-green-400">♪</span>
+        </div>
+        <div className="text-sm font-semibold text-white">Recent Plays</div>
+        <div className="text-xs text-gray-400">Continue listening</div>
       </button>
 
       <button
@@ -595,6 +581,128 @@ const Dashboard: React.FC = () => {
     </div>
             </div>
           </div>
+          {/* Your Playlists Section */}
+          <section id="playlists" className="space-y-4">
+            {/* Section Title */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
+                <p className="text-gray-400 text-sm">Your personal music collections</p>
+              </div>
+            </div>
+            
+            {/* Playlists Section */}
+            {loadingPlaylists ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <LoadingSkeleton className="aspect-square rounded-lg" />
+                    <LoadingSkeleton className="h-3 w-full" />
+                    <LoadingSkeleton className="h-2 w-3/4" />
+                  </div>
+                ))}
+              </div>
+            ) : errors.playlists ? (
+              <ErrorMessage message={errors.playlists} />
+            ) : playlists.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {playlists.map((playlist) => (
+                  <div key={playlist.id} className="group cursor-pointer">
+                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
+                      <div className="aspect-square relative">
+                        <img 
+                          src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
+                          alt={`${playlist.name} cover`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                // Try to play playlist using context URI for better reliability
+                                console.log('Playing playlist:', playlist.name, 'URI:', playlist.uri);
+                                if (playlist.uri) {
+                                  // Use context_uri to play the entire playlist
+                                  await play({ context_uri: playlist.uri, offset: { position: 0 } });
+                                  console.log('Playing playlist via context URI:', playlist.name);
+                                } else {
+                                  // Fallback to fetching first track if no URI
+                                  const tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=1`, {
+                                    headers: {
+                                      'Authorization': `Bearer ${token}`,
+                                    },
+                                  });
+                                  
+                                  if (tracksResponse.ok) {
+                                    const tracksData = await tracksResponse.json();
+                                    const firstTrack = tracksData.items?.[0]?.track;
+                                    
+                                    if (firstTrack) {
+                                      await play(firstTrack);
+                                      addToLocallyPlayed(firstTrack, 'playlist');
+                                      console.log('Playing first track from playlist:', playlist.name);
+                                    } else {
+                                      toast.showToast('No tracks available in this playlist.', 'warning');
+                                    }
+                                  } else {
+                                    throw new Error(`Failed to fetch playlist tracks: HTTP ${tracksResponse.status}`);
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Play error:', error);
+                                toast.showToast('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
+                              }
+                            }}
+                            className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-2">
+                        <h3 
+                          className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPlaylist(playlist.id);
+                          }}
+                        >
+                          {playlist.name}
+                        </h3>
+                        <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
+                          {playlist.description ? decodeHtmlEntities(playlist.description) : `${playlist.tracks.total} tracks`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </div>
+                <p className="text-gray-400 text-base mb-3 font-medium">No playlists found</p>
+                <p className="text-gray-500 text-sm mb-4">Create your first playlist on Spotify to see it here</p>
+                <button 
+                  onClick={() => window.open('https://open.spotify.com', '_blank')}
+                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
+                >
+                  Open Spotify
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Smart Playlist Recommendations Section */}
+          <PlaylistRecommendations />
+
           {/* Continue Listening Section */}
           <section id="recently" className="space-y-4">
             {/* Section Title */}
@@ -939,124 +1047,6 @@ const Dashboard: React.FC = () => {
                   className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
                 >
                   Start Listening
-                </button>
-              </div>
-            )}
-          </section>
-          {/* Your Playlists Section */}
-          <section id="playlists" className="space-y-4">
-            {/* Section Title */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
-                <p className="text-gray-400 text-sm">Your personal music collections</p>
-              </div>
-            </div>
-            
-            {/* Playlists Section */}
-            {loadingPlaylists ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <LoadingSkeleton className="aspect-square rounded-lg" />
-                    <LoadingSkeleton className="h-3 w-full" />
-                    <LoadingSkeleton className="h-2 w-3/4" />
-                  </div>
-                ))}
-              </div>
-            ) : errors.playlists ? (
-              <ErrorMessage message={errors.playlists} />
-            ) : playlists.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {playlists.map((playlist) => (
-                  <div key={playlist.id} className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
-                      <div className="aspect-square relative">
-                        <img 
-                          src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
-                          alt={`${playlist.name} cover`} 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <button 
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                // Try to play playlist using context URI for better reliability
-                                console.log('Playing playlist:', playlist.name, 'URI:', playlist.uri);
-                                if (playlist.uri) {
-                                  // Use context_uri to play the entire playlist
-                                  await play({ context_uri: playlist.uri, offset: { position: 0 } });
-                                  console.log('Playing playlist via context URI:', playlist.name);
-                                } else {
-                                  // Fallback to fetching first track if no URI
-                                  const tracksResponse = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=1`, {
-                                    headers: {
-                                      'Authorization': `Bearer ${token}`,
-                                    },
-                                  });
-                                  
-                                  if (tracksResponse.ok) {
-                                    const tracksData = await tracksResponse.json();
-                                    const firstTrack = tracksData.items?.[0]?.track;
-                                    
-                                    if (firstTrack) {
-                                      await play(firstTrack);
-                                      addToLocallyPlayed(firstTrack, 'playlist');
-                                      console.log('Playing first track from playlist:', playlist.name);
-                                    } else {
-                                      toast.showToast('No tracks available in this playlist.', 'warning');
-                                    }
-                                  } else {
-                                    throw new Error(`Failed to fetch playlist tracks: HTTP ${tracksResponse.status}`);
-                                  }
-                                }
-                              } catch (error) {
-                                console.error('Play error:', error);
-                                toast.showToast('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
-                              }
-                            }}
-                            className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                              <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-2">
-                        <h3 
-                          className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPlaylist(playlist.id);
-                          }}
-                        >
-                          {playlist.name}
-                        </h3>
-                        <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
-                          {playlist.description ? decodeHtmlEntities(playlist.description) : `${playlist.tracks.total} tracks`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                </div>
-                <p className="text-gray-400 text-base mb-3 font-medium">No playlists found</p>
-                <p className="text-gray-500 text-sm mb-4">Create your first playlist on Spotify to see it here</p>
-                <button 
-                  onClick={() => window.open('https://open.spotify.com', '_blank')}
-                  className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
-                >
-                  Open Spotify
                 </button>
               </div>
             )}

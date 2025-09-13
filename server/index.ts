@@ -179,7 +179,7 @@ app.post('/refresh', async (req, res) => {
     res.status(500).json({ 
       error: 'refresh_failed',
       details: 'Failed to refresh access token. Please try logging in again.',
-      message: err.message
+      message: typeof err === 'object' && err !== null && 'message' in err ? (err as { message?: string }).message : String(err)
     });
   }
 });
