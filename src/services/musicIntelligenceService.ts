@@ -127,7 +127,7 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Get user's top tracks
+   * Get user's top tracksW
    */
   private async getUserTopTracks(): Promise<Track[]> {
     const { data, error } = await this.makeSpotifyRequest('me/top/tracks', { limit: 50, time_range: 'medium_term' });
