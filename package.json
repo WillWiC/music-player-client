@@ -9,7 +9,20 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -t music-player:latest .",
+    "docker:build:prod": "docker build --target production -t music-player:prod .",
+    "docker:build:dev": "docker build --target development -t music-player:dev .",
+    "docker:run": "docker run -p 8080:8080 music-player:prod",
+    "docker:run:dev": "docker run -p 5173:5173 -v $(pwd):/app -v /app/node_modules music-player:dev",
+    "docker:compose": "docker-compose up",
+    "docker:compose:prod": "docker-compose up music-player-prod",
+    "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:compose:build": "docker-compose up --build",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:logs": "docker-compose logs -f",
+    "docker:clean": "docker system prune -f && docker volume prune -f",
+    "docker:clean:all": "docker system prune -af && docker volume prune -f"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

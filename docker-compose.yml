@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # Production service
+  music-player-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: music-player-prod
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - music-player-network
+
+  # Development service
+  music-player-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: music-player-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_HOST=0.0.0.0
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - music-player-network
+    profiles:
+      - dev
+
+  # Backend service (if you have a separate backend)
+  music-player-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: music-player-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+    networks:
+      - music-player-network
+    profiles:
+      - backend
+    # Uncomment when you have a backend
+    # depends_on:
+    #   - database
+
+  # Optional: Database service (PostgreSQL example)
+  database:
+    image: postgres:15-alpine
+    container_name: music-player-db
+    environment:
+      POSTGRES_DB: musicplayer
+      POSTGRES_USER: musicuser
+      POSTGRES_PASSWORD: musicpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - music-player-network
+    profiles:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U musicuser -d musicplayer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: music-player-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - music-player-network
+    profiles:
+      - cache
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  music-player-network:
+    driver: bridge

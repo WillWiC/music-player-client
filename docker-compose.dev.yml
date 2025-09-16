@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Development service with hot reload
+  music-player-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: music-player-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_HOST=0.0.0.0
+      - VITE_PORT=5173
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - /app/node_modules
+      # Mount config files
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./package.json:/app/package.json
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - music-player-dev-network
+
+  # Development backend service (Node.js/Express)
+  music-player-backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: music-player-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: ["npm", "run", "dev:server"]
+    networks:
+      - music-player-dev-network
+    depends_on:
+      - music-player-dev
+
+networks:
+  music-player-dev-network:
+    driver: bridge

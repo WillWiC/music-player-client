@@ -184,4 +184,15 @@ app.post('/refresh', async (req, res) => {
   }
 });
 
+// Health check endpoint for Docker
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'music-player-backend',
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
 app.listen(PORT, () => console.log(`Auth server running on ${PORT}`));
