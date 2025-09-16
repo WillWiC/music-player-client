@@ -12,7 +12,7 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
-      - VITE_HOST=0.0.0.0
+      - DOCKER_ENV=true
       - VITE_PORT=5173
     volumes:
       # Mount source code for hot reload

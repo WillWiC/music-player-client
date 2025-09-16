@@ -8,8 +8,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (including dev dependencies for build)
+# Using legacy-peer-deps to handle React 19 compatibility issues
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,28 +28,28 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+RUN addgroup -g 1001 -S nginx-user && \
+    adduser -S nginx-user -u 1001 -G nginx-user
 
 # Change ownership of nginx files to non-root user
-RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
-    chown -R nextjs:nodejs /var/cache/nginx && \
-    chown -R nextjs:nodejs /var/log/nginx && \
-    chown -R nextjs:nodejs /etc/nginx/conf.d
+RUN chown -R nginx-user:nginx-user /usr/share/nginx/html && \
+    chown -R nginx-user:nginx-user /var/cache/nginx && \
+    chown -R nginx-user:nginx-user /var/log/nginx && \
+    chown -R nginx-user:nginx-user /etc/nginx/conf.d
     
 # Make nginx directories writable
 RUN touch /var/run/nginx.pid && \
-    chown -R nextjs:nodejs /var/run/nginx.pid
+    chown -R nginx-user:nginx-user /var/run/nginx.pid
 
 # Switch to non-root user
-USER nextjs
+USER nginx-user
 
 # Expose port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/ || exit 1
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
@@ -66,10 +67,14 @@ RUN apk add --no-cache curl
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies)
-RUN npm ci
+# Using legacy-peer-deps to handle React 19 compatibility issues
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
+
+# Set environment variable to indicate Docker environment
+ENV DOCKER_ENV=true
 
 # Expose port for development server
 EXPOSE 5173
@@ -78,5 +83,5 @@ EXPOSE 5173
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5173/ || exit 1
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start development server (host will be determined by vite.config.ts)
+CMD ["npm", "run", "dev"]

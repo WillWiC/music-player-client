@@ -77,7 +77,7 @@ const PlaylistRecommendations: React.FC = () => {
     );
   }
 
-  if (!recommendations.length) {
+  if (!recommendations || !Array.isArray(recommendations) || !recommendations.length) {
     return (
       <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6">
         <div className="text-center py-6">
@@ -148,7 +148,10 @@ const PlaylistRecommendations: React.FC = () => {
 
       {/* Recommendations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recommendations.slice(0, 9).map((recommendation) => (
+        {recommendations
+          .filter(rec => rec?.playlist?.id && rec?.playlist?.name)
+          .slice(0, 9)
+          .map((recommendation) => (
           <div
             key={recommendation.playlist.id}
             className="bg-white/5 rounded-lg p-4 border border-white/5 hover:border-green-500/30 hover:bg-white/10 transition-all group cursor-pointer"
@@ -178,7 +181,9 @@ const PlaylistRecommendations: React.FC = () => {
                   {recommendation.playlist.name}
                 </h4>
                 <p className="text-xs text-gray-400 truncate">
-                  {formatCount(recommendation.playlist.followers.total)} followers
+                  {recommendation.playlist.followers?.total 
+                    ? formatCount(recommendation.playlist.followers.total) 
+                    : '0'} followers
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs">

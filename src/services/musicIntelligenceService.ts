@@ -337,13 +337,15 @@ export class MusicIntelligenceService {
       
       if (error || !data?.playlists?.items) return [];
 
-      return data.playlists.items.map((playlist: Playlist) => ({
-        playlist,
-        score: this.calculateGenreScore(playlist, genre),
-        reasons: [`Matches your interest in ${genre} music`],
-        matchingGenres: [genre],
-        similarityType: 'genre' as const
-      }));
+      return data.playlists.items
+        .filter((playlist: any) => playlist && playlist.id && playlist.name)
+        .map((playlist: any) => ({
+          playlist: this.normalizePlaylistData(playlist),
+          score: this.calculateGenreScore(playlist, genre),
+          reasons: [`Matches your interest in ${genre} music`],
+          matchingGenres: [genre],
+          similarityType: 'genre' as const
+        }));
     } catch {
       return [];
     }
@@ -362,13 +364,15 @@ export class MusicIntelligenceService {
       
       if (error || !data?.playlists?.items) return [];
 
-      return data.playlists.items.map((playlist: Playlist) => ({
-        playlist,
-        score: this.calculateArtistScore(playlist, artistName),
-        reasons: [`Features music similar to ${artistName}`],
-        matchingGenres: [],
-        similarityType: 'artist' as const
-      }));
+      return data.playlists.items
+        .filter((playlist: any) => playlist && playlist.id && playlist.name)
+        .map((playlist: any) => ({
+          playlist: this.normalizePlaylistData(playlist),
+          score: this.calculateArtistScore(playlist, artistName),
+          reasons: [`Features music similar to ${artistName}`],
+          matchingGenres: [],
+          similarityType: 'artist' as const
+        }));
     } catch {
       return [];
     }
@@ -393,13 +397,15 @@ export class MusicIntelligenceService {
         
         if (error || !data?.playlists?.items) continue;
 
-        const moodRecs = data.playlists.items.map((playlist: Playlist) => ({
-          playlist,
-          score: this.calculateMoodScore(playlist, mood),
-          reasons: [`Perfect for your ${mood} listening mood`],
-          matchingGenres: [],
-          similarityType: 'user_pattern' as const
-        }));
+        const moodRecs = data.playlists.items
+          .filter((playlist: any) => playlist && playlist.id && playlist.name)
+          .map((playlist: any) => ({
+            playlist: this.normalizePlaylistData(playlist),
+            score: this.calculateMoodScore(playlist, mood),
+            reasons: [`Perfect for your ${mood} listening mood`],
+            matchingGenres: [],
+            similarityType: 'user_pattern' as const
+          }));
         
         recommendations.push(...moodRecs);
       } catch {
@@ -500,5 +506,42 @@ export class MusicIntelligenceService {
       seen.add(rec.playlist.id);
       return true;
     });
+  }
+
+  /**
+   * Normalize playlist data to ensure required properties exist
+   */
+  private normalizePlaylistData(playlist: any): Playlist {
+    return {
+      collaborative: playlist.collaborative ?? false,
+      description: playlist.description ?? null,
+      external_urls: playlist.external_urls ?? {},
+      followers: playlist.followers ?? { href: null, total: 0 },
+      href: playlist.href ?? '',
+      id: playlist.id ?? '',
+      images: playlist.images ?? [],
+      name: playlist.name ?? 'Unknown Playlist',
+      owner: playlist.owner ?? {
+        external_urls: {},
+        href: '',
+        id: '',
+        type: 'user' as const,
+        uri: '',
+        display_name: 'Unknown User'
+      },
+      public: playlist.public ?? true,
+      snapshot_id: playlist.snapshot_id ?? '',
+      tracks: playlist.tracks ?? {
+        href: '',
+        limit: 0,
+        next: null,
+        offset: 0,
+        previous: null,
+        total: 0,
+        items: []
+      },
+      type: 'playlist' as const,
+      uri: playlist.uri ?? ''
+    };
   }
 }
