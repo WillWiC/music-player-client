@@ -77,7 +77,7 @@ const PlaylistRecommendations: React.FC = () => {
     );
   }
 
-  if (!recommendations || !Array.isArray(recommendations) || !recommendations.length) {
+  if (!recommendations || !Array.isArray(recommendations) || recommendations.length === 0) {
     return (
       <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6">
         <div className="text-center py-6">
@@ -86,11 +86,15 @@ const PlaylistRecommendations: React.FC = () => {
           <p className="text-gray-400 mb-4">
             Listen to more music to get personalized playlist recommendations
           </p>
+          <p className="text-gray-500 text-sm mb-4">
+            Open your browser console to see debug information
+          </p>
           <button
             onClick={handleRefresh}
-            className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black rounded-lg font-medium transition-colors"
+            disabled={isLoading}
+            className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            Generate Recommendations
+            {isLoading ? 'Generating...' : 'Generate Recommendations'}
           </button>
         </div>
       </div>

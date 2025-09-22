@@ -65,12 +65,25 @@ export interface RecommendationOptions {
   max_tempo?: number;
   min_valence?: number;
   max_valence?: number;
+  // Temporal context
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  dayOfWeek?: 'weekday' | 'weekend';
+  season?: 'spring' | 'summer' | 'fall' | 'winter';
+}
+
+export interface TemporalPreference {
+  timeContext: string;
+  preferences: Map<string, number>;
+  lastUpdated: number;
+  weight: number;
 }
 
 class RecommendationEngine {
   private audioFeaturesCache: Map<string, AudioFeatures> = new Map();
   private trackLibrary: Map<string, TrackWithFeatures> = new Map();
   private userPreferences: Map<string, number> = new Map();
+  private temporalPreferences: Map<string, TemporalPreference> = new Map();
+  private listeningHistory: Array<{ trackId: string; timestamp: number; context: string }> = [];
 
   constructor() {
     this.loadCachedData();
@@ -98,6 +111,28 @@ class RecommendationEngine {
         const preferencesData = JSON.parse(cachedPreferences);
         this.userPreferences = new Map(preferencesData);
       }
+
+      const cachedTemporalPreferences = localStorage.getItem('recommendation-engine-temporal-preferences');
+      if (cachedTemporalPreferences) {
+        const temporalData = JSON.parse(cachedTemporalPreferences);
+        this.temporalPreferences = new Map(
+          temporalData.map(([key, value]: [string, any]) => [
+            key,
+            {
+              ...value,
+              preferences: new Map(value.preferences)
+            }
+          ])
+        );
+      }
+
+      const cachedHistory = localStorage.getItem('recommendation-engine-history');
+      if (cachedHistory) {
+        this.listeningHistory = JSON.parse(cachedHistory);
+        // Keep only recent history (last 30 days)
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        this.listeningHistory = this.listeningHistory.filter(entry => entry.timestamp > thirtyDaysAgo);
+      }
     } catch (error) {
       console.warn('Failed to load recommendation engine cache:', error);
     }
@@ -116,6 +151,17 @@ class RecommendationEngine {
 
       const preferencesData = Array.from(this.userPreferences.entries());
       localStorage.setItem('recommendation-engine-preferences', JSON.stringify(preferencesData));
+
+      const temporalData = Array.from(this.temporalPreferences.entries()).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          preferences: Array.from(value.preferences.entries())
+        }
+      ]);
+      localStorage.setItem('recommendation-engine-temporal-preferences', JSON.stringify(temporalData));
+
+      localStorage.setItem('recommendation-engine-history', JSON.stringify(this.listeningHistory));
     } catch (error) {
       console.warn('Failed to save recommendation engine cache:', error);
     }
@@ -152,39 +198,172 @@ class RecommendationEngine {
   }
 
   /**
-   * Calculate similarity between two sets of audio features
+   * Calculate similarity between two sets of audio features with enhanced algorithm
    */
   calculateSimilarity(features1: AudioFeatures, features2: AudioFeatures): number {
+    // Enhanced weights based on music information retrieval research
     const weights = {
-      acousticness: 0.1,
-      danceability: 0.15,
-      energy: 0.15,
-      instrumentalness: 0.05,
-      liveness: 0.05,
-      loudness: 0.1,
-      speechiness: 0.05,
-      tempo: 0.1,
-      valence: 0.15,
-      mode: 0.05,
-      key: 0.05
+      // Core musical characteristics (high importance)
+      valence: 0.20,        // Emotional positivity/negativity
+      energy: 0.18,         // Intensity and power
+      danceability: 0.15,   // Rhythmic characteristics
+      
+      // Acoustic properties (medium importance)
+      acousticness: 0.12,   // Acoustic vs electronic
+      tempo: 0.10,          // Speed and rhythm
+      loudness: 0.08,       // Volume characteristics
+      
+      // Musical structure (medium-low importance)
+      mode: 0.07,           // Major vs minor scale
+      key: 0.05,            // Musical key
+      
+      // Specialized characteristics (low importance)
+      instrumentalness: 0.03, // Vocal vs instrumental
+      speechiness: 0.02,      // Speech-like content
+      liveness: 0.01          // Live performance characteristics
     };
 
-    let similarity = 0;
+    let weightedSimilarity = 0;
     let totalWeight = 0;
 
-    // Compare each feature with weighted importance
+    // Calculate feature-specific similarities with enhanced algorithms
     for (const [feature, weight] of Object.entries(weights)) {
       if (feature in features1 && feature in features2) {
         const val1 = features1[feature as keyof AudioFeatures] as number;
         const val2 = features2[feature as keyof AudioFeatures] as number;
-        const diff = Math.abs(val1 - val2);
-        const normalizedDiff = feature === 'tempo' ? diff / 200 : diff; // Normalize tempo
-        similarity += weight * (1 - normalizedDiff);
+        
+        let similarity: number;
+        
+        // Use feature-specific similarity calculations
+        switch (feature) {
+          case 'tempo':
+            // Tempo similarity with BPM clustering
+            similarity = this.calculateTempoSimilarity(val1, val2);
+            break;
+          case 'key':
+            // Musical key similarity using circle of fifths
+            similarity = this.calculateKeySimilarity(val1, val2);
+            break;
+          case 'mode':
+            // Binary mode similarity (major/minor)
+            similarity = val1 === val2 ? 1 : 0.3; // Some cross-mode compatibility
+            break;
+          case 'valence':
+          case 'energy':
+          case 'danceability':
+            // Emotional/energy features with non-linear similarity
+            similarity = this.calculateEmotionalSimilarity(val1, val2);
+            break;
+          default:
+            // Standard normalized similarity for other features
+            similarity = 1 - Math.abs(val1 - val2);
+        }
+        
+        weightedSimilarity += weight * similarity;
         totalWeight += weight;
       }
     }
 
-    return totalWeight > 0 ? similarity / totalWeight : 0;
+    // Add mood coherence bonus
+    const moodCoherence = this.calculateMoodCoherence(features1, features2);
+    weightedSimilarity += 0.1 * moodCoherence;
+    totalWeight += 0.1;
+
+    return totalWeight > 0 ? Math.max(0, Math.min(1, weightedSimilarity / totalWeight)) : 0;
+  }
+
+  /**
+   * Calculate tempo similarity using BPM clustering and harmonic relationships
+   */
+  private calculateTempoSimilarity(tempo1: number, tempo2: number): number {
+    const diff = Math.abs(tempo1 - tempo2);
+    
+    // Check for harmonic relationships (double/half time)
+    const ratio = Math.max(tempo1, tempo2) / Math.min(tempo1, tempo2);
+    if (Math.abs(ratio - 2) < 0.1 || Math.abs(ratio - 0.5) < 0.1) {
+      return 0.8; // High similarity for harmonic relationships
+    }
+    
+    // Normal tempo similarity with exponential decay
+    if (diff <= 5) return 1.0;
+    if (diff <= 15) return 0.9;
+    if (diff <= 30) return 0.7;
+    if (diff <= 50) return 0.5;
+    return Math.max(0, 1 - diff / 100);
+  }
+
+  /**
+   * Calculate key similarity using circle of fifths
+   */
+  private calculateKeySimilarity(key1: number, key2: number): number {
+    if (key1 === key2) return 1.0;
+    
+    // Circle of fifths relationships
+    const circleOfFifths = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
+    const pos1 = circleOfFifths.indexOf(key1);
+    const pos2 = circleOfFifths.indexOf(key2);
+    
+    if (pos1 !== -1 && pos2 !== -1) {
+      const distance = Math.min(
+        Math.abs(pos1 - pos2),
+        12 - Math.abs(pos1 - pos2)
+      );
+      return Math.max(0, 1 - distance / 6);
+    }
+    
+    return 0.5; // Default similarity for unknown keys
+  }
+
+  /**
+   * Calculate emotional similarity with non-linear curves
+   */
+  private calculateEmotionalSimilarity(val1: number, val2: number): number {
+    const diff = Math.abs(val1 - val2);
+    
+    // Non-linear similarity curve for emotional features
+    if (diff <= 0.1) return 1.0;
+    if (diff <= 0.2) return 0.9;
+    if (diff <= 0.3) return 0.7;
+    if (diff <= 0.5) return 0.5;
+    return Math.max(0, 1 - (diff * diff)); // Quadratic decay
+  }
+
+  /**
+   * Calculate mood coherence between two tracks
+   */
+  private calculateMoodCoherence(features1: AudioFeatures, features2: AudioFeatures): number {
+    // Define mood dimensions
+    const mood1 = this.extractMoodVector(features1);
+    const mood2 = this.extractMoodVector(features2);
+    
+    // Calculate cosine similarity between mood vectors
+    let dotProduct = 0;
+    let norm1 = 0;
+    let norm2 = 0;
+    
+    for (let i = 0; i < mood1.length; i++) {
+      dotProduct += mood1[i] * mood2[i];
+      norm1 += mood1[i] * mood1[i];
+      norm2 += mood2[i] * mood2[i];
+    }
+    
+    const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2);
+    return magnitude > 0 ? dotProduct / magnitude : 0;
+  }
+
+  /**
+   * Extract mood vector from audio features
+   */
+  private extractMoodVector(features: AudioFeatures): number[] {
+    return [
+      features.valence * features.energy,           // Happy/energetic
+      features.valence * (1 - features.energy),    // Happy/calm
+      (1 - features.valence) * features.energy,    // Sad/intense
+      (1 - features.valence) * (1 - features.energy), // Sad/calm
+      features.danceability,                        // Danceable
+      features.acousticness,                        // Organic/natural
+      1 - features.acousticness                     // Electronic/synthetic
+    ];
   }
 
   /**
@@ -401,13 +580,171 @@ class RecommendationEngine {
   }
 
   /**
+   * Record listening activity for temporal learning
+   */
+  recordListeningActivity(trackId: string, features?: AudioFeatures): void {
+    const now = Date.now();
+    const timeContext = this.getTimeContext(now);
+    
+    // Add to listening history
+    this.listeningHistory.push({
+      trackId,
+      timestamp: now,
+      context: timeContext
+    });
+    
+    // Keep only recent history (last 30 days)
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    this.listeningHistory = this.listeningHistory.filter(entry => entry.timestamp > thirtyDaysAgo);
+    
+    // Update temporal preferences if features are available
+    if (features) {
+      this.updateTemporalPreferences(timeContext, features);
+    }
+    
+    this.saveCachedData();
+  }
+
+  /**
+   * Get time context for temporal analysis
+   */
+  private getTimeContext(timestamp: number): string {
+    const date = new Date(timestamp);
+    const hour = date.getHours();
+    const dayOfWeek = date.getDay();
+    const month = date.getMonth();
+    
+    let timeOfDay: string;
+    if (hour >= 6 && hour < 12) timeOfDay = 'morning';
+    else if (hour >= 12 && hour < 18) timeOfDay = 'afternoon';
+    else if (hour >= 18 && hour < 22) timeOfDay = 'evening';
+    else timeOfDay = 'night';
+    
+    const weekType = (dayOfWeek === 0 || dayOfWeek === 6) ? 'weekend' : 'weekday';
+    
+    let season: string;
+    if (month >= 2 && month <= 4) season = 'spring';
+    else if (month >= 5 && month <= 7) season = 'summer';
+    else if (month >= 8 && month <= 10) season = 'fall';
+    else season = 'winter';
+    
+    return `${timeOfDay}_${weekType}_${season}`;
+  }
+
+  /**
+   * Update temporal preferences based on listening activity
+   */
+  private updateTemporalPreferences(timeContext: string, features: AudioFeatures): void {
+    let temporalPref = this.temporalPreferences.get(timeContext);
+    
+    if (!temporalPref) {
+      temporalPref = {
+        timeContext,
+        preferences: new Map(),
+        lastUpdated: Date.now(),
+        weight: 1.0
+      };
+      this.temporalPreferences.set(timeContext, temporalPref);
+    }
+    
+    // Update preferences with exponential moving average
+    const decay = 0.1;
+    const features_keys = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'liveness', 'speechiness', 'tempo', 'valence'];
+    
+    features_keys.forEach(key => {
+      const currentValue = temporalPref!.preferences.get(key) || 0.5;
+      const newValue = features[key as keyof AudioFeatures] as number;
+      const updatedValue = (1 - decay) * currentValue + decay * newValue;
+      temporalPref!.preferences.set(key, updatedValue);
+    });
+    
+    temporalPref.lastUpdated = Date.now();
+    temporalPref.weight = Math.min(temporalPref.weight + 0.1, 2.0); // Increase confidence over time
+  }
+
+  /**
+   * Get context-aware recommendations
+   */
+  getContextualRecommendations(options: RecommendationOptions = {}, limit: number = 20): TrackWithFeatures[] {
+    const timeContext = this.getTimeContext(Date.now());
+    const temporalPref = this.temporalPreferences.get(timeContext);
+    
+    // Adjust options based on temporal preferences
+    if (temporalPref && temporalPref.weight > 0.5) {
+      const contextualOptions = { ...options };
+      
+      // Apply temporal preferences with weighted influence
+      const influence = Math.min(temporalPref.weight / 2.0, 0.7);
+      
+      if (!contextualOptions.target_energy && temporalPref.preferences.has('energy')) {
+        contextualOptions.target_energy = temporalPref.preferences.get('energy')! * influence + (options.target_energy || 0.5) * (1 - influence);
+      }
+      
+      if (!contextualOptions.target_valence && temporalPref.preferences.has('valence')) {
+        contextualOptions.target_valence = temporalPref.preferences.get('valence')! * influence + (options.target_valence || 0.5) * (1 - influence);
+      }
+      
+      if (!contextualOptions.target_danceability && temporalPref.preferences.has('danceability')) {
+        contextualOptions.target_danceability = temporalPref.preferences.get('danceability')! * influence + (options.target_danceability || 0.5) * (1 - influence);
+      }
+      
+      return this.generateRecommendations([], contextualOptions, limit);
+    }
+    
+    return this.generateRecommendations([], options, limit);
+  }
+
+  /**
+   * Get temporal insights about listening patterns
+   */
+  getTemporalInsights(): any {
+    const insights: any = {
+      totalSessions: this.listeningHistory.length,
+      contexts: {},
+      patterns: {
+        mostActiveTime: '',
+        preferredWeekType: '',
+        seasonalTrends: {}
+      }
+    };
+    
+    // Analyze listening patterns by context
+    const contextCounts: Record<string, number> = {};
+    this.listeningHistory.forEach(entry => {
+      contextCounts[entry.context] = (contextCounts[entry.context] || 0) + 1;
+    });
+    
+    insights.contexts = contextCounts;
+    
+    // Find most active time
+    const maxContext = Object.entries(contextCounts).reduce((a, b) => a[1] > b[1] ? a : b, ['', 0]);
+    insights.patterns.mostActiveTime = maxContext[0];
+    
+    // Analyze temporal preferences
+    const temporalPrefs: any = {};
+    this.temporalPreferences.forEach((pref, context) => {
+      temporalPrefs[context] = {
+        weight: pref.weight,
+        lastUpdated: pref.lastUpdated,
+        preferences: Object.fromEntries(pref.preferences.entries())
+      };
+    });
+    
+    insights.temporalPreferences = temporalPrefs;
+    
+    return insights;
+  }
+
+  /**
    * Get cache statistics
    */
   getCacheStats() {
     return {
       audioFeaturesCount: this.audioFeaturesCache.size,
       trackLibraryCount: this.trackLibrary.size,
-      userPreferencesCount: this.userPreferences.size
+      userPreferencesCount: this.userPreferences.size,
+      temporalPreferencesCount: this.temporalPreferences.size,
+      listeningHistoryCount: this.listeningHistory.length
     };
   }
 

@@ -29,7 +29,15 @@ export interface UseMusicIntelligenceReturn {
 }
 
 const CACHE_KEY = 'music_intelligence_profile';
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 45 * 60 * 1000; // 45 minutes
+const CACHE_VERSION = '2.0'; // Version for cache invalidation
+
+interface CachedProfile {
+  profile: UserMusicProfile;
+  timestamp: number;
+  version: string;
+  userId?: string;
+}
 
 export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
   const { token, user } = useAuth();
@@ -45,42 +53,63 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
   }, [token]);
 
   /**
-   * Load cached profile if available and not expired
+   * Load cached profile if available and not expired with enhanced validation
    */
   const loadCachedProfile = useCallback((): UserMusicProfile | null => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (!cached) return null;
 
-      const { profile: cachedProfile, timestamp } = JSON.parse(cached);
-      const isExpired = Date.now() - timestamp > CACHE_DURATION;
+      const cachedData: CachedProfile = JSON.parse(cached);
       
+      // Check cache version
+      if (cachedData.version !== CACHE_VERSION) {
+        console.log('Cache version mismatch, invalidating');
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      
+      // Check user ID if available
+      if (user?.id && cachedData.userId && cachedData.userId !== user.id) {
+        console.log('Cache user mismatch, invalidating');
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      
+      // Check TTL
+      const isExpired = Date.now() - cachedData.timestamp > CACHE_DURATION;
       if (isExpired) {
+        console.log('Cache expired, invalidating');
         localStorage.removeItem(CACHE_KEY);
         return null;
       }
 
-      return cachedProfile;
-    } catch {
+      console.log('Using cached music intelligence profile');
+      return cachedData.profile;
+    } catch (error) {
+      console.warn('Failed to load cached profile:', error);
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
-  }, []);
+  }, [user]);
 
   /**
-   * Cache profile to localStorage
+   * Cache profile to localStorage with metadata
    */
   const cacheProfile = useCallback((profile: UserMusicProfile) => {
     try {
-      const cacheData = {
+      const cachedData: CachedProfile = {
         profile,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        version: CACHE_VERSION,
+        userId: user?.id
       };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cachedData));
+      console.log('Cached music intelligence profile with metadata');
     } catch (error) {
       console.warn('Failed to cache music profile:', error);
     }
-  }, []);
+  }, [user]);
 
   /**
    * Generate comprehensive music profile
@@ -101,7 +130,10 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
       }
 
       // Generate new profile
+      console.log('Generating new music profile...');
       const newProfile = await service.generateMusicProfile(user);
+      console.log('Generated profile:', newProfile);
+      console.log('Recommendations count:', newProfile.recommendations?.length || 0);
       setProfile(newProfile);
       cacheProfile(newProfile);
       
@@ -125,7 +157,10 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
 
     try {
       // Generate new profile (this will include fresh recommendations)
+      console.log('Refreshing recommendations...');
       const newProfile = await service.generateMusicProfile(user);
+      console.log('Refreshed profile:', newProfile);
+      console.log('New recommendations count:', newProfile.recommendations?.length || 0);
       setProfile(newProfile);
       cacheProfile(newProfile);
     } catch (err) {
