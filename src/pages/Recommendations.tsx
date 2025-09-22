@@ -215,7 +215,7 @@ const Recommendations: React.FC = () => {
                         {recommendation.playlist.name}
                       </h3>
                       <p className="text-gray-400 text-sm truncate mb-2">
-                        {formatCount(recommendation.playlist.followers.total)} followers • {recommendation.playlist.tracks.total} tracks
+                        {formatCount(recommendation.playlist.followers?.total ?? 0)} followers • {recommendation.playlist.tracks?.total ?? 0} tracks
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-lg">

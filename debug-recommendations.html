@@ -20,7 +20,14 @@
         <li>If you see "No Recommendations Yet", click the "Generate Recommendations" button</li>
         <li>Check the console logs to see where the process might be failing</li>
     </ol>
-    
+    TypeError: Cannot read properties of undefined (reading 'total')
+    at MusicIntelligenceService.calculateGenreScore (musicIntelligenceService.ts:780:46)
+    at musicIntelligenceService.ts:573:27
+    at Array.map (<anonymous>)
+    at MusicIntelligenceService.searchPlaylistsByGenre (musicIntelligenceService.ts:571:14)
+    at async MusicIntelligenceService.generatePlaylistRecommendations (musicIntelligenceService.ts:491:25)
+    at async MusicIntelligenceService.generateMusicProfile (musicIntelligenceService.ts:122:31)
+    at async useMusicIntelligence.ts:134:26
     <h2>Expected Logs:</h2>
     <ul>
         <li>"Starting music profile generation..."</li>

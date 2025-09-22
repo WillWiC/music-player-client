@@ -95,8 +95,6 @@ export class MusicIntelligenceService {
    */
   async generateMusicProfile(_user: User): Promise<UserMusicProfile> {
     try {
-      console.log('Starting music profile generation...');
-      
       // Gather user data in parallel
       const [topTracks, recentlyPlayed, savedTracks, _userPlaylists, followedArtists] = await Promise.all([
         this.getUserTopTracks(),
@@ -106,28 +104,16 @@ export class MusicIntelligenceService {
         this.getFollowedArtists()
       ]);
 
-      console.log('Gathered user data:', {
-        topTracks: topTracks.length,
-        recentlyPlayed: recentlyPlayed.length,
-        savedTracks: savedTracks.length,
-        followedArtists: followedArtists.length
-      });
-
       // Generate insights from user data
       const insights = this.analyzeUserMusic(topTracks, recentlyPlayed, savedTracks);
-      console.log('Generated insights:', insights);
       
       // Generate playlist recommendations
-      console.log('Generating playlist recommendations...');
       const recommendations = await this.generatePlaylistRecommendations(
         insights,
         topTracks,
         savedTracks,
         followedArtists
       );
-      
-      console.log('Generated recommendations:', recommendations.length);
-      console.log('Sample recommendations:', recommendations.slice(0, 3));
 
       return {
         insights,
@@ -195,7 +181,6 @@ export class MusicIntelligenceService {
    */
   private analyzeUserMusic(topTracks: Track[], recentlyPlayed: Track[], savedTracks: Track[]): MusicInsights {
     const allTracks = [...topTracks, ...recentlyPlayed, ...savedTracks];
-    console.log(`Analyzing ${allTracks.length} total tracks`);
     
     // Handle case when no tracks are available
     if (allTracks.length === 0) {
@@ -217,8 +202,6 @@ export class MusicIntelligenceService {
     const genreCounts = this.extractGenres(allTracks);
     const totalTracks = allTracks.length;
     
-    console.log('Genre counts:', genreCounts);
-    
     // Calculate top genres with percentages
     const topGenres = Object.entries(genreCounts)
       .map(([genre, count]) => ({
@@ -228,8 +211,6 @@ export class MusicIntelligenceService {
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-
-    console.log('Top genres calculated:', topGenres);
 
     // Calculate artist diversity
     const uniqueArtists = new Set(allTracks.flatMap(track => track.artists.map(artist => artist.id)));
@@ -470,9 +451,6 @@ export class MusicIntelligenceService {
   ): Promise<PlaylistRecommendation[]> {
     const recommendations: PlaylistRecommendation[] = [];
     
-    console.log('Starting playlist recommendations with insights:', insights);
-    console.log('Top genres for recommendations:', insights.topGenres.slice(0, 4));
-    
     // If no genres found, add some popular/default genres to search
     let genresToSearch = insights.topGenres.slice(0, 4);
     if (genresToSearch.length === 0) {
@@ -487,16 +465,11 @@ export class MusicIntelligenceService {
     
     // Enhanced genre-based recommendations with user context
     for (const genreData of genresToSearch) {
-      console.log(`Searching playlists for genre: ${genreData.genre}`);
       const genreRecs = await this.searchPlaylistsByGenre(genreData.genre, insights);
-      console.log(`Found ${genreRecs.length} genre recommendations for ${genreData.genre}`);
       recommendations.push(...genreRecs);
     }
 
     // Artist-based recommendations with improved scoring
-    console.log('Searching for artist-based recommendations...');
-    console.log('Followed artists:', followedArtists.length);
-    
     const artistsToSearch = followedArtists.length > 0 
       ? followedArtists.slice(0, 6)
       : [
@@ -506,33 +479,23 @@ export class MusicIntelligenceService {
         ];
     
     for (const artist of artistsToSearch) {
-      console.log(`Searching playlists for artist: ${artist.name}`);
       const artistRecs = await this.searchPlaylistsByArtist(artist.name, insights);
-      console.log(`Found ${artistRecs.length} artist recommendations for ${artist.name}`);
       recommendations.push(...artistRecs);
     }
 
     // Enhanced mood-based recommendations
-    console.log('Getting mood-based recommendations...');
     const moodRecs = await this.getMoodBasedRecommendations(insights);
-    console.log(`Found ${moodRecs.length} mood recommendations`);
     recommendations.push(...moodRecs);
 
     // Add diversity and serendipity recommendations
-    console.log('Adding serendipity recommendations...');
     const diversityRecs = await this.getSerendipityRecommendations(insights, recommendations);
-    console.log(`Found ${diversityRecs.length} serendipity recommendations`);
     recommendations.push(...diversityRecs);
-
-    console.log(`Total recommendations before deduplication: ${recommendations.length}`);
 
     // Advanced deduplication and ranking
     const uniqueRecs = this.deduplicateRecommendations(recommendations);
-    console.log(`Recommendations after deduplication: ${uniqueRecs.length}`);
-    
     const rankedRecs = this.rankRecommendationsWithML(uniqueRecs, insights);
-    console.log(`Final ranked recommendations: ${rankedRecs.length}`);
     
+    console.log(`Generated ${rankedRecs.length} final recommendations`);
     return rankedRecs.slice(0, 20); // Return top 20 recommendations
   }
 
@@ -541,8 +504,6 @@ export class MusicIntelligenceService {
    */
   private async searchPlaylistsByGenre(genre: string, userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
     try {
-      console.log(`Searching for genre: ${genre}`);
-      
       // Try multiple search strategies
       const searchQueries = [
         `genre:"${genre}"`,
@@ -564,17 +525,32 @@ export class MusicIntelligenceService {
         }
         
         if (data?.playlists?.items && data.playlists.items.length > 0) {
-          console.log(`Found ${data.playlists.items.length} playlists for query: ${query}`);
-
           const recommendations = data.playlists.items
-            .filter((playlist: any) => playlist && playlist.id && playlist.name)
-            .map((playlist: any) => ({
-              playlist: this.normalizePlaylistData(playlist),
-              score: this.calculateGenreScore(playlist, genre, userInsights),
-              reasons: [`Matches your ${genre} music taste`],
-              matchingGenres: [genre],
-              similarityType: 'genre' as const
-            }));
+            .filter((playlist: any) => {
+              // More robust filtering
+              if (!playlist || typeof playlist !== 'object') return false;
+              if (!playlist.id || !playlist.name) return false;
+              // Ensure we have basic structure needed for scoring
+              return true;
+            })
+            .map((playlist: any) => {
+              const normalizedPlaylist = this.normalizePlaylistData(playlist);
+              let score = 0;
+              try {
+                score = this.calculateGenreScore(normalizedPlaylist, genre, userInsights);
+              } catch (error) {
+                console.error('Error calculating genre score for playlist:', normalizedPlaylist.name, error);
+                score = 40; // Default score if calculation fails
+              }
+              return {
+                playlist: normalizedPlaylist,
+                score,
+                reasons: [`Matches your ${genre} music taste`],
+                matchingGenres: [genre],
+                similarityType: 'genre' as const
+              };
+            })
+            .filter((rec: PlaylistRecommendation) => rec.score > 0); // Filter out any recommendations with invalid scores
           
           if (recommendations.length > 0) {
             return recommendations;
@@ -582,7 +558,6 @@ export class MusicIntelligenceService {
         }
       }
       
-      console.log(`No playlists found for any query variant of genre: ${genre}`);
       return [];
       
     } catch (err) {
@@ -688,7 +663,7 @@ export class MusicIntelligenceService {
         }
         
         // Popularity alignment
-        const followerCount = rec.playlist.followers.total;
+        const followerCount = rec.playlist.followers?.total ?? 0;
         if (insights.popularityBias === 'mainstream' && followerCount > 50000) {
           adjustedScore *= 1.1;
         } else if (insights.popularityBias === 'underground' && followerCount < 10000) {
@@ -776,8 +751,8 @@ export class MusicIntelligenceService {
   private calculateGenreScore(playlist: Playlist, genre: string, userInsights?: MusicInsights): number {
     let score = 40; // Base score
     
-    // Follower count scoring with logarithmic scale
-    const followerCount = playlist.followers.total;
+    // Defensive check for followers property
+    const followerCount = playlist.followers?.total ?? 0;
     if (followerCount > 100000) score += 25;
     else if (followerCount > 50000) score += 20;
     else if (followerCount > 10000) score += 15;
@@ -802,7 +777,7 @@ export class MusicIntelligenceService {
     }
     
     // Track count optimization (sweet spot algorithm)
-    const trackCount = playlist.tracks.total;
+    const trackCount = playlist.tracks?.total ?? 0;
     if (trackCount >= 30 && trackCount <= 80) score += 20; // Optimal range
     else if (trackCount >= 15 && trackCount < 30) score += 15;
     else if (trackCount > 80 && trackCount <= 150) score += 15;
@@ -879,13 +854,13 @@ export class MusicIntelligenceService {
     }
     
     // Follower count influence
-    const followerCount = playlist.followers.total;
+    const followerCount = playlist.followers?.total ?? 0;
     if (followerCount > 20000) score += 20;
     else if (followerCount > 5000) score += 15;
     else if (followerCount > 1000) score += 10;
     
     // Track count preference for artist playlists
-    const trackCount = playlist.tracks.total;
+    const trackCount = playlist.tracks?.total ?? 0;
     if (trackCount >= 20 && trackCount <= 60) score += 15;
     else if (trackCount > 60) score += 5;
     
@@ -929,12 +904,12 @@ export class MusicIntelligenceService {
     if (playlist.description && playlist.description.includes('perfect for')) score += 6;
     
     // Follower count for mood playlists
-    const followerCount = playlist.followers.total;
+    const followerCount = playlist.followers?.total ?? 0;
     if (followerCount > 15000) score += 15;
     else if (followerCount > 3000) score += 10;
     
     // Track count optimization for mood playlists
-    const trackCount = playlist.tracks.total;
+    const trackCount = playlist.tracks?.total ?? 0;
     if (trackCount >= 25 && trackCount <= 100) score += 12;
     else if (trackCount > 100) score += 6;
     
@@ -1015,6 +990,12 @@ export class MusicIntelligenceService {
    * Normalize playlist data to ensure required properties exist
    */
   private normalizePlaylistData(playlist: any): Playlist {
+    // Ensure playlist is an object
+    if (!playlist || typeof playlist !== 'object') {
+      console.warn('Invalid playlist data received:', playlist);
+      playlist = {};
+    }
+
     return {
       collaborative: playlist.collaborative ?? false,
       description: playlist.description ?? null,
@@ -1022,7 +1003,7 @@ export class MusicIntelligenceService {
       followers: playlist.followers ?? { href: null, total: 0 },
       href: playlist.href ?? '',
       id: playlist.id ?? '',
-      images: playlist.images ?? [],
+      images: Array.isArray(playlist.images) ? playlist.images : [],
       name: playlist.name ?? 'Unknown Playlist',
       owner: playlist.owner ?? {
         external_urls: {},

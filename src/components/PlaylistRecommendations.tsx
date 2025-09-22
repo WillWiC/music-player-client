@@ -86,9 +86,6 @@ const PlaylistRecommendations: React.FC = () => {
           <p className="text-gray-400 mb-4">
             Listen to more music to get personalized playlist recommendations
           </p>
-          <p className="text-gray-500 text-sm mb-4">
-            Open your browser console to see debug information
-          </p>
           <button
             onClick={handleRefresh}
             disabled={isLoading}

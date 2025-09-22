@@ -130,10 +130,7 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
       }
 
       // Generate new profile
-      console.log('Generating new music profile...');
       const newProfile = await service.generateMusicProfile(user);
-      console.log('Generated profile:', newProfile);
-      console.log('Recommendations count:', newProfile.recommendations?.length || 0);
       setProfile(newProfile);
       cacheProfile(newProfile);
       
@@ -157,10 +154,7 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
 
     try {
       // Generate new profile (this will include fresh recommendations)
-      console.log('Refreshing recommendations...');
       const newProfile = await service.generateMusicProfile(user);
-      console.log('Refreshed profile:', newProfile);
-      console.log('New recommendations count:', newProfile.recommendations?.length || 0);
       setProfile(newProfile);
       cacheProfile(newProfile);
     } catch (err) {
