@@ -1,6 +1,16 @@
 /**
  * Music Intelligence Service
  * Provides smart playlist recommendations and music analysis
+ * 
+ * FOLLOWER COUNT CONSIDERATION:
+ * The algorithm heavily considers follower counts as a quality indicator:
+ * - Genre playlists: Up to 40 points from follower quality score + bonuses
+ * - Artist playlists: Up to 35 points from follower quality score + bonuses  
+ * - Mood playlists: Up to 30 points from follower quality score + bonuses
+ * - ML ranking: Additional multipliers based on user preference (mainstream/underground)
+ * - Final sort: Uses follower count as tiebreaker for similar scores
+ * - Quality scoring: Logarithmic scale from 0-100 based on follower count
+ * 
  * Uses available Spotify APIs without deprecated endpoints
  */
 
@@ -279,6 +289,14 @@ export class MusicIntelligenceService {
       });
     });
 
+    // Manual preference: Boost K-pop to be the top genre
+    if (genreCounts['k-pop']) {
+      genreCounts['k-pop'] *= 3; // Triple the K-pop score to make it dominant
+    } else {
+      // If no K-pop detected but user prefers it, add it as top genre
+      genreCounts['k-pop'] = Math.max(...Object.values(genreCounts)) * 1.5 || 10;
+    }
+
     return genreCounts;
   }
 
@@ -315,6 +333,11 @@ export class MusicIntelligenceService {
       
       // Pop patterns
       if (name.match(/\b(pop|teen|idol|sensation|star)/)) genres.push('pop');
+      
+      // K-pop patterns
+      if (name.match(/\b(bts|blackpink|twice|stray\s?kids|itzy|aespa|newjeans|ive|seventeen|txt|tomorrow\s?x\s?together)/i)) genres.push('k-pop');
+      if (name.match(/\b(kpop|k-pop|korean|hallyu|idol)/i)) genres.push('k-pop');
+      if (name.match(/\b(sm\s?entertainment|yg\s?entertainment|jyp\s?entertainment|hybe|cube)/i)) genres.push('k-pop');
       
       // R&B/Soul patterns
       if (name.match(/\b(soul|motown|rhythm|blues|r&b)/)) genres.push('r&b');
@@ -437,6 +460,11 @@ export class MusicIntelligenceService {
     if (name.includes('instrumental')) genres.push('instrumental');
     if (name.includes('cover')) genres.push('cover');
     
+    // K-pop specific track patterns
+    if (name.match(/\b(korean\s?ver|kor\s?ver|hangul)/i)) genres.push('k-pop');
+    if (name.match(/\b(사랑|마음|꿈|별|하늘)/)) genres.push('k-pop'); // Common Korean words
+    if (name.match(/\b(oppa|unnie|sunbae|hoobae|aegyo)/i)) genres.push('k-pop'); // K-pop specific terms
+    
     return genres;
   }
 
@@ -495,8 +523,20 @@ export class MusicIntelligenceService {
     const uniqueRecs = this.deduplicateRecommendations(recommendations);
     const rankedRecs = this.rankRecommendationsWithML(uniqueRecs, insights);
     
-    console.log(`Generated ${rankedRecs.length} final recommendations`);
-    return rankedRecs.slice(0, 20); // Return top 20 recommendations
+    // Final sorting with follower count as a tiebreaker for similar scores
+    const finalRecs = rankedRecs.sort((a, b) => {
+      // Primary sort by score
+      if (Math.abs(a.score - b.score) > 5) {
+        return b.score - a.score;
+      }
+      // Secondary sort by follower count for similar scores
+      const aFollowers = a.playlist.followers?.total ?? 0;
+      const bFollowers = b.playlist.followers?.total ?? 0;
+      return bFollowers - aFollowers;
+    });
+    
+    console.log(`Generated ${finalRecs.length} final recommendations (sorted by score + follower count)`);
+    return finalRecs.slice(0, 20); // Return top 20 recommendations
   }
 
   /**
@@ -504,19 +544,22 @@ export class MusicIntelligenceService {
    */
   private async searchPlaylistsByGenre(genre: string, userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
     try {
-      // Try multiple search strategies
+      // Focus on search queries that return popular/mainstream playlists
       const searchQueries = [
-        `genre:"${genre}"`,
-        `${genre} music`,
-        `${genre} hits`,
-        `best ${genre}`
+        `"${genre}" hits charts`,        // Chart hits
+        `popular ${genre} playlist`,     // Popular playlists
+        `"${genre}" top 100`,           // Top playlists
+        `best ${genre} 2024`,           // Best/recent playlists
+        `"${genre}" greatest hits`,     // Greatest hits collections
+        `"${genre}" mainstream hits`,    // Mainstream hits
+        `"${genre}" radio hits`          // Radio hits
       ];
       
       for (const query of searchQueries) {
         const { data, error } = await this.makeSpotifyRequest('search', {
           q: query,
           type: 'playlist',
-          limit: 12
+          limit: 50 // Increased limit to find more popular playlists
         });
         
         if (error) {
@@ -525,16 +568,79 @@ export class MusicIntelligenceService {
         }
         
         if (data?.playlists?.items && data.playlists.items.length > 0) {
-          const recommendations = data.playlists.items
+          console.log(`Found ${data.playlists.items.length} playlists for query: ${query}`);
+          
+          // Debug: Log the first playlist to see the actual structure
+          if (data.playlists.items[0]) {
+            console.log('Sample playlist structure:', {
+              name: data.playlists.items[0].name,
+              followers: data.playlists.items[0].followers,
+              tracks: data.playlists.items[0].tracks,
+              owner: data.playlists.items[0].owner
+            });
+          }
+
+          const allPlaylists = data.playlists.items
             .filter((playlist: any) => {
               // More robust filtering
               if (!playlist || typeof playlist !== 'object') return false;
               if (!playlist.id || !playlist.name) return false;
-              // Ensure we have basic structure needed for scoring
               return true;
-            })
-            .map((playlist: any) => {
-              const normalizedPlaylist = this.normalizePlaylistData(playlist);
+            });
+            
+          // Only show playlists with significant follower counts (popular playlists)
+          const popularPlaylists = allPlaylists.filter((p: any) => {
+            const followerCount = p.followers?.total ?? 0;
+            
+            // If we have actual follower data, use it
+            if (followerCount > 0) {
+              return followerCount >= 1000; // Only playlists with 1000+ followers
+            }
+            
+            // If no follower data, estimate and only include if estimated 5000+
+            const normalizedPlaylist = this.normalizePlaylistData(p);
+            const estimatedFollowers = this.estimateFollowerCount(normalizedPlaylist);
+            return estimatedFollowers >= 5000; // Higher threshold for estimated followers
+          });
+          
+          // Sort by follower count (descending) to get most popular first
+          popularPlaylists.sort((a: any, b: any) => {
+            const aFollowers = a.followers?.total ?? 0;
+            const bFollowers = b.followers?.total ?? 0;
+            
+            // If both have actual follower data, sort by that
+            if (aFollowers > 0 && bFollowers > 0) {
+              return bFollowers - aFollowers;
+            }
+            
+            // If one has data and other doesn't, prioritize the one with data
+            if (aFollowers > 0 && bFollowers === 0) return -1;
+            if (bFollowers > 0 && aFollowers === 0) return 1;
+            
+            // If neither has data, sort by estimated followers
+            const aNormalized = this.normalizePlaylistData(a);
+            const bNormalized = this.normalizePlaylistData(b);
+            const aEstimated = this.estimateFollowerCount(aNormalized);
+            const bEstimated = this.estimateFollowerCount(bNormalized);
+            return bEstimated - aEstimated;
+          });
+          
+          console.log(`Found ${popularPlaylists.length} popular playlists (${allPlaylists.length} total) for query: ${query}`);
+
+          const recommendationPromises = popularPlaylists
+            .slice(0, 8) // Limit to top 8 to avoid too many API calls
+            .map(async (playlist: any) => {
+              let normalizedPlaylist = this.normalizePlaylistData(playlist);
+              
+              // If follower count is missing or zero, estimate it
+              if ((normalizedPlaylist.followers?.total ?? 0) === 0) {
+                const estimatedFollowers = this.estimateFollowerCount(normalizedPlaylist);
+                if (estimatedFollowers > 0) {
+                  normalizedPlaylist.followers = { href: null, total: estimatedFollowers };
+                  console.log(`Estimated ${estimatedFollowers} followers for ${playlist.name}`);
+                }
+              }
+              
               let score = 0;
               try {
                 score = this.calculateGenreScore(normalizedPlaylist, genre, userInsights);
@@ -549,7 +655,9 @@ export class MusicIntelligenceService {
                 matchingGenres: [genre],
                 similarityType: 'genre' as const
               };
-            })
+            });
+            
+          const recommendations = (await Promise.all(recommendationPromises))
             .filter((rec: PlaylistRecommendation) => rec.score > 0); // Filter out any recommendations with invalid scores
           
           if (recommendations.length > 0) {
@@ -662,12 +770,46 @@ export class MusicIntelligenceService {
           adjustedScore *= 0.85; // Penalty for over-representation
         }
         
-        // Popularity alignment
+        // Enhanced popularity alignment with more granular follower consideration
         const followerCount = rec.playlist.followers?.total ?? 0;
-        if (insights.popularityBias === 'mainstream' && followerCount > 50000) {
-          adjustedScore *= 1.1;
-        } else if (insights.popularityBias === 'underground' && followerCount < 10000) {
-          adjustedScore *= 1.1;
+        
+        // Universal quality boost for highly followed playlists (indicates good curation)
+        if (followerCount >= 1000000) {
+          adjustedScore *= 1.25; // Major playlists get significant boost
+        } else if (followerCount >= 500000) {
+          adjustedScore *= 1.20; // Very popular playlists
+        } else if (followerCount >= 100000) {
+          adjustedScore *= 1.15; // Popular playlists
+        } else if (followerCount >= 50000) {
+          adjustedScore *= 1.10; // Well-established playlists
+        }
+        
+        // User preference alignment
+        if (insights.popularityBias === 'mainstream') {
+          if (followerCount > 100000) {
+            adjustedScore *= 1.2; // Strong boost for mainstream users
+          } else if (followerCount > 50000) {
+            adjustedScore *= 1.15;
+          } else if (followerCount > 10000) {
+            adjustedScore *= 1.1;
+          } else if (followerCount < 5000) {
+            adjustedScore *= 0.9; // Slight penalty for very small playlists
+          }
+        } else if (insights.popularityBias === 'underground') {
+          if (followerCount < 10000) {
+            adjustedScore *= 1.15; // Boost for underground users preferring smaller playlists
+          } else if (followerCount < 50000) {
+            adjustedScore *= 1.1;
+          } else if (followerCount > 500000) {
+            adjustedScore *= 0.9; // Slight penalty for very mainstream playlists
+          }
+        } else { // mixed preference
+          // Balanced approach - moderate boost for quality indicators
+          if (followerCount > 250000) {
+            adjustedScore *= 1.1; // Moderate boost for very popular playlists
+          } else if (followerCount > 50000) {
+            adjustedScore *= 1.05; // Small boost for popular playlists
+          }
         }
         
         // Discovery rate alignment
@@ -746,18 +888,55 @@ export class MusicIntelligenceService {
   }
 
   /**
+   * Calculate a quality score based on follower count using logarithmic scaling
+   * Returns a score between 0-100 where higher followers = higher quality indication
+   */
+  private calculateFollowerQualityScore(followerCount: number): number {
+    if (followerCount <= 0) return 0;
+    
+    // Logarithmic scaling to prevent extremely popular playlists from dominating
+    // but still give significant weight to follower count
+    if (followerCount >= 10000000) return 100; // 10M+ followers = perfect score
+    if (followerCount >= 5000000) return 95;   // 5M+ followers
+    if (followerCount >= 1000000) return 90;   // 1M+ followers
+    if (followerCount >= 500000) return 85;    // 500K+ followers
+    if (followerCount >= 250000) return 80;    // 250K+ followers
+    if (followerCount >= 100000) return 75;    // 100K+ followers
+    if (followerCount >= 50000) return 70;     // 50K+ followers
+    if (followerCount >= 25000) return 65;     // 25K+ followers
+    if (followerCount >= 10000) return 60;     // 10K+ followers
+    if (followerCount >= 5000) return 55;      // 5K+ followers
+    if (followerCount >= 2500) return 50;      // 2.5K+ followers
+    if (followerCount >= 1000) return 45;      // 1K+ followers
+    if (followerCount >= 500) return 40;       // 500+ followers
+    if (followerCount >= 250) return 35;       // 250+ followers
+    if (followerCount >= 100) return 30;       // 100+ followers
+    if (followerCount >= 50) return 25;        // 50+ followers
+    if (followerCount >= 25) return 20;        // 25+ followers
+    if (followerCount >= 10) return 15;        // 10+ followers
+    if (followerCount >= 5) return 10;         // 5+ followers
+    return 5; // Less than 5 followers = minimal score
+  }
+
+  /**
    * Enhanced scoring for genre-based recommendations with ML-inspired approach
    */
   private calculateGenreScore(playlist: Playlist, genre: string, userInsights?: MusicInsights): number {
-    let score = 40; // Base score
+    let score = 30; // Reduced base score to give more weight to other factors
     
-    // Defensive check for followers property
+    // Use the enhanced follower quality scoring system
     const followerCount = playlist.followers?.total ?? 0;
-    if (followerCount > 100000) score += 25;
-    else if (followerCount > 50000) score += 20;
-    else if (followerCount > 10000) score += 15;
-    else if (followerCount > 1000) score += 10;
-    else if (followerCount > 100) score += 5;
+    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
+    
+    // Add follower quality score with appropriate weight (up to 40 points from followers)
+    score += (followerQualityScore * 0.4);
+    
+    // Quality assurance: Very high follower count suggests exceptional curation
+    if (followerCount > 1000000) {
+      score += 15; // Extra bonus for exceptional popularity
+    } else if (followerCount > 250000) {
+      score += 10; // Bonus for very high popularity
+    }
     
     // Text relevance with weighted matching
     const text = (playlist.name + ' ' + (playlist.description || '')).toLowerCase();
@@ -853,11 +1032,20 @@ export class MusicIntelligenceService {
       }
     }
     
-    // Follower count influence
+    // Enhanced follower count influence using quality scoring
     const followerCount = playlist.followers?.total ?? 0;
-    if (followerCount > 20000) score += 20;
-    else if (followerCount > 5000) score += 15;
-    else if (followerCount > 1000) score += 10;
+    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
+    
+    // Artist playlists benefit significantly from high follower counts (indicates good curation)
+    // Weight follower quality more heavily for artist playlists (up to 35 points)
+    score += (followerQualityScore * 0.35);
+    
+    // Extra bonus for exceptionally popular artist playlists
+    if (followerCount >= 500000) {
+      score += 15; // Major artist compilations/official playlists
+    } else if (followerCount >= 100000) {
+      score += 10; // Very popular artist playlists
+    }
     
     // Track count preference for artist playlists
     const trackCount = playlist.tracks?.total ?? 0;
@@ -903,10 +1091,20 @@ export class MusicIntelligenceService {
     if (playlist.description && playlist.description.includes('carefully')) score += 8;
     if (playlist.description && playlist.description.includes('perfect for')) score += 6;
     
-    // Follower count for mood playlists
+    // Enhanced follower count using quality scoring system
     const followerCount = playlist.followers?.total ?? 0;
-    if (followerCount > 15000) score += 15;
-    else if (followerCount > 3000) score += 10;
+    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
+    
+    // Mood playlists with high followers indicate excellent mood curation
+    // Weight follower quality moderately for mood playlists (up to 30 points)
+    score += (followerQualityScore * 0.3);
+    
+    // Extra bonus for exceptionally popular mood playlists
+    if (followerCount >= 250000) {
+      score += 12; // Major mood playlists (e.g., Spotify's official mood playlists)
+    } else if (followerCount >= 100000) {
+      score += 8; // Very popular mood playlists
+    }
     
     // Track count optimization for mood playlists
     const trackCount = playlist.tracks?.total ?? 0;
@@ -987,7 +1185,68 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Normalize playlist data to ensure required properties exist
+   * Estimate follower count based on playlist characteristics when actual data is unavailable
+   * Focused on identifying popular/mainstream playlists
+   */
+  private estimateFollowerCount(playlist: Playlist): number {
+    let estimatedFollowers = 0;
+    
+    // Track count influences estimated popularity (popular playlists tend to be longer)
+    const trackCount = playlist.tracks?.total ?? 0;
+    if (trackCount > 200) estimatedFollowers += 15000;  // Very comprehensive playlists
+    else if (trackCount > 100) estimatedFollowers += 10000;
+    else if (trackCount > 50) estimatedFollowers += 5000;
+    else if (trackCount > 25) estimatedFollowers += 2000;
+    else if (trackCount > 10) estimatedFollowers += 1000;
+    
+    // Playlist name patterns that strongly suggest popularity
+    const name = playlist.name.toLowerCase();
+    
+    // Chart/Popular indicators (high confidence)
+    if (name.includes('chart') || name.includes('billboard')) {
+      estimatedFollowers += 25000;
+    }
+    if (name.includes('hits') || name.includes('best') || name.includes('top')) {
+      estimatedFollowers += 15000;
+    }
+    if (name.includes('popular') || name.includes('greatest')) {
+      estimatedFollowers += 10000;
+    }
+    if (name.includes('official')) {
+      estimatedFollowers += 8000;  // Reduced from 50k since not Spotify-specific
+    }
+    
+    // Radio/Mainstream indicators
+    if (name.includes('radio') || name.includes('mainstream')) {
+      estimatedFollowers += 8000;
+    }
+    
+    // Year indicators (recent compilations tend to be popular)
+    if (name.includes('2024') || name.includes('2023')) {
+      estimatedFollowers += 5000;
+    }
+    
+    // Numbers suggesting rankings/charts
+    if (name.match(/\btop\s*\d+\b/) || name.match(/\bbest\s*\d+\b/)) {
+      estimatedFollowers += 8000;
+    }
+    
+    // Description quality indicates professional curation
+    if (playlist.description && playlist.description.length > 100) {
+      estimatedFollowers += 3000;
+    }
+    
+    // Owner patterns (check for verified/community curators)
+    const ownerName = playlist.owner?.display_name?.toLowerCase() ?? '';
+    if (ownerName.includes('official') || ownerName.includes('music') || ownerName.includes('records')) {
+      estimatedFollowers += 15000;  // Reduced from 20k, removed Spotify-specific check
+    }
+    
+    return Math.min(estimatedFollowers, 100000); // Cap at reasonable estimate
+  }
+
+  /**
+   * Enhanced playlist normalization with follower data fetching
    */
   private normalizePlaylistData(playlist: any): Playlist {
     // Ensure playlist is an object
