@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
+import { usePlaylists } from '../context/playlists';
 import {
   Drawer,
   Box,
@@ -17,7 +18,6 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Divider,
   Tooltip
 } from '@mui/material';
 import {
@@ -42,77 +42,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
-  const { token, isGuest } = useAuth();
+  const { isGuest } = useAuth();
   
-  // State for playlists
-  const [playlists, setPlaylists] = useState<any[]>([]);
-  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(false);
+  // Use global playlists context instead of local state
+  const { playlists, isLoadingPlaylists } = usePlaylists();
+  
+  // Local UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  
-  // Track if playlists have been fetched to prevent unnecessary refetches
-  const playlistsFetched = useRef(false);
 
   // Filter playlists based on search query
   const filteredPlaylists = playlists.filter(playlist =>
     playlist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     playlist.owner?.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Fetch user's playlists
-  useEffect(() => {
-    const fetchPlaylists = async () => {
-      // Don't fetch playlists if user is in guest mode or no token
-      if (isGuest || !token || token === 'GUEST') {
-        console.log('Guest mode or no token - skipping playlist fetch');
-        setPlaylists([]);
-        playlistsFetched.current = false;
-        return;
-      }
-
-      // Don't refetch if we already have fetched playlists for this session
-      if (playlistsFetched.current && playlists.length > 0) {
-        console.log('Playlists already fetched for this session, skipping');
-        return;
-      }
-
-      setIsLoadingPlaylists(true);
-      try {
-        console.log('Fetching playlists with token:', token.substring(0, 20) + '...');
-        const response = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        console.log('Playlists API response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Playlists data received:', data);
-          setPlaylists(data.items || []);
-          playlistsFetched.current = true;
-        } else {
-          const errorData = await response.json();
-          console.error('Failed to fetch playlists:', response.status, errorData);
-          
-          // If token is expired, try to refresh it
-          if (response.status === 401) {
-            console.log('Token expired, attempting to refresh...');
-            // You might want to trigger a token refresh here
-            playlistsFetched.current = false;
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching playlists:', error);
-        playlistsFetched.current = false;
-      } finally {
-        setIsLoadingPlaylists(false);
-      }
-    };
-
-    fetchPlaylists();
-  }, [token, isGuest]); // Keep dependencies but add ref-based caching
 
   const menuItems = [
     {
@@ -168,6 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden', // Prevent main container from scrolling
         px: isMobile ? 3 : 4,
         py: isMobile ? 3 : 4.5,
         pb: isMobile ? 12 : 10 // Add bottom padding to prevent conflict with player
@@ -180,8 +124,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         alignItems: 'center', 
         justifyContent: 'space-between', 
         borderBottom: '1px solid rgba(255,255,255,0.08)', 
-        pb: 3, 
-        mb: 3 
+        pb: 2, 
+        mb: 3,
+        flexShrink: 0 // Prevent header from shrinking
       }}>
         <Typography
           variant="h4"
@@ -191,11 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
             color: 'white',
             m: 0,
             fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
-            lineHeight: 1,
-            background: 'linear-gradient(45deg, #1db954, #1ed760)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            lineHeight: 1
           }}
         >
           Flowbeats
