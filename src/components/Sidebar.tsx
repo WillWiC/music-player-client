@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/auth';
 import {
   Drawer,
   Box,
@@ -12,16 +13,22 @@ import {
   IconButton,
   Avatar,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  TextField,
+  InputAdornment,
+  Chip,
+  Divider,
+  Tooltip
 } from '@mui/material';
 import {
   Home,
   Search,
   LibraryMusic,
   Explore,
-  Favorite,
   PlaylistPlay,
-  Close
+  Close,
+  QueueMusic,
+  FilterList
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -35,6 +42,77 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const { token, isGuest } = useAuth();
+  
+  // State for playlists
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  
+  // Track if playlists have been fetched to prevent unnecessary refetches
+  const playlistsFetched = useRef(false);
+
+  // Filter playlists based on search query
+  const filteredPlaylists = playlists.filter(playlist =>
+    playlist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    playlist.owner?.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Fetch user's playlists
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      // Don't fetch playlists if user is in guest mode or no token
+      if (isGuest || !token || token === 'GUEST') {
+        console.log('Guest mode or no token - skipping playlist fetch');
+        setPlaylists([]);
+        playlistsFetched.current = false;
+        return;
+      }
+
+      // Don't refetch if we already have fetched playlists for this session
+      if (playlistsFetched.current && playlists.length > 0) {
+        console.log('Playlists already fetched for this session, skipping');
+        return;
+      }
+
+      setIsLoadingPlaylists(true);
+      try {
+        console.log('Fetching playlists with token:', token.substring(0, 20) + '...');
+        const response = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        console.log('Playlists API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Playlists data received:', data);
+          setPlaylists(data.items || []);
+          playlistsFetched.current = true;
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to fetch playlists:', response.status, errorData);
+          
+          // If token is expired, try to refresh it
+          if (response.status === 401) {
+            console.log('Token expired, attempting to refresh...');
+            // You might want to trigger a token refresh here
+            playlistsFetched.current = false;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching playlists:', error);
+        playlistsFetched.current = false;
+      } finally {
+        setIsLoadingPlaylists(false);
+      }
+    };
+
+    fetchPlaylists();
+  }, [token, isGuest]); // Keep dependencies but add ref-based caching
 
   const menuItems = [
     {
@@ -67,24 +145,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
     }
   ];
 
-  const quickLinks = [
-    {
-      id: 'myplaylists',
-      label: 'My Playlists',
-      icon: <PlaylistPlay />,
-      path: '/library',
-      color: '#f59e0b' // Amber
-    },
-    {
-      id: 'liked',
-      label: 'Liked Songs',
-      icon: <Favorite />,
-      path: '/library',
-      color: '#8b5cf6' // Purple
-    },
-    // Removed 'Recently Played' quick link per request.
-  ];
-
   const handleNavigation = (path: string, isHome: boolean = false) => {
     if (isHome && onHomeClick) {
       onHomeClick(); // Clear album view
@@ -98,21 +158,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const drawerContent = (
     <Box
       sx={{
-        width: 288, // Same as the original w-72 (72 * 4 = 288px)
+        width: isMobile ? '85vw' : 320,
+        maxWidth: isMobile ? 350 : 320,
         height: '100vh',
-        bgcolor: '#121212', // Modern Spotify black
-        background: 'linear-gradient(180deg, #121212 0%, #000000 100%)',
+        bgcolor: '#0a0a0a',
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #000000 100%)',
         backdropFilter: 'blur(20px)',
         borderRight: '1px solid rgba(255,255,255,0.08)',
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
-        px: 4, // increased horizontal padding
-        py: 4.5  // increased vertical padding
+        px: isMobile ? 3 : 4,
+        py: isMobile ? 3 : 4.5,
+        pb: isMobile ? 12 : 10 // Add bottom padding to prevent conflict with player
       }}
     >
       {/* Header with title and close button */}
-      <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 2, mb: 3 }}>
+      <Box sx={{ 
+        width: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        borderBottom: '1px solid rgba(255,255,255,0.08)', 
+        pb: 3, 
+        mb: 3 
+      }}>
         <Typography
           variant="h4"
           component="div"
@@ -121,7 +191,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
             color: 'white',
             m: 0,
             fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
-            lineHeight: 1
+            lineHeight: 1,
+            background: 'linear-gradient(45deg, #1db954, #1ed760)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
           }}
         >
           Flowbeats
@@ -131,7 +205,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
             onClick={onClose}
             sx={{ 
               color: 'rgba(255, 255, 255, 0.6)',
-              '&:hover': { color: 'white' }
+              '&:hover': { 
+                color: 'white',
+                bgcolor: 'rgba(255, 255, 255, 0.1)' 
+              },
+              borderRadius: 2
             }}
           >
             <Close />
@@ -140,28 +218,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       </Box>
 
       {/* Main Navigation */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 3, flexShrink: 0 }}>
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => (
-            <ListItem key={item.id} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => handleNavigation(item.path, item.id === 'home')}
                 sx={{
-                  borderRadius: 2,
-                  px: 2,
-                  py: 1.5,
+                  borderRadius: 3,
+                  px: 3,
+                  py: 2,
                   color: item.isActive ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                  bgcolor: item.isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  bgcolor: item.isActive ? 'rgba(29, 185, 84, 0.15)' : 'transparent',
+                  border: item.isActive ? '1px solid rgba(29, 185, 84, 0.3)' : '1px solid transparent',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    color: 'white'
+                    bgcolor: item.isActive ? 'rgba(29, 185, 84, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                    color: 'white',
+                    transform: 'translateX(4px)'
                   },
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               >
                 <ListItemIcon sx={{ 
-                  color: 'inherit', 
-                  minWidth: 40 
+                  color: item.isActive ? '#1db954' : 'inherit', 
+                  minWidth: 44,
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.2rem'
+                  }
                 }}>
                   {item.icon}
                 </ListItemIcon>
@@ -178,78 +261,275 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         </List>
       </Box>
 
-      {/* Quick Links */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <Typography 
-          variant="subtitle2" 
-          sx={{ 
-            color: 'rgba(255, 255, 255, 0.6)', 
-            fontWeight: 600, 
-            mb: 2, 
-            px: 2,
-            fontSize: '0.8rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}
-        >
-          Quick Access
-        </Typography>
-        <List sx={{ p: 0 }}>
-              {quickLinks.map((link) => (
-            <ListItem key={link.id} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                onClick={() => {
-                  // Support quick links that target specific Library tabs
-                  if (link.id === 'liked') {
-                    navigate('/library', { state: { initialTab: 'liked' } });
-                    if (isMobile && onClose) onClose();
-                    return;
-                  }
-                  if (link.id === 'myplaylists') {
-                    navigate('/library', { state: { initialTab: 'playlists' } });
-                    if (isMobile && onClose) onClose();
-                    return;
-                  }
-                  handleNavigation(link.path);
-                }}
+      {/* My Playlists */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        minHeight: 0 // Important for flex child to enable scrolling
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          px: 3, 
+          mb: 2,
+          flexShrink: 0 // Prevent this header from shrinking
+        }}>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.5)', 
+              fontWeight: 600, 
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}
+          >
+            My Playlists {playlists.length > 0 && `(${playlists.length})`}
+          </Typography>
+          {playlists.length > 5 && (
+            <Tooltip title={showSearch ? 'Hide search' : 'Search playlists'}>
+              <IconButton
+                onClick={() => setShowSearch(!showSearch)}
+                size="small"
                 sx={{
-                  borderRadius: 2,
-                  px: 2,
-                  py: 1.5,
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    color: 'white'
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  '&:hover': { 
+                    color: '#1db954',
+                    bgcolor: 'rgba(29, 185, 84, 0.1)' 
                   },
                   transition: 'all 0.2s ease'
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Avatar
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      bgcolor: link.color,
-                      '& .MuiSvgIcon-root': {
-                        fontSize: '1rem',
-                        color: 'white'
-                      }
-                    }}
-                  >
-                    {link.icon}
-                  </Avatar>
-                </ListItemIcon>
-                <ListItemText 
-                  primary={link.label} 
-                  primaryTypographyProps={{ 
-                    fontWeight: 500,
-                    fontSize: '0.95rem'
-                  }} 
+                <FilterList sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+
+        {/* Search Field */}
+        {showSearch && (
+          <Box sx={{ px: 3, mb: 2, flexShrink: 0 }}>
+            <TextField
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search playlists..."
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '1rem' }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: 3,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid #1db954'
+                  },
+                  color: 'white',
+                  fontSize: '0.85rem'
+                }
+              }}
+              InputLabelProps={{
+                sx: { color: 'rgba(255, 255, 255, 0.5)' }
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Scrollable Playlist Container */}
+        <Box sx={{ 
+          px: 3, 
+          overflow: 'auto', 
+          flexGrow: 1,
+          minHeight: 0, // Important for flex child to enable scrolling
+          pb: 2, // Additional bottom padding for playlist items
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          },
+          msOverflowStyle: 'none',
+          scrollbarWidth: 'none'
+        }}>
+          <List sx={{ p: 0 }}>
+            {isGuest ? (
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 4,
+                px: 2,
+                borderRadius: 3,
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px dashed rgba(255, 255, 255, 0.1)'
+              }}>
+                <QueueMusic sx={{ 
+                  fontSize: '3rem', 
+                  color: 'rgba(255, 255, 255, 0.3)', 
+                  mb: 2 
+                }} />
+                <Typography 
+                  variant="body2"
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '0.85rem',
+                    mb: 2
+                  }}
+                >
+                  Sign in to access your playlists
+                </Typography>
+                <Chip 
+                  label="Login" 
+                  size="small"
+                  sx={{
+                    bgcolor: '#1db954',
+                    color: 'white',
+                    fontWeight: 600,
+                    '&:hover': { bgcolor: '#1ed760' }
+                  }}
                 />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+              </Box>
+            ) : isLoadingPlaylists ? (
+              <Box sx={{ textAlign: 'center', py: 3 }}>
+                <Typography 
+                  variant="body2"
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '0.85rem',
+                    fontStyle: 'italic'
+                  }}
+                >
+                  Loading your playlists...
+                </Typography>
+              </Box>
+            ) : filteredPlaylists.length === 0 ? (
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 3,
+                px: 2,
+                borderRadius: 3,
+                bgcolor: 'rgba(255, 255, 255, 0.05)'
+              }}>
+                <Typography 
+                  variant="body2"
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {searchQuery ? 'No playlists match your search' : 'No playlists found'}
+                </Typography>
+              </Box>
+            ) : (
+              filteredPlaylists.slice(0, 15).map((playlist: any) => (
+                <ListItem key={playlist.id} disablePadding sx={{ mb: 0.5 }}>
+                  <Tooltip title={`${playlist.name} by ${playlist.owner?.display_name || 'Unknown'}`} placement="right">
+                    <ListItemButton
+                      onClick={() => {
+                        navigate(`/playlist/${playlist.id}`);
+                        if (isMobile && onClose) onClose();
+                      }}
+                      sx={{
+                        borderRadius: 2.5,
+                        px: 2,
+                        py: 1.5,
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        bgcolor: 'transparent',
+                        border: '1px solid transparent',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.08)',
+                          color: 'white',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          transform: 'translateX(4px)',
+                          '& .playlist-cover': {
+                            transform: 'scale(1.05)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                          }
+                        },
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        <Avatar
+                          src={playlist.images?.[0]?.url}
+                          className="playlist-cover"
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: 'linear-gradient(45deg, #1db954, #1ed760)',
+                            transition: 'all 0.3s ease',
+                            '& .MuiSvgIcon-root': {
+                              fontSize: '1rem',
+                              color: 'white'
+                            }
+                          }}
+                        >
+                          <PlaylistPlay sx={{ fontSize: '1rem' }} />
+                        </Avatar>
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={playlist.name} 
+                        secondary={`Playlist • ${playlist.owner?.display_name || 'Unknown'}`}
+                        primaryTypographyProps={{ 
+                          fontWeight: 500,
+                          fontSize: '0.875rem',
+                          noWrap: true,
+                          sx: { color: 'inherit' }
+                        }}
+                        secondaryTypographyProps={{
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          fontSize: '0.75rem',
+                          noWrap: true
+                        }}
+                      />
+                    </ListItemButton>
+                  </Tooltip>
+                </ListItem>
+              ))
+            )}
+            
+            {/* View All Playlists Link */}
+            {!isGuest && !isLoadingPlaylists && filteredPlaylists.length > 15 && (
+              <ListItem disablePadding sx={{ mt: 2 }}>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/library', { state: { initialTab: 'playlists' } });
+                    if (isMobile && onClose) onClose();
+                  }}
+                  sx={{
+                    borderRadius: 2.5,
+                    px: 2,
+                    py: 1.5,
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px dashed rgba(255, 255, 255, 0.1)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px dashed rgba(255, 255, 255, 0.2)'
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <ListItemText 
+                    primary={`View all ${playlists.length} playlists`}
+                    primaryTypographyProps={{ 
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'center'
+                    }} 
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
+          </List>
+        </Box>
       </Box>
     </Box>
   );
@@ -268,11 +548,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         '& .MuiDrawer-paper': {
           border: 'none',
           borderRight: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-          bgcolor: '#121212',
-          background: 'linear-gradient(180deg, #121212 0%, #000000 100%)',
+          boxShadow: isMobile 
+            ? '8px 0 32px rgba(0,0,0,0.3)' 
+            : '4px 0 24px rgba(0,0,0,0.15)',
+          bgcolor: '#0a0a0a',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #000000 100%)',
           backdropFilter: 'blur(20px)',
-          zIndex: 1200
+          zIndex: 1200,
+          width: isMobile ? '85vw' : 320,
+          maxWidth: isMobile ? 350 : 320
         }
       }}
     >

@@ -552,7 +552,7 @@ const Dashboard: React.FC = () => {
           <span className="text-lg font-bold text-green-400">♪</span>
         </div>
         <div className="text-sm font-semibold text-white">Recent Plays</div>
-        <div className="text-xs text-gray-400">Continue listening</div>
+        <div className="text-xs text-gray-400">Recently Played Tracks</div>
       </button>
 
       <button
@@ -708,7 +708,7 @@ const Dashboard: React.FC = () => {
             {/* Section Title */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Continue Listening</h2>
+                <h2 className="text-2xl font-bold text-white mb-1">Recently Played Tracks</h2>
                 <p className="text-gray-400 text-sm">Pick up where you left off</p>
               </div>
               <div className="flex items-center gap-3">
