@@ -29,6 +29,8 @@ body {
   /* Reserve vertical scrollbar space to avoid layout shift when modals/menus toggle page scroll */
   overflow-x: hidden;
   overflow-y: scroll;
+  /* Hide scrollbar for Firefox */
+  scrollbar-width: none;
   /* Prevent MUI from causing layout shifts when managing scroll */
   scrollbar-gutter: stable;
 }
@@ -44,22 +46,23 @@ body {
   min-height: 100vh;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Hidden */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 0px;
+  background: transparent; /* Hide scrollbar for Chrome, Safari and Opera */
 }
 
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1a1a;
+  background: transparent;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a2a;
+  background: transparent;
 }
 
 /* Glassmorphism effect */
