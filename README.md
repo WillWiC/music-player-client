@@ -1,89 +1,234 @@
-# Spotify-like Web Music Player (React + TypeScript + Vite)
+# FlowBeats - Intelligent Music Player (React + TypeScript + Vite)
 
-This repository is a lightweight Spotify-style web client built with React, TypeScript, Vite and MUI.
+An advanced Spotify-style web client built with React, TypeScript, Vite and Material-UI, featuring AI-powered music intelligence and personalized recommendations.
 
-It includes:
+## ✨ Key Features
 
-- OAuth PKCE authentication with Spotify
-- Search (tracks, albums, artists) with inline play controls
-- Dashboard with recently played, new releases and top tracks
-- A `Library` page that shows your playlists, liked songs (saved tracks), saved albums and followed artists
-- Integration with the Spotify Web Playback SDK for in-browser playback (requires Spotify Premium)
+### 🎵 **Core Music Experience**
+- **OAuth PKCE Authentication** with Spotify - Secure login flow
+- **Advanced Search** - Tracks, albums, artists with inline play controls
+- **Personalized Dashboard** - Recently played, new releases, and top tracks
+- **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
+- **Web Playback Integration** - In-browser playback with Spotify Web Playback SDK
+
+### 🧠 **AI-Powered Music Intelligence**
+- **Smart Genre Detection** - Advanced pattern matching for 12+ music categories
+- **K-pop Specialization** - Enhanced detection for Korean music and major K-pop artists
+- **Personalized Recommendations** - AI-driven playlist suggestions based on listening history
+- **Music Profile Analysis** - Detailed insights into your musical preferences
+- **Popular Playlist Filtering** - Curated selection of high-quality, well-followed playlists
+
+### 🎨 **Enhanced User Experience**
+- **Modern Dark UI** - Sleek, Spotify-inspired interface with glassmorphism effects
+- **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
+- **Responsive Design** - Optimized for desktop and mobile devices
+- **Real-time Updates** - Live music data and recommendation updates
+
+## 🛠 Technology Stack
+
+- **Frontend**: React 19, TypeScript, Vite
+- **UI Framework**: Material-UI (MUI) v7
+- **State Management**: Redux Toolkit
+- **Routing**: React Router v7
+- **Styling**: Tailwind CSS with custom components
+- **API Integration**: Spotify Web API
+- **Authentication**: OAuth 2.0 PKCE flow
+- **Deployment**: Docker support with multi-stage builds
 
 ---
 
-## Requirements
+## 📋 Requirements
 
-- Node.js 18+ and npm
-- A Spotify account (Premium is required for playback)
-- A Spotify application (Client ID) configured in the Spotify Developer Dashboard with a Redirect URI matching the app (e.g. `http://localhost:5173`)
+- **Node.js** 18+ and npm
+- **Spotify Account** (Premium required for playback functionality)
+- **Spotify App Registration** - Client ID configured in Spotify Developer Dashboard
+- **Redirect URI** - Must match your app URL (e.g., `http://localhost:5173`)
 
 ---
 
-## Quick start (development)
+## 🚀 Quick Start (Development)
 
-1. Install dependencies
-
+### 1. **Install Dependencies**
 ```bash
 npm install
+# or for legacy peer deps compatibility
+npm run install:legacy
 ```
 
-2. Configure environment variables
+### 2. **Environment Configuration**
+Create a `.env` file in the project root:
 
-Create a `.env` file in the project root (or set environment variables). The app reads these via Vite (`import.meta.env`). Example:
-
-```
+```env
 VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
 VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173/
 ```
 
-Make sure the Redirect URI is registered for your Spotify app in the Spotify Developer Dashboard.
+> **Important**: Register the redirect URI in your Spotify Developer Dashboard
 
-3. Start the dev server
-
+### 3. **Development Server**
 ```bash
+# Start frontend only
 npm run dev
+
+# Start both frontend and backend
+npm run dev:all
 ```
 
-4. Open the app
+### 4. **Access the Application**
+- Open `http://localhost:5173` in your browser
+- Click "Continue with Spotify" to authenticate
+- Grant required permissions for full functionality
 
-- Visit the URL shown by Vite (usually `http://localhost:5173`).
-- Click "Continue with Spotify" and complete the OAuth flow. The app requests scopes required to read your library and control playback.
+## 🐳 Docker Support
 
----
-
-## Important scope notes
-
-To read saved tracks/albums and followed artists, the app requests extra scopes. If you previously logged-in before those scopes were added, you must re-login (use the Logout button in the app) so Spotify prompts you for the new scopes:
-
-- `user-library-read` — read your saved tracks and albums
-- `user-follow-read` — read the artists you follow
-
-If the Library page is empty despite you having content, re-login to the app to ensure the token contains these scopes.
-
----
-
-## Production build
-
-Build the app for production:
-
+### Development with Docker
 ```bash
+# Build development image
+npm run docker:build:dev
+
+# Run with live reload
+npm run docker:run:dev        # Windows
+npm run docker:run:dev:unix   # Linux/macOS
+
+# Docker Compose (recommended)
+npm run docker:compose:dev
+```
+
+### Production Deployment
+```bash
+# Build production image
+npm run docker:build:prod
+
+# Run production container
+npm run docker:run
+
+# Docker Compose production
+npm run docker:compose:prod
+```
+
+## 🎯 Music Intelligence Features
+
+### **Smart Recommendations**
+- **Genre-Aware Suggestions**: Detects 12+ music categories including K-pop, Electronic, Hip-hop, Rock, Classical, and more
+- **Popular Playlist Curation**: Filters for high-quality playlists with substantial follower counts
+- **Personalized Discovery**: AI-powered recommendations based on your listening history
+- **Cultural Specialization**: Enhanced detection for K-pop artists, Korean music, and Asian pop
+
+### **Advanced Analytics**
+- **Music Profile Analysis**: Detailed breakdown of your musical preferences
+- **Listening Pattern Recognition**: Identifies trends in your music consumption
+- **Diversity Scoring**: Measures the variety in your music taste
+- **Genre Distribution**: Visual representation of your musical preferences
+
+---
+
+## 🔧 Production Build
+
+### Standard Build
+```bash
+# Build for production
 npm run build
-```
 
-Preview the built site locally:
-
-```bash
+# Preview locally
 npm run preview
 ```
 
+### Docker Production
+```bash
+# Build and run production container
+npm run docker:build:prod
+npm run docker:run
+
+# Or use Docker Compose
+npm run docker:compose:prod
+```
+
 ---
 
-## Troubleshooting
+## 🔑 Spotify API Scopes
 
-- Playback doesn't work: verify you have Spotify Premium and that a Spotify playback device (desktop/mobile app or Web Playback SDK player) is active and logged into the same account.
-- Library lists empty: re-authorize (logout & re-login) so the token includes `user-library-read` and `user-follow-read`.
-- Token or CORS errors: ensure your `VITE_SPOTIFY_REDIRECT_URI` matches the redirect URI registered with your Spotify app.
+The application requests these Spotify permissions:
+
+### **Required Scopes**
+- `streaming` — Control Spotify playback
+- `user-read-email` — Access user profile
+- `user-read-private` — Access user account details
+- `user-library-read` — Read saved tracks and albums
+- `user-follow-read` — Read followed artists
+- `user-read-recently-played` — Access listening history
+- `user-top-read` — Access top artists and tracks
+- `playlist-read-private` — Read private playlists
+- `playlist-read-collaborative` — Read collaborative playlists
+
+> **Note**: If you previously authorized the app before new scopes were added, logout and re-login to grant additional permissions.
 
 ---
+
+## 🔍 Troubleshooting
+
+### **Playback Issues**
+- ✅ Verify **Spotify Premium** subscription
+- ✅ Ensure Spotify app is **active** on a device
+- ✅ Check that both accounts are **logged into the same Spotify account**
+- ✅ Try refreshing the **Web Playback SDK** connection
+
+### **Empty Library/Data**
+- ✅ **Re-authorize** the application (logout → login)
+- ✅ Ensure all **required scopes** are granted
+- ✅ Check **internet connection** and API availability
+
+### **Authentication Errors**
+- ✅ Verify `VITE_SPOTIFY_REDIRECT_URI` matches **registered URI**
+- ✅ Check **Client ID** is correct
+- ✅ Ensure redirect URI is properly **registered** in Spotify Dashboard
+- ✅ Clear browser **cache and cookies**
+
+### **Recommendation Issues**
+- ✅ Allow time for **music intelligence** to analyze your listening history
+- ✅ Ensure you have **sufficient listening data** (recommended: 20+ tracks)
+- ✅ Check that **genre detection** is working by viewing your music profile
+
+---
+
+## 🎨 UI Features
+
+- **Modern Dark Theme** - Spotify-inspired design with glassmorphism effects
+- **Hidden Scrollbars** - Clean interface with maintained scroll functionality  
+- **Responsive Layout** - Optimized for desktop and mobile viewing
+- **Interactive Components** - Smooth animations and transitions
+- **Accessibility** - WCAG compliant design patterns
+
+---
+
+## 📚 Additional Documentation
+
+- [Docker Setup Guide](./additional_readme/DOCKER.md)
+- [Authentication Flow](./additional_readme/README_AUTH.md)
+- [Token Refresh Implementation](./additional_readme/TOKEN_REFRESH_IMPLEMENTATION.md)
+- [Category Improvements](./additional_readme/CATEGORY_IMPROVEMENTS.md)
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Spotify** for their comprehensive Web API and Web Playback SDK
+- **Material-UI** for the excellent React component library
+- **Vite** for the fast development experience
+- **React Team** for the powerful frontend framework
 
