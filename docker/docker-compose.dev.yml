@@ -4,8 +4,8 @@ services:
   # Development service with hot reload
   music-player-dev:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       target: development
     container_name: music-player-dev
     ports:
@@ -16,12 +16,12 @@ services:
       - VITE_PORT=5173
     volumes:
       # Mount source code for hot reload
-      - .:/app
+      - ..:/app
       - /app/node_modules
       # Mount config files
-      - ./vite.config.ts:/app/vite.config.ts
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./package.json:/app/package.json
+      - ../vite.config.ts:/app/vite.config.ts
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../package.json:/app/package.json
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -37,8 +37,8 @@ services:
   # Development backend service (Node.js/Express)
   music-player-backend-dev:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       target: development
     container_name: music-player-backend-dev
     ports:
@@ -47,7 +47,7 @@ services:
       - NODE_ENV=development
       - PORT=3001
     volumes:
-      - .:/app
+      - ..:/app
       - /app/node_modules
     restart: unless-stopped
     stdin_open: true
