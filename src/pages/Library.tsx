@@ -174,7 +174,7 @@ const Library: React.FC = () => {
           ) : (
             <div className={tabHighlight ? 'tab-open-highlight' : ''}>
               {tab === 0 && (
-                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                   {playlists.map((pl, index) => (
                     <Grow in timeout={250 + index * 30} key={pl.id}>
                       <div className="cursor-pointer" onClick={() => navigate(`/playlist/${pl.id}`)}>
