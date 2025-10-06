@@ -17,6 +17,7 @@ const PlaylistRecommendations: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { recommendations, insights, isLoading, error, refreshRecommendations, clearError } = useMusicIntelligence();
+  const [lastRefreshTime, setLastRefreshTime] = React.useState<number | null>(null);
 
   const handlePlaylistPlay = async (recommendation: PlaylistRecommendation) => {
     try {
@@ -29,9 +30,11 @@ const PlaylistRecommendations: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    const startTime = Date.now();
     clearError();
-    refreshRecommendations();
+    await refreshRecommendations();
+    setLastRefreshTime(Date.now() - startTime);
   };
 
   const getScoreColor = (score: number): string => {
@@ -106,9 +109,14 @@ const PlaylistRecommendations: React.FC = () => {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <span className="text-2xl">🤖</span>
             Smart Playlist Recommendations
+            {lastRefreshTime && (
+              <span className="text-xs text-green-400 font-normal ml-2">
+                ⚡ Loaded in {(lastRefreshTime / 1000).toFixed(1)}s
+              </span>
+            )}
           </h2>
           <p className="text-sm text-gray-400 mt-1">
-            Curated for your music taste • Based on {insights?.topGenres.length || 0} genres
+            AI-curated for you • {recommendations.length} playlists • {insights?.topGenres.length || 0} genres analyzed
           </p>
         </div>
         <Tooltip title="Refresh recommendations">
@@ -117,7 +125,7 @@ const PlaylistRecommendations: React.FC = () => {
             disabled={isLoading}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <RefreshIcon />
+            <RefreshIcon className={isLoading ? 'animate-spin' : ''} />
           </IconButton>
         </Tooltip>
       </div>
@@ -147,11 +155,11 @@ const PlaylistRecommendations: React.FC = () => {
         </div>
       )}
 
-      {/* Recommendations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Recommendations Grid - OPTIMIZED: Increased to 12 items visible */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {recommendations
           .filter(rec => rec?.playlist?.id && rec?.playlist?.name)
-          .slice(0, 9)
+          .slice(0, 12) // Increased from 9 to 12
           .map((recommendation) => (
           <div
             key={recommendation.playlist.id}
@@ -200,7 +208,7 @@ const PlaylistRecommendations: React.FC = () => {
             {/* Recommendation Reasons */}
             <div className="space-y-1">
               {recommendation.reasons.slice(0, 2).map((reason, index) => (
-                <div key={index} className="text-xs text-gray-400 bg-white/5 rounded px-2 py-1">
+                <div key={index} className="text-xs text-gray-400 bg-white/5 rounded px-2 py-1 truncate">
                   {reason}
                 </div>
               ))}
@@ -224,13 +232,13 @@ const PlaylistRecommendations: React.FC = () => {
       </div>
 
       {/* Show More Button */}
-      {recommendations.length > 9 && (
+      {recommendations.length > 12 && (
         <div className="text-center">
           <button
             onClick={() => navigate('/recommendations')}
             className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10"
           >
-            View All {recommendations.length} Recommendations
+            View All {recommendations.length} Recommendations →
           </button>
         </div>
       )}

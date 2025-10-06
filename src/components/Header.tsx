@@ -135,6 +135,14 @@ const Header: React.FC<HeaderProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
+    
+    // Auto-navigate to search page when user starts typing
+    if (value.trim() && location.pathname !== '/search') {
+      navigate('/search');
+      // Set global query for search page
+      setGlobalQuery(value);
+    }
+    
     // Update global query if on search page
     if (location.pathname === '/search') {
       setGlobalQuery(value);

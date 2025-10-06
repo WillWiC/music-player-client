@@ -82,12 +82,19 @@ const SearchPage: React.FC = () => {
     }
   };
 
-  // Get top result (first track with highest popularity)
+  // Get top result (most relevant = first result from Spotify API)
   const getTopResult = () => {
     if (results.tracks.length === 0) return null;
-    return results.tracks.reduce((prev, current) => 
-      (current.popularity || 0) > (prev.popularity || 0) ? current : prev
-    );
+    // Spotify's API returns results in order of relevance, so the first track is the most relevant
+    return results.tracks[0];
+  };
+
+  // Helper function to safely get image URL
+  const getImageUrl = (images: any[] | null | undefined): string => {
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return '/vite.svg';
+    }
+    return images[0]?.url || '/vite.svg';
   };
 
   const topResult = getTopResult();
@@ -117,23 +124,6 @@ const SearchPage: React.FC = () => {
                         for "{query}"
                       </Typography>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-4">
-                    <Chip 
-                      icon={<MusicNote />} 
-                      label={`${results.tracks.length} Tracks`} 
-                      sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: 'primary.main', fontWeight: 600, borderRadius: 2 }}
-                    />
-                    <Chip 
-                      icon={<AlbumIcon />} 
-                      label={`${results.albums.length} Albums`} 
-                      sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#60a5fa', fontWeight: 600, borderRadius: 2 }}
-                    />
-                    <Chip 
-                      icon={<Person />} 
-                      label={`${results.artists.length} Artists`} 
-                      sx={{ bgcolor: 'rgba(168,85,247,0.1)', color: '#a78bfa', fontWeight: 600, borderRadius: 2 }}
-                    />
                   </div>
                 </div>
               ) : (
@@ -296,7 +286,7 @@ const SearchPage: React.FC = () => {
                               >
                                 <div>
                                   <img 
-                                    src={topResult.album?.images?.[0]?.url || '/vite.svg'} 
+                                    src={getImageUrl(topResult.album?.images)} 
                                     alt={topResult.name}
                                     className="w-28 h-28 rounded-lg shadow-2xl mb-6"
                                   />
@@ -348,14 +338,14 @@ const SearchPage: React.FC = () => {
                             Songs
                           </Typography>
                           <div className="space-y-2">
-                            {results.tracks.slice(0, 5).map((track, index) => (
+                            {results.tracks.filter(t => t != null).slice(0, 5).map((track, index) => (
                               <Grow in key={track.id} timeout={300 + index * 50}>
                                 <div
                                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
                                   onClick={() => handlePlayClick(track)}
                                 >
                                   <img 
-                                    src={track.album?.images?.[0]?.url || '/vite.svg'} 
+                                    src={getImageUrl(track.album?.images)} 
                                     alt={track.name}
                                     className="w-12 h-12 rounded"
                                   />
@@ -402,15 +392,15 @@ const SearchPage: React.FC = () => {
                         <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
                           Artists
                         </Typography>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          {results.artists.slice(0, 6).map((artist, index) => (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                          {results.artists.filter(a => a != null).slice(0, 8).map((artist, index) => (
                             <Grow in key={artist.id} timeout={300 + index * 50}>
                               <Card 
                                 sx={{ 
                                   bgcolor: 'rgba(255,255,255,0.02)', 
                                   border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 3,
-                                  p: 2,
+                                  borderRadius: 2,
+                                  p: 1.5,
                                   cursor: 'pointer',
                                   transition: 'all 0.3s ease',
                                   '&:hover': {
@@ -420,24 +410,25 @@ const SearchPage: React.FC = () => {
                                 onClick={() => navigate(`/artist/${artist.id}`)}
                               >
                                 <img 
-                                  src={artist.images?.[0]?.url || '/vite.svg'} 
+                                  src={getImageUrl(artist.images)} 
                                   alt={artist.name}
-                                  className="w-full aspect-square object-cover rounded-full mb-3 shadow-lg"
+                                  className="w-full aspect-square object-cover rounded-full mb-2 shadow-lg"
                                 />
                                 <Typography 
-                                  variant="body2" 
+                                  variant="caption" 
                                   sx={{ 
                                     color: 'white', 
                                     fontWeight: 600,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    mb: 0.5
+                                    display: 'block',
+                                    fontSize: '0.75rem'
                                   }}
                                 >
                                   {artist.name}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
                                   Artist
                                 </Typography>
                               </Card>
@@ -453,15 +444,15 @@ const SearchPage: React.FC = () => {
                         <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
                           Albums
                         </Typography>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          {results.albums.slice(0, 6).map((album, index) => (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                          {results.albums.filter(a => a != null).slice(0, 8).map((album, index) => (
                             <Grow in key={album.id} timeout={300 + index * 50}>
                               <Card 
                                 sx={{ 
                                   bgcolor: 'rgba(255,255,255,0.02)', 
                                   border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 3,
-                                  p: 2,
+                                  borderRadius: 2,
+                                  p: 1.5,
                                   cursor: 'pointer',
                                   transition: 'all 0.3s ease',
                                   '&:hover': {
@@ -471,19 +462,20 @@ const SearchPage: React.FC = () => {
                                 onClick={() => navigate(`/album/${album.id}`)}
                               >
                                 <img 
-                                  src={album.images?.[0]?.url || '/vite.svg'} 
+                                  src={getImageUrl(album.images)} 
                                   alt={album.name}
-                                  className="w-full aspect-square object-cover rounded-lg mb-3 shadow-lg"
+                                  className="w-full aspect-square object-cover rounded-lg mb-2 shadow-lg"
                                 />
                                 <Typography 
-                                  variant="body2" 
+                                  variant="caption" 
                                   sx={{ 
                                     color: 'white', 
                                     fontWeight: 600,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    mb: 0.5
+                                    display: 'block',
+                                    fontSize: '0.75rem'
                                   }}
                                 >
                                   {album.name}
@@ -495,7 +487,8 @@ const SearchPage: React.FC = () => {
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    display: 'block'
+                                    display: 'block',
+                                    fontSize: '0.7rem'
                                   }}
                                 >
                                   {album.artists.map((a: any) => a.name).join(', ')}
@@ -513,15 +506,15 @@ const SearchPage: React.FC = () => {
                         <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
                           Playlists
                         </Typography>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          {results.playlists.slice(0, 6).map((playlist: any, index: number) => (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                          {results.playlists.filter(p => p != null).slice(0, 8).map((playlist: any, index: number) => (
                             <Grow in key={playlist.id} timeout={300 + index * 50}>
                               <Card 
                                 sx={{ 
                                   bgcolor: 'rgba(255,255,255,0.02)', 
                                   border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 3,
-                                  p: 2,
+                                  borderRadius: 2,
+                                  p: 1.5,
                                   cursor: 'pointer',
                                   transition: 'all 0.3s ease',
                                   '&:hover': {
@@ -531,19 +524,20 @@ const SearchPage: React.FC = () => {
                                 onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
                               >
                                 <img 
-                                  src={playlist.images?.[0]?.url || '/vite.svg'} 
+                                  src={getImageUrl(playlist.images)} 
                                   alt={playlist.name}
-                                  className="w-full aspect-square object-cover rounded-lg mb-3 shadow-lg"
+                                  className="w-full aspect-square object-cover rounded-lg mb-2 shadow-lg"
                                 />
                                 <Typography 
-                                  variant="body2" 
+                                  variant="caption" 
                                   sx={{ 
                                     color: 'white', 
                                     fontWeight: 600,
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    mb: 0.5
+                                    display: 'block',
+                                    fontSize: '0.75rem'
                                   }}
                                 >
                                   {playlist.name}
@@ -555,7 +549,8 @@ const SearchPage: React.FC = () => {
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    display: 'block'
+                                    display: 'block',
+                                    fontSize: '0.7rem'
                                   }}
                                 >
                                   {playlist.owner?.display_name || 'Playlist'}
@@ -587,7 +582,7 @@ const SearchPage: React.FC = () => {
                 {activeTab === 1 && (
                   <div className="space-y-3">
                     {results.tracks.length > 0 ? (
-                      results.tracks.map((track, index) => (
+                      results.tracks.filter(t => t != null).map((track, index) => (
                         <Grow in key={track.id} timeout={300 + index * 50}>
                           <Card 
                             sx={{ 
@@ -609,7 +604,7 @@ const SearchPage: React.FC = () => {
                               <div className="flex items-center gap-4">
                                 <div className="relative group">
                                   <img 
-                                    src={track.album?.images?.[0]?.url || '/vite.svg'} 
+                                    src={getImageUrl(track.album?.images)} 
                                     alt={track.name} 
                                     className="w-14 h-14 rounded-lg shadow-lg"
                                   />
@@ -668,54 +663,50 @@ const SearchPage: React.FC = () => {
 
                 {/* ARTISTS TAB - All artists */}
                 {activeTab === 2 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
                     {results.artists.length > 0 ? (
-                      results.artists.map((artist, index) => (
+                      results.artists.filter(a => a != null).map((artist, index) => (
                         <Grow in key={artist.id} timeout={300 + index * 50}>
                           <Card 
                             sx={{ 
                               bgcolor: 'rgba(255,255,255,0.02)', 
                               border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 3,
+                              borderRadius: 2,
                               transition: 'all 0.3s ease',
                               cursor: 'pointer',
+                              p: 1.5,
                               '&:hover': {
                                 bgcolor: 'rgba(255,255,255,0.05)',
                                 borderColor: '#a78bfa',
-                                transform: 'translateY(-4px)',
-                                boxShadow: '0 12px 32px rgba(167,139,250,0.2)'
                               }
                             }}
                             onClick={() => navigate(`/artist/${artist.id}`)}
                           >
-                            <div className="relative aspect-square">
+                            <div className="relative aspect-square mb-2">
                               <img 
-                                src={artist.images?.[0]?.url || '/vite.svg'} 
+                                src={getImageUrl(artist.images)} 
                                 alt={artist.name} 
-                                className="w-full h-full object-cover rounded-full"
+                                className="w-full h-full object-cover rounded-full shadow-lg"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3 rounded-full">
-                                <Person sx={{ color: '#a78bfa', fontSize: 28 }} />
-                              </div>
                             </div>
-                            <CardContent sx={{ p: 2 }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: 'white', 
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  mb: 0.5
-                                }}
-                              >
-                                {artist.name}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                Artist
-                              </Typography>
-                            </CardContent>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'white', 
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                fontSize: '0.75rem',
+                                mb: 0.25
+                              }}
+                            >
+                              {artist.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                              Artist
+                            </Typography>
                           </Card>
                         </Grow>
                       ))
@@ -738,63 +729,60 @@ const SearchPage: React.FC = () => {
 
                 {/* ALBUMS TAB - All albums */}
                 {activeTab === 3 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
                     {results.albums.length > 0 ? (
-                      results.albums.map((album, index) => (
+                      results.albums.filter(a => a != null).map((album, index) => (
                         <Grow in key={album.id} timeout={300 + index * 50}>
                           <Card 
                             sx={{ 
                               bgcolor: 'rgba(255,255,255,0.02)', 
                               border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 3,
+                              borderRadius: 2,
                               transition: 'all 0.3s ease',
                               cursor: 'pointer',
+                              p: 1.5,
                               '&:hover': {
                                 bgcolor: 'rgba(255,255,255,0.05)',
                                 borderColor: '#60a5fa',
-                                transform: 'translateY(-4px)',
-                                boxShadow: '0 12px 32px rgba(96,165,250,0.2)'
                               }
                             }}
                             onClick={() => navigate(`/album/${album.id}`)}
                           >
-                            <div className="relative aspect-square">
+                            <div className="relative aspect-square mb-2">
                               <img 
-                                src={album.images?.[0]?.url || '/vite.svg'} 
+                                src={getImageUrl(album.images)} 
                                 alt={album.name} 
-                                className="w-full h-full object-cover rounded-lg"
+                                className="w-full h-full object-cover rounded-lg shadow-lg"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
-                                <AlbumIcon sx={{ color: '#60a5fa', fontSize: 28 }} />
-                              </div>
                             </div>
-                            <CardContent sx={{ p: 2 }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: 'white', 
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  mb: 0.5
-                                }}
-                              >
-                                {album.name}
-                              </Typography>
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  color: 'text.secondary',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  display: 'block'
-                                }}
-                              >
-                                {album.artists?.map((a: any) => a.name).join(', ')}
-                              </Typography>
-                            </CardContent>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'white', 
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                fontSize: '0.75rem',
+                                mb: 0.25
+                              }}
+                            >
+                              {album.name}
+                            </Typography>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'text.secondary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                fontSize: '0.7rem'
+                              }}
+                            >
+                              {album.artists?.map((a: any) => a.name).join(', ')}
+                            </Typography>
                           </Card>
                         </Grow>
                       ))
@@ -817,63 +805,60 @@ const SearchPage: React.FC = () => {
 
                 {/* PLAYLISTS TAB - Community playlists */}
                 {activeTab === 4 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
                     {results.playlists.length > 0 ? (
-                      results.playlists.map((playlist: any, index: number) => (
+                      results.playlists.filter(p => p != null).map((playlist: any, index: number) => (
                         <Grow in key={playlist.id} timeout={300 + index * 50}>
                           <Card 
                             sx={{ 
                               bgcolor: 'rgba(255,255,255,0.02)', 
                               border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 3,
+                              borderRadius: 2,
                               transition: 'all 0.3s ease',
                               cursor: 'pointer',
+                              p: 1.5,
                               '&:hover': {
                                 bgcolor: 'rgba(255,255,255,0.05)',
                                 borderColor: '#a855f7',
-                                transform: 'translateY(-4px)',
-                                boxShadow: '0 12px 32px rgba(168,85,247,0.2)'
                               }
                             }}
                             onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
                           >
-                            <div className="relative aspect-square">
+                            <div className="relative aspect-square mb-2">
                               <img 
-                                src={playlist.images?.[0]?.url || '/vite.svg'} 
+                                src={getImageUrl(playlist.images)} 
                                 alt={playlist.name} 
-                                className="w-full h-full object-cover rounded-lg"
+                                className="w-full h-full object-cover rounded-lg shadow-lg"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
-                                <SearchIcon sx={{ color: '#a855f7', fontSize: 28 }} />
-                              </div>
                             </div>
-                            <CardContent sx={{ p: 2 }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: 'white', 
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  mb: 0.5
-                                }}
-                              >
-                                {playlist.name}
-                              </Typography>
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  color: 'text.secondary',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  display: 'block'
-                                }}
-                              >
-                                {playlist.owner?.display_name || 'Playlist'} • {playlist.tracks?.total || 0} tracks
-                              </Typography>
-                            </CardContent>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'white', 
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                fontSize: '0.75rem',
+                                mb: 0.25
+                              }}
+                            >
+                              {playlist.name}
+                            </Typography>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'text.secondary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                fontSize: '0.7rem'
+                              }}
+                            >
+                              {playlist.owner?.display_name || 'Playlist'}
+                            </Typography>
                           </Card>
                         </Grow>
                       ))
