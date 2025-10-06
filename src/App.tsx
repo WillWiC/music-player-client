@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from './context/auth';
 import { PlayerProvider } from './context/player';
 import { ToastProvider } from './context/toast';
 import { PlaylistsProvider } from './context/playlists';
+import { SearchProvider } from './context/search';
 
 // Create a dark theme for the music player
 const darkTheme = createTheme({
@@ -151,11 +152,13 @@ function App() {
       <AuthProvider>
         <PlayerProvider>
           <PlaylistsProvider>
-            <ToastProvider>
-              <Router>
-                <AppContent />
-              </Router>
-            </ToastProvider>
+            <SearchProvider>
+              <ToastProvider>
+                <Router>
+                  <AppContent />
+                </Router>
+              </ToastProvider>
+            </SearchProvider>
           </PlaylistsProvider>
         </PlayerProvider>
       </AuthProvider>

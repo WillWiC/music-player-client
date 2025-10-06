@@ -1,7 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
+import { useSearch } from '../context/search';
 import type { Track } from '../types/spotify';
 import {
   AppBar,
@@ -52,8 +53,10 @@ const Header: React.FC<HeaderProps> = ({
   onTrackPlayed
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, logout } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
+  const { query: globalQuery, setQuery: setGlobalQuery } = useSearch();
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searchResults, setSearchResults] = React.useState<Track[]>([]);
@@ -62,6 +65,13 @@ const Header: React.FC<HeaderProps> = ({
   const [activeIndex, setActiveIndex] = React.useState(-1);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [showLogoutNotification, setShowLogoutNotification] = React.useState(false);
+
+  // Sync local search with global search state when on search page
+  React.useEffect(() => {
+    if (location.pathname === '/search') {
+      setSearchQuery(globalQuery);
+    }
+  }, [location.pathname, globalQuery]);
 
   // Workaround: Menu typing doesn't expose ModalProps in this project's MUI types,
   // so build an `any` prop bag and spread it into the Menu to disable body scroll
@@ -122,7 +132,14 @@ const Header: React.FC<HeaderProps> = ({
     return () => clearTimeout(id);
   }, [searchQuery, searchTracks, onSearch]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    // Update global query if on search page
+    if (location.pathname === '/search') {
+      setGlobalQuery(value);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSearchDropdown || searchResults.length === 0) {
@@ -143,6 +160,8 @@ const Header: React.FC<HeaderProps> = ({
       if (activeIndex >= 0) {
         void handlePlay(searchResults[activeIndex]);
       } else if (searchQuery.trim()) {
+        // Navigate to search page and trigger search (search will auto-trigger via context)
+        setGlobalQuery(searchQuery);
         navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
         setShowSearchDropdown(false);
       }
@@ -244,7 +263,11 @@ const Header: React.FC<HeaderProps> = ({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                if (searchQuery.trim()) {
+                  setGlobalQuery(searchQuery);
+                  navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                  setShowSearchDropdown(false);
+                }
               }}
             >
               <TextField
@@ -342,7 +365,11 @@ const Header: React.FC<HeaderProps> = ({
                   {searchQuery.trim() && (
                     <ListItem
                       component="div"
-                      onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setShowSearchDropdown(false); }}
+                      onClick={() => { 
+                        setGlobalQuery(searchQuery);
+                        navigate(`/search?q=${encodeURIComponent(searchQuery)}`); 
+                        setShowSearchDropdown(false); 
+                      }}
                       sx={{ cursor: 'pointer', px: 2, py: 1.5, borderTop: '1px solid rgba(255,255,255,0.04)' }}
                     >
                       <ListItemText primary={<Typography sx={{ color: 'primary.main', fontWeight: 600 }}>See all results for "{searchQuery}"</Typography>} />

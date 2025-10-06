@@ -2,22 +2,31 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import { formatCount } from '../utils/numberFormat';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useToast } from '../context/toast';
+import { useSearch } from '../context/search';
 import {
   Box,
-  
   Typography,
   IconButton,
-  CircularProgress,
   Tabs,
   Tab,
-  TextField,
-  InputAdornment
+  Card,
+  CardContent,
+  Chip,
+  Fade,
+  Grow,
+  Skeleton
 } from '@mui/material';
-import { Search as SearchIcon, PlayArrow, Pause } from '@mui/icons-material';
+import { 
+  Search as SearchIcon,
+  History,
+  Clear,
+  MusicNote,
+  Album as AlbumIcon,
+  Person
+} from '@mui/icons-material';
 import type { Track } from '../types/spotify';
 
 const SearchPage: React.FC = () => {
@@ -26,15 +35,18 @@ const SearchPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { 
+    query, 
+    setQuery, 
+    results, 
+    isSearching, 
+    recentSearches, 
+    removeRecentSearch, 
+    clearRecentSearches
+  } = useSearch();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [query, setQuery] = React.useState('');
-  const [isSearching, setIsSearching] = React.useState(false);
-  const [tracks, setTracks] = React.useState<Track[]>([]);
-  const [albums, setAlbums] = React.useState<any[]>([]);
-  const [artists, setArtists] = React.useState<any[]>([]);
-  const [activeTab, setActiveTab] = React.useState(0);
-  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+  const [activeTab, setActiveTab] = React.useState(0); // 0: All, 1: Songs, 2: Artists, 3: Albums, 4: Playlists
 
   React.useEffect(() => {
     // Don't auto-redirect to login; allow guest access to search UI but disable playback/searching when unauthenticated
@@ -43,116 +55,18 @@ const SearchPage: React.FC = () => {
     }
   }, [token]);
 
-  const runSearch = React.useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setTracks([]);
-      return;
-    }
-
-    // Save query locally (even if unauthenticated) for quick access later
-    try {
-      const key = 'recentSearches';
-      const raw = localStorage.getItem(key);
-      const parsed: string[] = raw ? JSON.parse(raw) : [];
-      const normalized = q.trim();
-      const lower = normalized.toLowerCase();
-      const deduped = [normalized, ...parsed.filter(s => s.toLowerCase() !== lower)].slice(0, 10);
-      localStorage.setItem(key, JSON.stringify(deduped));
-      setRecentSearches(deduped);
-    } catch (e) {
-      console.warn('Failed to save recent search', e);
-    }
-
-    if (!token) {
-      // When unauthenticated, we still store the query but cannot call Spotify API
-      setTracks([]);
-      setAlbums([]);
-      setArtists([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const res = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track,album,artist&limit=20`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setTracks(data.tracks?.items || []);
-      setAlbums(data.albums?.items || []);
-      setArtists(data.artists?.items || []);
-    } catch (err) {
-      console.error('Search failed', err);
-      setTracks([]);
-      setAlbums([]);
-      setArtists([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [token]);
-
-  // Debounce the query
-  React.useEffect(() => {
-    const id = setTimeout(() => {
-      if (query.trim()) runSearch(query);
-      else setTracks([]);
-    }, 350);
-    return () => clearTimeout(id);
-  }, [query, runSearch]);
-
-  // Load recent searches from localStorage on mount
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem('recentSearches');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setRecentSearches(parsed.slice(0, 10));
-      }
-    } catch (e) {
-      console.warn('Failed to load recent searches', e);
-    }
-  }, []);
-
   // If the page is opened with a ?q=... param, populate the input and run the search immediately
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get('q') || '';
-    if (q.trim()) {
+    if (q.trim() && q !== query) {
       setQuery(q);
-      // run without waiting for debounce
-      void runSearch(q);
     }
-  }, [location.search, runSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const handleRunRecent = (q: string) => {
     setQuery(q);
-    // run immediately without waiting for debounce
-    void runSearch(q);
-  };
-
-  const clearRecentSearches = () => {
-    try {
-      localStorage.removeItem('recentSearches');
-      setRecentSearches([]);
-    } catch (e) {
-      console.warn('Failed to clear recent searches', e);
-    }
-  };
-
-  const removeRecentSearch = (q: string) => {
-    try {
-      const raw = localStorage.getItem('recentSearches');
-      const parsed: string[] = raw ? JSON.parse(raw) : [];
-      const filtered = parsed.filter(s => s.toLowerCase() !== q.toLowerCase()).slice(0, 10);
-      localStorage.setItem('recentSearches', JSON.stringify(filtered));
-      setRecentSearches(filtered);
-    } catch (e) {
-      console.warn('Failed to remove recent search', e);
-    }
   };
 
   const handlePlayClick = async (track: Track) => {
@@ -168,222 +82,820 @@ const SearchPage: React.FC = () => {
     }
   };
 
+  // Get top result (first track with highest popularity)
+  const getTopResult = () => {
+    if (results.tracks.length === 0) return null;
+    return results.tracks.reduce((prev, current) => 
+      (current.popularity || 0) > (prev.popularity || 0) ? current : prev
+    );
+  };
+
+  const topResult = getTopResult();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => { /* no-op - header search handles it */ }} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12">
-          <div className="mb-6">
-            <TextField
-              fullWidth
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for songs, artists, or albums..."
-              variant="outlined"
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {isSearching ? <CircularProgress size={18} sx={{ color: 'primary.main' }} /> : <SearchIcon sx={{ color: 'text.secondary' }} />}
-                  </InputAdornment>
-                )
-              }}
-            />
-            {/* Recent searches quick access */}
-            {recentSearches.length > 0 && !query.trim() && (
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                {recentSearches.map((s) => (
-                  <div key={s} className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleRunRecent(s)}
-                      className="px-3 py-1 text-sm bg-white/5 rounded-full hover:bg-white/10"
-                    >
-                      {s}
-                    </button>
-                    <button onClick={() => removeRecentSearch(s)} className="text-xs text-gray-500 hover:text-gray-300 ml-1">✕</button>
+        <div className="relative max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          
+          {/* Hero Section */}
+          <Fade in timeout={600}>
+            <div className="mb-8">
+              {query ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg shadow-green-500/20">
+                      <SearchIcon sx={{ fontSize: 28, color: 'white' }} />
+                    </div>
+                    <div>
+                      <Typography variant="h3" sx={{ color: 'white', fontWeight: 800, letterSpacing: '-0.02em' }}>
+                        Search Results
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                        for "{query}"
+                      </Typography>
+                    </div>
                   </div>
-                ))}
-                <button onClick={clearRecentSearches} className="ml-2 text-xs text-gray-400 hover:text-gray-200">Clear</button>
-              </div>
-            )}
-          </div>
-
-          <Box>
-            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} textColor="inherit" indicatorColor="primary">
-              <Tab label={`Tracks (${tracks.length})`} />
-              <Tab label="Albums" />
-              <Tab label="Artists" />
-            </Tabs>
-
-            <div className="mt-6">
-              {activeTab === 0 && (
-                <div>
-                  {isSearching ? (
-                    <div className="flex justify-center py-8">
-                      <CircularProgress sx={{ color: 'primary.main' }} />
-                    </div>
-                  ) : tracks.length === 0 ? (
-                    <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">
-                      {query ? (
-                        <div>
-                          <div className="mb-4">
-                            <svg className="w-12 h-12 text-gray-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                          </div>
-                          <p className="text-lg font-medium mb-2">No tracks found for "{query}"</p>
-                          <p className="text-sm text-gray-500">Try different keywords or check your spelling</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p>Try searching for an artist, song, or album above.</p>
-                          {!token && (
-                            <p className="text-xs text-yellow-400 mt-2">Sign in to search and play music</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {tracks.map(track => (
-                        <div
-                          key={track.id}
-                          className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-150"
-                        >
-                          <img
-                            src={track.album?.images?.[0]?.url || '/vite.svg'}
-                            alt={track.name}
-                            className="w-14 h-14 object-cover rounded-md flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 600 }} noWrap className="truncate">{track.name}</Typography>
-                            <div className="text-xs text-gray-400 truncate">
-                              <span className="truncate block">{track.album?.name}</span>
-                              <span className="truncate">
-                                {track.artists?.map((artist, index) => (
-                                  <span key={artist.id}>
-                                    <Box
-                                      component="span"
-                                      tabIndex={0}
-                                      role="link"
-                                      onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
-                                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
-                                      sx={{
-                                        cursor: 'pointer',
-                                        color: 'inherit',
-                                        textDecoration: 'none',
-                                        transition: 'color 120ms ease, transform 120ms ease',
-                                        '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
-                                        '&:focus': { outline: 'none', textDecoration: 'underline' }
-                                      }}
-                                    >
-                                      {artist.name}
-                                    </Box>
-                                    {index < (track.artists?.length || 0) - 1 && ', '}
-                                  </span>
-                                ))}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0">
-                            <IconButton
-                              onClick={() => handlePlayClick(track)}
-                              sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, color: 'black' }}
-                              size="medium"
-                              aria-label={currentTrack?.id === track.id && isPlaying ? 'Pause' : 'Play'}
-                            >
-                              {currentTrack?.id === track.id && isPlaying ? <Pause /> : <PlayArrow />}
-                            </IconButton>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-4 mt-4">
+                    <Chip 
+                      icon={<MusicNote />} 
+                      label={`${results.tracks.length} Tracks`} 
+                      sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: 'primary.main', fontWeight: 600, borderRadius: 2 }}
+                    />
+                    <Chip 
+                      icon={<AlbumIcon />} 
+                      label={`${results.albums.length} Albums`} 
+                      sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#60a5fa', fontWeight: 600, borderRadius: 2 }}
+                    />
+                    <Chip 
+                      icon={<Person />} 
+                      label={`${results.artists.length} Artists`} 
+                      sx={{ bgcolor: 'rgba(168,85,247,0.1)', color: '#a78bfa', fontWeight: 600, borderRadius: 2 }}
+                    />
+                  </div>
                 </div>
-              )}
-
-              {activeTab === 1 && (
-                <div>
-                  {isSearching ? (
-                    <div className="flex justify-center py-8">
-                      <CircularProgress sx={{ color: 'primary.main' }} />
-                    </div>
-                  ) : albums.length === 0 ? (
-                    <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">No albums found. Try another query.</div>
-                  ) : (
-                    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                      {albums.map(album => (
-                        <div key={album.id} className="cursor-pointer" onClick={() => navigate(`/album/${album.id}`)}>
-                          <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                            <div className="aspect-square">
-                              <img src={album.images?.[0]?.url || '/vite.svg'} alt={album.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="p-2">
-                              <div className="text-sm text-white font-semibold truncate">{album.name}</div>
-                              <div className="text-xs text-gray-400 truncate">
-                                {album.artists?.map((artist: any, index: number) => (
-                                  <span key={artist.id}>
-                                    <Box
-                                      component="span"
-                                      tabIndex={0}
-                                      role="link"
-                                      onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
-                                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
-                                      sx={{
-                                        cursor: 'pointer',
-                                        color: 'inherit',
-                                        textDecoration: 'none',
-                                        transition: 'color 120ms ease, transform 120ms ease',
-                                        '&:hover': { color: '#1db954', transform: 'translateY(-1px)' },
-                                        '&:focus': { outline: 'none', textDecoration: 'underline' }
-                                      }}
-                                    >
-                                      {artist.name}
-                                    </Box>
-                                    {index < (album.artists?.length || 0) - 1 && ', '}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 2 && (
-                <div>
-                  {isSearching ? (
-                    <div className="flex justify-center py-8">
-                      <CircularProgress sx={{ color: 'primary.main' }} />
-                    </div>
-                  ) : artists.length === 0 ? (
-                    <div className="text-gray-400 text-center py-12 bg-white/5 rounded-2xl border border-white/10">No artists found. Try another query.</div>
-                  ) : (
-        <div className="space-y-2">
-                      {artists.map(artist => (
-                        <div 
-                          key={artist.id} 
-                          className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
-                          onClick={() => navigate(`/artist/${artist.id}`)}
-                        >
-          <img src={artist.images?.[0]?.url || '/vite.svg'} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm text-white font-semibold truncate hover:text-green-400 transition-colors">{artist.name}</div>
-                            <div className="text-xs text-gray-400">{artist.type} • {artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : ''}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              ) : (
+                <div className="text-center py-12">
+                  <div className="inline-block p-4 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-2xl mb-4">
+                    <SearchIcon sx={{ fontSize: 64, color: 'primary.main' }} />
+                  </div>
+                  <Typography variant="h3" sx={{ color: 'white', fontWeight: 800, mb: 2 }}>
+                    Find Your Music
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 500, mx: 'auto' }}>
+                    Search for your favorite songs, albums, and artists. Start typing in the search bar above.
+                  </Typography>
                 </div>
               )}
             </div>
-          </Box>
+          </Fade>
+
+          {/* Recent searches - only show when no query */}
+          {!query && recentSearches.length > 0 && (
+            <Fade in timeout={800}>
+              <Card sx={{ mb: 6, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3, backdropFilter: 'blur(10px)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <History sx={{ color: 'primary.main' }} />
+                      <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+                        Recent Searches
+                      </Typography>
+                    </div>
+                    <IconButton 
+                      onClick={clearRecentSearches} 
+                      size="small"
+                      sx={{ 
+                        color: 'text.secondary',
+                        '&:hover': { color: 'error.main', bgcolor: 'rgba(239,68,68,0.1)' }
+                      }}
+                    >
+                      <Clear fontSize="small" />
+                    </IconButton>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {recentSearches.map((s, index) => (
+                      <Grow in key={s} timeout={300 + index * 50}>
+                        <Chip
+                          label={s}
+                          onClick={() => handleRunRecent(s)}
+                          onDelete={() => removeRecentSearch(s)}
+                          sx={{
+                            bgcolor: 'rgba(255,255,255,0.05)',
+                            color: 'white',
+                            fontWeight: 500,
+                            fontSize: '0.875rem',
+                            borderRadius: 2,
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: 'rgba(34,197,94,0.15)',
+                              borderColor: 'primary.main',
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 4px 12px rgba(34,197,94,0.2)'
+                            },
+                            '& .MuiChip-deleteIcon': {
+                              color: 'rgba(255,255,255,0.5)',
+                              '&:hover': { color: 'error.main' }
+                            }
+                          }}
+                        />
+                      </Grow>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </Fade>
+          )}
+
+          {/* Loading State */}
+          {isSearching && query && (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Grow in key={i} timeout={300 + i * 100}>
+                  <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3 }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <div className="flex items-center gap-4">
+                        <Skeleton variant="rectangular" width={56} height={56} sx={{ borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                          <Skeleton variant="text" width="40%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Grow>
+              ))}
+            </div>
+          )}
+
+          {/* Results Section */}
+          {query && !isSearching && (
+            <Box>
+              <Tabs 
+                value={activeTab} 
+                onChange={(_, v) => setActiveTab(v)} 
+                textColor="inherit" 
+                indicatorColor="primary" 
+                sx={{ 
+                  borderBottom: '1px solid rgba(255,255,255,0.1)',
+                  mb: 4,
+                  '& .MuiTab-root': {
+                    color: 'text.secondary',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textTransform: 'none',
+                    minHeight: 56,
+                    '&.Mui-selected': {
+                      color: 'primary.main'
+                    }
+                  }
+                }}
+              >
+                <Tab label="All" />
+                <Tab label={`Songs`} />
+                <Tab label={`Artists`} />
+                <Tab label={`Albums`} />
+                <Tab label={`Playlists`} />
+              </Tabs>
+
+              <div className="mt-6">
+                {/* ALL TAB - Spotify-style layout with sections */}
+                {activeTab === 0 && (
+                  <div className="space-y-8">
+                    {/* Top Result + Top Songs Grid */}
+                    {(topResult || results.tracks.length > 0) && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Top Result Card */}
+                        {topResult && (
+                          <div>
+                            <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
+                              Top result
+                            </Typography>
+                            <Grow in timeout={400}>
+                              <Card 
+                                sx={{ 
+                                  bgcolor: 'rgba(255,255,255,0.05)', 
+                                  border: '1px solid rgba(255,255,255,0.08)', 
+                                  borderRadius: 3,
+                                  p: 3,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  minHeight: 280,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'space-between',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.08)',
+                                    transform: 'scale(1.02)',
+                                  }
+                                }}
+                                onClick={() => handlePlayClick(topResult)}
+                              >
+                                <div>
+                                  <img 
+                                    src={topResult.album?.images?.[0]?.url || '/vite.svg'} 
+                                    alt={topResult.name}
+                                    className="w-28 h-28 rounded-lg shadow-2xl mb-6"
+                                  />
+                                  <Typography 
+                                    variant="h4" 
+                                    sx={{ 
+                                      color: 'white', 
+                                      fontWeight: 700, 
+                                      mb: 2,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical'
+                                    }}
+                                  >
+                                    {topResult.name}
+                                  </Typography>
+                                  <div className="flex items-center gap-2">
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                      Song • {topResult.artists.map(a => a.name).join(', ')}
+                                    </Typography>
+                                  </div>
+                                </div>
+                                <div className="flex justify-end mt-4">
+                                  <IconButton
+                                    sx={{
+                                      bgcolor: 'primary.main',
+                                      color: 'black',
+                                      width: 56,
+                                      height: 56,
+                                      '&:hover': {
+                                        bgcolor: 'primary.light',
+                                        transform: 'scale(1.05)'
+                                      }
+                                    }}
+                                  >
+                                    <MusicNote sx={{ fontSize: 28 }} />
+                                  </IconButton>
+                                </div>
+                              </Card>
+                            </Grow>
+                          </div>
+                        )}
+
+                        {/* Songs Section */}
+                        <div>
+                          <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
+                            Songs
+                          </Typography>
+                          <div className="space-y-2">
+                            {results.tracks.slice(0, 5).map((track, index) => (
+                              <Grow in key={track.id} timeout={300 + index * 50}>
+                                <div
+                                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+                                  onClick={() => handlePlayClick(track)}
+                                >
+                                  <img 
+                                    src={track.album?.images?.[0]?.url || '/vite.svg'} 
+                                    alt={track.name}
+                                    className="w-12 h-12 rounded"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <Typography 
+                                      variant="body2" 
+                                      sx={{ 
+                                        color: 'white', 
+                                        fontWeight: 500,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      {track.name}
+                                    </Typography>
+                                    <Typography 
+                                      variant="caption" 
+                                      sx={{ 
+                                        color: 'text.secondary',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        display: 'block'
+                                      }}
+                                    >
+                                      {track.artists.map(a => a.name).join(', ')}
+                                    </Typography>
+                                  </div>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1 }}>
+                                    {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
+                                  </Typography>
+                                </div>
+                              </Grow>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Artists Section */}
+                    {results.artists.length > 0 && (
+                      <div>
+                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
+                          Artists
+                        </Typography>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {results.artists.slice(0, 6).map((artist, index) => (
+                            <Grow in key={artist.id} timeout={300 + index * 50}>
+                              <Card 
+                                sx={{ 
+                                  bgcolor: 'rgba(255,255,255,0.02)', 
+                                  border: '1px solid rgba(255,255,255,0.05)', 
+                                  borderRadius: 3,
+                                  p: 2,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                                onClick={() => navigate(`/artist/${artist.id}`)}
+                              >
+                                <img 
+                                  src={artist.images?.[0]?.url || '/vite.svg'} 
+                                  alt={artist.name}
+                                  className="w-full aspect-square object-cover rounded-full mb-3 shadow-lg"
+                                />
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    color: 'white', 
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    mb: 0.5
+                                  }}
+                                >
+                                  {artist.name}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  Artist
+                                </Typography>
+                              </Card>
+                            </Grow>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Albums Section */}
+                    {results.albums.length > 0 && (
+                      <div>
+                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
+                          Albums
+                        </Typography>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {results.albums.slice(0, 6).map((album, index) => (
+                            <Grow in key={album.id} timeout={300 + index * 50}>
+                              <Card 
+                                sx={{ 
+                                  bgcolor: 'rgba(255,255,255,0.02)', 
+                                  border: '1px solid rgba(255,255,255,0.05)', 
+                                  borderRadius: 3,
+                                  p: 2,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                                onClick={() => navigate(`/album/${album.id}`)}
+                              >
+                                <img 
+                                  src={album.images?.[0]?.url || '/vite.svg'} 
+                                  alt={album.name}
+                                  className="w-full aspect-square object-cover rounded-lg mb-3 shadow-lg"
+                                />
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    color: 'white', 
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    mb: 0.5
+                                  }}
+                                >
+                                  {album.name}
+                                </Typography>
+                                <Typography 
+                                  variant="caption" 
+                                  sx={{ 
+                                    color: 'text.secondary',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    display: 'block'
+                                  }}
+                                >
+                                  {album.artists.map((a: any) => a.name).join(', ')}
+                                </Typography>
+                              </Card>
+                            </Grow>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Playlists Section */}
+                    {results.playlists.length > 0 && (
+                      <div>
+                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
+                          Playlists
+                        </Typography>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {results.playlists.slice(0, 6).map((playlist: any, index: number) => (
+                            <Grow in key={playlist.id} timeout={300 + index * 50}>
+                              <Card 
+                                sx={{ 
+                                  bgcolor: 'rgba(255,255,255,0.02)', 
+                                  border: '1px solid rgba(255,255,255,0.05)', 
+                                  borderRadius: 3,
+                                  p: 2,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                                onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
+                              >
+                                <img 
+                                  src={playlist.images?.[0]?.url || '/vite.svg'} 
+                                  alt={playlist.name}
+                                  className="w-full aspect-square object-cover rounded-lg mb-3 shadow-lg"
+                                />
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    color: 'white', 
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    mb: 0.5
+                                  }}
+                                >
+                                  {playlist.name}
+                                </Typography>
+                                <Typography 
+                                  variant="caption" 
+                                  sx={{ 
+                                    color: 'text.secondary',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    display: 'block'
+                                  }}
+                                >
+                                  {playlist.owner?.display_name || 'Playlist'}
+                                </Typography>
+                              </Card>
+                            </Grow>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State for All Tab */}
+                    {!topResult && results.tracks.length === 0 && results.artists.length === 0 && results.albums.length === 0 && results.playlists.length === 0 && (
+                      <Fade in timeout={600}>
+                        <div className="text-center py-16">
+                          <div className="inline-block p-4 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-2xl mb-4">
+                            <SearchIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                          </div>
+                          <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                            No results found
+                          </Typography>
+                        </div>
+                      </Fade>
+                    )}
+                  </div>
+                )}
+
+                {/* SONGS TAB - All tracks */}
+                {activeTab === 1 && (
+                  <div className="space-y-3">
+                    {results.tracks.length > 0 ? (
+                      results.tracks.map((track, index) => (
+                        <Grow in key={track.id} timeout={300 + index * 50}>
+                          <Card 
+                            sx={{ 
+                              bgcolor: 'rgba(255,255,255,0.02)', 
+                              border: '1px solid rgba(255,255,255,0.05)', 
+                              borderRadius: 3,
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.05)',
+                                borderColor: 'primary.main',
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 8px 24px rgba(34,197,94,0.15)'
+                              }
+                            }}
+                            onClick={() => handlePlayClick(track)}
+                          >
+                            <CardContent sx={{ p: 3 }}>
+                              <div className="flex items-center gap-4">
+                                <div className="relative group">
+                                  <img 
+                                    src={track.album?.images?.[0]?.url || '/vite.svg'} 
+                                    alt={track.name} 
+                                    className="w-14 h-14 rounded-lg shadow-lg"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <MusicNote sx={{ color: 'primary.main', fontSize: 24 }} />
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <Typography 
+                                    variant="body1" 
+                                    sx={{ 
+                                      color: 'white', 
+                                      fontWeight: 600, 
+                                      mb: 0.5,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {track.name}
+                                  </Typography>
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      color: 'text.secondary',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {track.artists.map(a => a.name).join(', ')}
+                                  </Typography>
+                                </div>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                  {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
+                                </Typography>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </Grow>
+                      ))
+                    ) : (
+                      <Fade in timeout={600}>
+                        <div className="text-center py-16">
+                          <div className="inline-block p-4 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-2xl mb-4">
+                            <MusicNote sx={{ fontSize: 48, color: 'text.secondary' }} />
+                          </div>
+                          <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                            No songs found
+                          </Typography>
+                        </div>
+                      </Fade>
+                    )}
+                  </div>
+                )}
+
+                {/* ARTISTS TAB - All artists */}
+                {activeTab === 2 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {results.artists.length > 0 ? (
+                      results.artists.map((artist, index) => (
+                        <Grow in key={artist.id} timeout={300 + index * 50}>
+                          <Card 
+                            sx={{ 
+                              bgcolor: 'rgba(255,255,255,0.02)', 
+                              border: '1px solid rgba(255,255,255,0.05)', 
+                              borderRadius: 3,
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.05)',
+                                borderColor: '#a78bfa',
+                                transform: 'translateY(-4px)',
+                                boxShadow: '0 12px 32px rgba(167,139,250,0.2)'
+                              }
+                            }}
+                            onClick={() => navigate(`/artist/${artist.id}`)}
+                          >
+                            <div className="relative aspect-square">
+                              <img 
+                                src={artist.images?.[0]?.url || '/vite.svg'} 
+                                alt={artist.name} 
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3 rounded-full">
+                                <Person sx={{ color: '#a78bfa', fontSize: 28 }} />
+                              </div>
+                            </div>
+                            <CardContent sx={{ p: 2 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  mb: 0.5
+                                }}
+                              >
+                                {artist.name}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Artist
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grow>
+                      ))
+                    ) : (
+                      <div className="col-span-full">
+                        <Fade in timeout={600}>
+                          <div className="text-center py-16">
+                            <div className="inline-block p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl mb-4">
+                              <Person sx={{ fontSize: 48, color: 'text.secondary' }} />
+                            </div>
+                            <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                              No artists found
+                            </Typography>
+                          </div>
+                        </Fade>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ALBUMS TAB - All albums */}
+                {activeTab === 3 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {results.albums.length > 0 ? (
+                      results.albums.map((album, index) => (
+                        <Grow in key={album.id} timeout={300 + index * 50}>
+                          <Card 
+                            sx={{ 
+                              bgcolor: 'rgba(255,255,255,0.02)', 
+                              border: '1px solid rgba(255,255,255,0.05)', 
+                              borderRadius: 3,
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.05)',
+                                borderColor: '#60a5fa',
+                                transform: 'translateY(-4px)',
+                                boxShadow: '0 12px 32px rgba(96,165,250,0.2)'
+                              }
+                            }}
+                            onClick={() => navigate(`/album/${album.id}`)}
+                          >
+                            <div className="relative aspect-square">
+                              <img 
+                                src={album.images?.[0]?.url || '/vite.svg'} 
+                                alt={album.name} 
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                                <AlbumIcon sx={{ color: '#60a5fa', fontSize: 28 }} />
+                              </div>
+                            </div>
+                            <CardContent sx={{ p: 2 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  mb: 0.5
+                                }}
+                              >
+                                {album.name}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: 'text.secondary',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  display: 'block'
+                                }}
+                              >
+                                {album.artists?.map((a: any) => a.name).join(', ')}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grow>
+                      ))
+                    ) : (
+                      <div className="col-span-full">
+                        <Fade in timeout={600}>
+                          <div className="text-center py-16">
+                            <div className="inline-block p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-2xl mb-4">
+                              <AlbumIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                            </div>
+                            <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                              No albums found
+                            </Typography>
+                          </div>
+                        </Fade>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* PLAYLISTS TAB - Community playlists */}
+                {activeTab === 4 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {results.playlists.length > 0 ? (
+                      results.playlists.map((playlist: any, index: number) => (
+                        <Grow in key={playlist.id} timeout={300 + index * 50}>
+                          <Card 
+                            sx={{ 
+                              bgcolor: 'rgba(255,255,255,0.02)', 
+                              border: '1px solid rgba(255,255,255,0.05)', 
+                              borderRadius: 3,
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.05)',
+                                borderColor: '#a855f7',
+                                transform: 'translateY(-4px)',
+                                boxShadow: '0 12px 32px rgba(168,85,247,0.2)'
+                              }
+                            }}
+                            onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
+                          >
+                            <div className="relative aspect-square">
+                              <img 
+                                src={playlist.images?.[0]?.url || '/vite.svg'} 
+                                alt={playlist.name} 
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                                <SearchIcon sx={{ color: '#a855f7', fontSize: 28 }} />
+                              </div>
+                            </div>
+                            <CardContent sx={{ p: 2 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  mb: 0.5
+                                }}
+                              >
+                                {playlist.name}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: 'text.secondary',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  display: 'block'
+                                }}
+                              >
+                                {playlist.owner?.display_name || 'Playlist'} • {playlist.tracks?.total || 0} tracks
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grow>
+                      ))
+                    ) : (
+                      <div className="col-span-full">
+                        <Fade in timeout={600}>
+                          <div className="text-center py-16">
+                            <div className="inline-block p-4 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-2xl mb-4">
+                              <SearchIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                            </div>
+                            <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                              No playlists found
+                            </Typography>
+                          </div>
+                        </Fade>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Box>
+          )}
         </div>
       </main>
     </div>

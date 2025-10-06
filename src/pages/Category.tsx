@@ -5,7 +5,7 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress, IconButton } from '@mui/material';
+import { CircularProgress, IconButton, Fade, Grow } from '@mui/material';
 import { PlayArrow, ArrowBack, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
 import { getCategoryById, mapGenresToCategories, getCategorySearchTerms, type CustomCategory } from '../utils/categoryMapping';
@@ -996,7 +996,8 @@ const Category: React.FC = () => {
 
           {/* Category Header */}
           {category && (
-            <div className="mb-12 flex items-center gap-8">
+            <Fade in timeout={600}>
+              <div className="mb-12 flex items-center gap-8">
               <div 
                 className="w-40 h-40 rounded-2xl flex items-center justify-center text-7xl shadow-2xl transition-transform duration-300 hover:scale-105"
                 style={{ 
@@ -1022,6 +1023,7 @@ const Category: React.FC = () => {
                 </div>
               </div>
             </div>
+            </Fade>
           )}
 
           {/* Loading State */}
@@ -1077,7 +1079,8 @@ const Category: React.FC = () => {
               {/* Popular Artists Section - carousel (no horizontal scroll) */}
               {artists.length > 0 && (
                 <div className="animate-fade-in">
-                  <div className="flex items-center justify-between mb-8">
+                  <Fade in timeout={600}>
+                    <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-6">
                       <div>
                         <h2 className="text-5xl font-black text-transparent bg-gradient-to-r from-white via-white to-gray-300 bg-clip-text mb-2">
@@ -1101,6 +1104,7 @@ const Category: React.FC = () => {
                       {/* keyboard hint removed as per design preference */}
                     </div>
                   </div>
+                  </Fade>
 
                   <div 
                     className="relative"
@@ -1142,12 +1146,12 @@ const Category: React.FC = () => {
 
                     <div className="overflow-hidden px-8 py-4 bg-gradient-to-r from-white/[0.02] to-white/[0.05] rounded-3xl border border-white/10 backdrop-blur-sm shadow-2xl" ref={viewportRef}>
                       <div className="grid grid-cols-5 gap-6">
-                        {artists.slice(artistStart, artistStart + visibleCount).map((artist) => (
-                          <div
-                            key={artist.id}
-                            className="group cursor-pointer flex flex-col items-center transition-all duration-500 hover:scale-105"
-                            onClick={() => handleArtistPlay(artist)}
-                          >
+                        {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
+                          <Grow key={artist.id} in timeout={400 + (index * 50)}>
+                            <div
+                              className="group cursor-pointer flex flex-col items-center transition-all duration-500 hover:scale-105"
+                              onClick={() => handleArtistPlay(artist)}
+                            >
                             <div className="relative mb-4">
                               <div
                                 className="relative overflow-hidden rounded-full bg-gradient-to-br from-white/20 via-white/10 to-white/5 border-2 border-white/20 transition-all duration-500 shadow-2xl group-hover:shadow-green-500/25 group-hover:border-green-400/50 group-hover:scale-110"
@@ -1196,6 +1200,7 @@ const Category: React.FC = () => {
                               </div>
                             </div>
                           </div>
+                          </Grow>
                         ))}
                       </div>
                     </div>
@@ -1349,7 +1354,8 @@ const Category: React.FC = () => {
               {/* Related Playlists Section */}
               {playlists.length > 0 && (
                 <div className="animate-fade-in">
-                  <div className="flex items-center justify-between mb-8">
+                  <Fade in timeout={600}>
+                    <div className="flex items-center justify-between mb-8">
                     <div>
                       <h2 className="text-4xl font-black text-white mb-2">Related Playlists</h2>
                       <p className="text-gray-400">Curated collections for {category?.name} lovers</p>
@@ -1358,13 +1364,14 @@ const Category: React.FC = () => {
                       {playlists.length} playlists
                     </div>
                   </div>
+                  </Fade>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                     {playlists.map((playlist, index) => (
-                      <div 
-                        key={playlist.id}
-                        className="group cursor-pointer relative transform transition-all duration-300 hover:scale-105"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
+                      <Grow key={playlist.id} in timeout={400 + (index * 50)}>
+                        <div 
+                          className="group cursor-pointer relative transform transition-all duration-300 hover:scale-105"
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
                         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-green-500/50 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-green-500/20 backdrop-blur-sm">
                           
                           {/* Playlist Image */}
@@ -1427,6 +1434,7 @@ const Category: React.FC = () => {
                           </div>
                         </div>
                       </div>
+                      </Grow>
                     ))}
                   </div>
                 </div>

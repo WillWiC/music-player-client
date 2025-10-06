@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import PlaylistRecommendations from '../components/PlaylistRecommendations';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Fade, Grow, Skeleton } from '@mui/material';
 import { useToast } from '../context/toast';
 import '../index.css';
 
@@ -343,49 +343,62 @@ const Dashboard: React.FC = () => {
       })
       .catch((error) => handleApiError(error, 'profile'));
 
-    // Fetch user's playlists
-    setLoadingPlaylists(true);
-    fetch('https://api.spotify.com/v1/me/playlists?limit=12', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (!res.ok) {
-          return fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=12', {
+    // Load all data in PARALLEL for faster dashboard loading
+    const loadDashboardData = async () => {
+      setLoadingPlaylists(true);
+      setLoadingTop(true);
+
+      try {
+        const [playlistsRes, topTracksRes] = await Promise.all([
+          fetch('https://api.spotify.com/v1/me/playlists?limit=12', {
             headers: { Authorization: `Bearer ${token}` },
-          }).then(fallbackRes => {
-            if (!fallbackRes.ok) throw new Error(`Featured playlists also failed: HTTP ${fallbackRes.status}`);
-            return fallbackRes.json();
-          }).then(fallbackData => ({
-            items: fallbackData.playlists?.items || []
-          }));
+          }),
+          fetch('https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=short_term', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        ]);
+
+        // Handle playlists response
+        if (playlistsRes.ok) {
+          const playlistsData = await playlistsRes.json();
+          setPlaylists(playlistsData.items ?? []);
+          setErrors(prev => ({ ...prev, playlists: '' }));
+        } else {
+          // Fallback to featured playlists
+          try {
+            const fallbackRes = await fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=12', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json();
+              setPlaylists(fallbackData.playlists?.items || []);
+              setErrors(prev => ({ ...prev, playlists: '' }));
+            }
+          } catch (error) {
+            handleApiError(error, 'playlists');
+          }
         }
-        return res.json();
-      })
-      .then(data => {
-        setPlaylists(data.items ?? []);
-        setErrors(prev => ({ ...prev, playlists: '' }));
-      })
-      .catch((error) => handleApiError(error, 'playlists'))
-      .finally(() => setLoadingPlaylists(false));
+
+        // Handle top tracks response
+        if (topTracksRes.ok) {
+          const topTracksData = await topTracksRes.json();
+          setTopTracks(topTracksData.items ?? []);
+          setErrors(prev => ({ ...prev, top: '' }));
+        } else {
+          handleApiError(new Error(`HTTP ${topTracksRes.status}`), 'top tracks');
+        }
+      } catch (error) {
+        console.error('Dashboard data loading error:', error);
+      } finally {
+        setLoadingPlaylists(false);
+        setLoadingTop(false);
+      }
+    };
+
+    loadDashboardData();
 
     // Fetch recently played tracks using the refresh function
     refreshRecentlyPlayed();
-
-    // Fetch user's top tracks
-    setLoadingTop(true);
-    fetch('https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=short_term', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        setTopTracks(data.items ?? []);
-        setErrors(prev => ({ ...prev, top: '' }));
-      })
-      .catch((error) => handleApiError(error, 'top tracks'))
-      .finally(() => setLoadingTop(false));
 
   // (Hit Songs feature removed)
 
@@ -420,11 +433,6 @@ const Dashboard: React.FC = () => {
   }, [currentTrack?.id, addToLocallyPlayed]); // Only trigger on actual track ID changes
 
   // Click-outside handling
-
-  // Enhanced loading skeleton component
-  const LoadingSkeleton = ({ className }: { className?: string }) => (
-    <div className={`animate-pulse bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg ${className}`} />
-  );
 
   // Error state component
   const ErrorMessage = ({ message }: { message: string }) => (
@@ -584,31 +592,36 @@ const Dashboard: React.FC = () => {
           {/* Your Playlists Section */}
           <section id="playlists" className="space-y-4">
             {/* Section Title */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
-                <p className="text-gray-400 text-sm">Your personal music collections</p>
+            <Fade in timeout={600}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
+                  <p className="text-gray-400 text-sm">Your personal music collections</p>
+                </div>
               </div>
-            </div>
+            </Fade>
             
             {/* Playlists Section */}
             {loadingPlaylists ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <LoadingSkeleton className="aspect-square rounded-lg" />
-                    <LoadingSkeleton className="h-3 w-full" />
-                    <LoadingSkeleton className="h-2 w-3/4" />
-                  </div>
+                  <Grow in key={i} timeout={300 + i * 50}>
+                    <div className="space-y-2">
+                      <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
+                      <Skeleton variant="text" width="100%" height={12} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                      <Skeleton variant="text" width="75%" height={10} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                    </div>
+                  </Grow>
                 ))}
               </div>
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {playlists.map((playlist) => (
-                  <div key={playlist.id} className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
+                {playlists.map((playlist, index) => (
+                  <Grow in timeout={400 + index * 50} key={playlist.id}>
+                    <div className="group cursor-pointer">
+                      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
                           src={playlist.images?.[0]?.url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
@@ -678,7 +691,8 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  </Grow>
                 ))}
               </div>
             ) : (
@@ -706,57 +720,61 @@ const Dashboard: React.FC = () => {
           {/* Continue Listening Section */}
           <section id="recently" className="space-y-4">
             {/* Section Title */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Recently Played Tracks</h2>
-                <p className="text-gray-400 text-sm">Pick up where you left off</p>
+            <Fade in timeout={600}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Recently Played Tracks</h2>
+                  <p className="text-gray-400 text-sm">Pick up where you left off</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Navigation Arrows */}
+                  {recentlyPlayed.length > recentlyPerView && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={handlePrevRecently}
+                        disabled={!canGoPrevRecently || isAnimatingRecently}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoPrevRecently && !isAnimatingRecently
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Previous tracks"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={handleNextRecently}
+                        disabled={!canGoNextRecently || isAnimatingRecently}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoNextRecently && !isAnimatingRecently
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Next tracks"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {/* Navigation Arrows */}
-                {recentlyPlayed.length > recentlyPerView && (
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={handlePrevRecently}
-                      disabled={!canGoPrevRecently || isAnimatingRecently}
-                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoPrevRecently && !isAnimatingRecently
-                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title="Previous tracks"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={handleNextRecently}
-                      disabled={!canGoNextRecently || isAnimatingRecently}
-                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoNextRecently && !isAnimatingRecently
-                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title="Next tracks"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            </Fade>
             
             {/* Recently Played Section */}
             {loadingRecently ? (
               <div className="grid grid-cols-6 gap-4">
                 {Array.from({ length: recentlyPerView }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <LoadingSkeleton className="aspect-square rounded-lg" />
-                    <LoadingSkeleton className="h-3 w-full" />
-                    <LoadingSkeleton className="h-2 w-3/4" />
-                  </div>
+                  <Grow in key={i} timeout={300 + i * 100}>
+                    <div className="space-y-2">
+                      <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
+                      <Skeleton variant="text" width="100%" height={12} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                      <Skeleton variant="text" width="75%" height={10} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                    </div>
+                  </Grow>
                 ))}
               </div>
             ) : errors.recently ? (
@@ -764,8 +782,8 @@ const Dashboard: React.FC = () => {
             ) : recentlyPlayed.length > 0 ? (
                 <div className={`grid grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
-                  <div 
-                    key={`${item.track.id}-${recentlyStartIndex}`} 
+                  <Grow in timeout={300 + index * 50} key={`${item.track.id}-${recentlyStartIndex}`}>
+                    <div 
                     className={`group cursor-pointer transition-all duration-300 ease-out ${isAnimatingRecently ? 'animate-pulse' : ''}`}
                     style={{ 
                       animationDelay: `${index * 50}ms`,
@@ -843,7 +861,8 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  </Grow>
                 ))}
               </div>
             ) : (
@@ -867,62 +886,64 @@ const Dashboard: React.FC = () => {
           {/* Top Tracks Section */}
           <section id="top" className="space-y-4">
             {/* Section Title */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Your Top 10 Tracks</h2>
-                <p className="text-gray-400 text-sm">Your most played songs this month</p>
+            <Fade in timeout={600}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Your Top 10 Tracks</h2>
+                  <p className="text-gray-400 text-sm">Your most played songs this month</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Navigation Arrows */}
+                  {topTracks.length > tracksPerView && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={handlePrevTracks}
+                        disabled={!canGoPrev || isAnimatingTracks}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoPrev && !isAnimatingTracks
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Previous tracks"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={handleNextTracks}
+                        disabled={!canGoNext || isAnimatingTracks}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoNext && !isAnimatingTracks
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Next tracks"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {/* Navigation Arrows */}
-                {topTracks.length > tracksPerView && (
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={handlePrevTracks}
-                      disabled={!canGoPrev || isAnimatingTracks}
-                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoPrev && !isAnimatingTracks
-                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title="Previous tracks"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={handleNextTracks}
-                      disabled={!canGoNext || isAnimatingTracks}
-                      className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                        canGoNext && !isAnimatingTracks
-                          ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                          : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                      }`}
-                      title="Next tracks"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            </Fade>
             
             {/* Top Tracks Section */}
             {loadingTop ? (
               <div className="space-y-3">
                 {Array.from({ length: tracksPerView }).map((_, i) => (
-                  <div key={i} className="bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm p-4">
-                    <div className="flex items-center gap-4">
-                      <LoadingSkeleton className="w-5 h-5" />
-                      <LoadingSkeleton className="w-12 h-12 rounded-lg" />
-                      <div className="flex-1 space-y-1">
-                        <LoadingSkeleton className="h-3 w-full" />
-                        <LoadingSkeleton className="h-2 w-3/4" />
-                      </div>
-                    </div>
-                  </div>
+                  <Skeleton 
+                    key={i} 
+                    variant="rectangular" 
+                    animation="wave"
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.05)', 
+                      borderRadius: '0.75rem',
+                      height: '80px'
+                    }} 
+                  />
                 ))}
               </div>
             ) : errors.top ? (
@@ -932,14 +953,14 @@ const Dashboard: React.FC = () => {
                 {topTracks.slice(topTracksStartIndex, topTracksStartIndex + tracksPerView).map((track, index) => {
                   const globalIndex = topTracksStartIndex + index;
                   return (
-                    <div 
-                      key={`${track.id}-${topTracksStartIndex}`} 
-                      className={`group cursor-pointer bg-white/3 hover:bg-white/8 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden ${isAnimatingTracks ? 'animate-pulse' : ''}`}
-                      style={{ 
-                        animationDelay: `${index * 50}ms`,
-                        transform: isAnimatingTracks ? 'translateX(10px)' : 'translateX(0px)'
-                      }}
-                    >
+                    <Grow key={`${track.id}-${topTracksStartIndex}`} in timeout={300 + (index * 50)}>
+                      <div 
+                        className={`group cursor-pointer bg-white/3 hover:bg-white/8 rounded-2xl border border-white/5 hover:border-yellow-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden ${isAnimatingTracks ? 'animate-pulse' : ''}`}
+                        style={{ 
+                          animationDelay: `${index * 50}ms`,
+                          transform: isAnimatingTracks ? 'translateX(10px)' : 'translateX(0px)'
+                        }}
+                      >
                       <div className="flex items-center gap-4 p-4">
                         {/* Rank */}
                         <div className="flex-shrink-0">
@@ -1030,6 +1051,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                    </Grow>
                   );
                 })}
               </div>

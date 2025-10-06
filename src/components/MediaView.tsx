@@ -8,7 +8,9 @@ import {
   IconButton, 
   Stack,
   CardMedia,
-  Skeleton
+  Skeleton,
+  Fade,
+  Grow
 } from '@mui/material';
 import { useToast } from '../context/toast';
 import {
@@ -70,69 +72,62 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     setTracks(allTracks);
   };
 
-  // Function to fetch all tracks from a playlist with pagination
-  const fetchAllPlaylistTracks = async (playlistId: string) => {
-    if (!token) return;
-
-    let allTracks: any[] = [];
-    let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
-
-    while (nextUrl) {
-      try {
-        const response = await fetch(nextUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        allTracks = [...allTracks, ...(data.items || [])];
-        nextUrl = data.next; // Spotify provides the next URL for pagination
-      } catch (error) {
-        console.error('Failed to fetch playlist tracks:', error);
-        throw error;
-      }
-    }
-
-    setTracks(allTracks);
-  };
-
   useEffect(() => {
     const fetchMediaData = async () => {
       if (!token || !id) return;
 
       setLoading(true);
       try {
-        let mediaResponse;
-        
         if (type === 'album') {
-          // Fetch album data
-          mediaResponse = await fetch(`https://api.spotify.com/v1/albums/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        } else {
-          // Fetch playlist data
-          mediaResponse = await fetch(`https://api.spotify.com/v1/playlists/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        }
+          // Fetch album data with fields parameter to get all tracks in one request
+          const mediaResponse = await fetch(
+            `https://api.spotify.com/v1/albums/${id}?market=US`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
-        if (!mediaResponse.ok) throw new Error(`HTTP ${mediaResponse.status}`);
-        
-        const mediaDataResult = await mediaResponse.json();
-        setMediaData(mediaDataResult);
+          if (!mediaResponse.ok) throw new Error(`HTTP ${mediaResponse.status}`);
+          
+          const mediaDataResult = await mediaResponse.json();
+          setMediaData(mediaDataResult);
 
-        // Fetch tracks
-        if (type === 'album') {
-          // For albums, check if tracks are included, otherwise fetch separately with pagination
+          // Most albums include all tracks in the initial response
           if (mediaDataResult.tracks?.items) {
             setTracks(mediaDataResult.tracks.items);
           } else {
+            // Only fetch separately if tracks not included (rare)
             await fetchAllAlbumTracks(id);
           }
         } else {
-          // For playlists, fetch all tracks with pagination
-          await fetchAllPlaylistTracks(id);
+          // For playlists, fetch metadata and tracks in PARALLEL for speed
+          const [playlistResponse, tracksResponse] = await Promise.all([
+            fetch(`https://api.spotify.com/v1/playlists/${id}?fields=id,name,description,images,owner,tracks(total),uri,type`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`https://api.spotify.com/v1/playlists/${id}/tracks?limit=100&market=US`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          ]);
+
+          if (!playlistResponse.ok) throw new Error(`HTTP ${playlistResponse.status}`);
+          if (!tracksResponse.ok) throw new Error(`HTTP ${tracksResponse.status}`);
+
+          const [playlistData, tracksData] = await Promise.all([
+            playlistResponse.json(),
+            tracksResponse.json()
+          ]);
+
+          setMediaData(playlistData);
+          
+          // Set initial tracks immediately for fast display
+          let allTracks = tracksData.items || [];
+          setTracks(allTracks);
+
+          // If there are more tracks, fetch remaining pages in background
+          if (tracksData.next) {
+            fetchRemainingPlaylistTracks(tracksData.next, allTracks);
+          }
         }
         
         setError('');
@@ -146,6 +141,33 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
     fetchMediaData();
   }, [token, id, type]);
+
+  // Background fetch for remaining playlist tracks (non-blocking)
+  const fetchRemainingPlaylistTracks = async (nextUrl: string, initialTracks: any[]) => {
+    let allTracks = [...initialTracks];
+    let currentUrl = nextUrl;
+
+    while (currentUrl) {
+      try {
+        const response = await fetch(currentUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) break; // Stop on error, but don't show error to user
+
+        const data = await response.json();
+        allTracks = [...allTracks, ...(data.items || [])];
+        
+        // Update tracks progressively as we fetch more
+        setTracks([...allTracks]);
+        
+        currentUrl = data.next;
+      } catch (error) {
+        console.error('Failed to fetch additional tracks:', error);
+        break; // Stop on error but keep what we have
+      }
+    }
+  };
 
   const toast = useToast();
 
@@ -269,44 +291,80 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
   if (loading) {
     return (
-      <Box sx={{ padding: 4 }}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-          <IconButton onClick={onBack} sx={{ color: 'white' }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-            Loading...
-          </Typography>
-        </Stack>
-        
-        <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
-          <Skeleton variant="rectangular" width={250} height={250} sx={{ borderRadius: 2 }} />
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" sx={{ fontSize: '3rem', mb: 2 }} />
-            <Skeleton variant="text" sx={{ fontSize: '1rem', mb: 1 }} />
-            <Skeleton variant="text" sx={{ fontSize: '1rem' }} />
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
+        <Box sx={{ padding: 4 }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+            <IconButton onClick={onBack} sx={{ 
+              color: 'white',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Loading...
+            </Typography>
+          </Stack>
+          
+          <Box sx={{ 
+            padding: '2rem',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.2) 0%, rgba(59, 130, 246, 0.1) 50%, rgba(16, 185, 129, 0.1) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
+              <Skeleton 
+                variant="rectangular" 
+                width={250} 
+                height={250} 
+                sx={{ 
+                  borderRadius: 2,
+                  bgcolor: 'rgba(139, 92, 246, 0.1)'
+                }} 
+              />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton variant="text" sx={{ fontSize: '3rem', mb: 2, bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
+                <Skeleton variant="text" sx={{ fontSize: '1rem', mb: 1, bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
+                <Skeleton variant="text" sx={{ fontSize: '1rem', bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
+              </Box>
+            </Box>
           </Box>
         </Box>
-      </Box>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ padding: 4 }}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-          <IconButton onClick={onBack} sx={{ color: 'white' }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-            Error
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
+        <Box sx={{ padding: 4 }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+            <IconButton onClick={onBack} sx={{ 
+              color: 'white',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Error
+            </Typography>
+          </Stack>
+          
+          <Typography sx={{ 
+            color: '#ef4444', 
+            textAlign: 'center', 
+            mt: 4,
+            padding: '2rem',
+            borderRadius: '12px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}>
+            {error}
           </Typography>
-        </Stack>
-        
-        <Typography sx={{ color: 'red', textAlign: 'center', mt: 4 }}>
-          {error}
-        </Typography>
-      </Box>
+        </Box>
+      </div>
     );
   }
 
@@ -314,89 +372,151 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   if (!mediaData) return null;
 
   return (
-  <div className="min-h-screen flex flex-col" style={{ background: '#000000' }}>
+  <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
       <Box sx={{
         color: 'white',
         flex: 1,
         width: '100%',
         maxWidth: '1200px',
         margin: '0 auto',
+        padding: '2rem',
       }}>
-      {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-        <IconButton onClick={onBack} sx={{ color: 'white' }}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-          {type.charAt(0).toUpperCase() + type.slice(1)}
-        </Typography>
-      </Stack>
+      {/* Header with Fade Animation */}
+      <Fade in={!loading} timeout={600}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+          <IconButton 
+            onClick={onBack} 
+            sx={{ 
+              color: 'white',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              '&:hover': {
+                bgcolor: 'rgba(139, 92, 246, 0.2)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                transform: 'translateX(-2px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h4" sx={{ 
+            color: 'white', 
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #fff 0%, rgba(139, 92, 246, 1) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            {type.charAt(0).toUpperCase() + type.slice(1)}
+          </Typography>
+        </Stack>
+      </Fade>
 
-      {/* Media Info */}
-      <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
+      {/* Media Info with Grow Animation */}
+      <Grow in={!loading} timeout={700}>
+        <Box>
+          {/* Gradient Header Background */}
+          <Box sx={{
+            position: 'relative',
+            padding: '2rem',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.3) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(16, 185, 129, 0.15) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            mb: 4,
+            boxShadow: '0 8px 32px rgba(88, 28, 135, 0.2)',
+          }}>
+            <Box sx={{ display: 'flex', gap: 4 }}>
+              <Box sx={{
+                width: 250,
+                height: 250,
+                borderRadius: 2,
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 60%, rgba(16, 185, 129, 0.1) 100%)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 12px 40px rgba(139, 92, 246, 0.3)',
+                backdropFilter: 'blur(8px)',
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                  boxShadow: '0 16px 48px rgba(139, 92, 246, 0.4)',
+                }
+              }}>
+                <CardMedia
+                  component="img"
+                  image={getImage()}
+                  alt={getTitle()}
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
+                  {getTitle()}
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)', mb: 2 }}>
+                  {getDescription()}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 3 }}>
+                  {getSubtitle()}
+                </Typography>
+                
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <IconButton 
+                    onClick={playAllTracks}
+                    sx={{ 
+                      bgcolor: '#1db954', 
+                      color: 'white',
+                      width: 56,
+                      height: 56,
+                      '&:hover': { 
+                        bgcolor: '#1ed760', 
+                        transform: 'scale(1.05)',
+                        boxShadow: '0 8px 24px rgba(29, 185, 84, 0.4)'
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <PlayArrow sx={{ fontSize: '2rem' }} />
+                  </IconButton>
+                  
+                  <IconButton sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    '&:hover': { 
+                      color: 'white',
+                      bgcolor: 'rgba(255,255,255,0.1)'
+                    }
+                  }}>
+                    <MoreHoriz />
+                  </IconButton>
+                </Stack>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Grow>
+
+      {/* Tracks List with Grow Animation */}
+      <Grow in={!loading} timeout={800}>
         <Box sx={{
-          width: 250,
-          height: 250,
-          borderRadius: 2,
-          overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(30,58,138,0.6) 60%, rgba(0,0,0,0.6) 100%)',
-          border: '1px solid rgba(255,255,255,0.05)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(6px)'
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '12px',
+          padding: '1rem',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.05)'
         }}>
-          <CardMedia
-            component="img"
-            image={getImage()}
-            alt={getTitle()}
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
-            {getTitle()}
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'gray', mb: 2 }}>
-            {getDescription()}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'gray', mb: 3 }}>
-            {getSubtitle()}
-          </Typography>
-          
-          <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton 
-              onClick={playAllTracks}
-              sx={{ 
-                bgcolor: '#1db954', 
-                color: 'white',
-                width: 56,
-                height: 56,
-                '&:hover': { bgcolor: '#1ed760', transform: 'scale(1.05)' }
-              }}
-            >
-              <PlayArrow sx={{ fontSize: '2rem' }} />
-            </IconButton>
-            
-            <IconButton sx={{ color: 'gray' }}>
-              <MoreHoriz />
-            </IconButton>
-          </Stack>
-        </Box>
-      </Box>
-
-      {/* Tracks List */}
-      <Box>
         {/* Table Header */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           padding: '8px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
           mb: 1
         }}>
           {/* # column */}
           <Typography sx={{
             width: 40,
-            color: 'gray',
+            color: 'rgba(139, 92, 246, 0.8)',
             fontSize: '0.9rem',
             fontWeight: 500,
             textAlign: 'center',
@@ -406,7 +526,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           {/* Title column */}
           <Typography sx={{
             flex: 1,
-            color: 'gray',
+            color: 'rgba(139, 92, 246, 0.8)',
             fontSize: '0.9rem',
             fontWeight: 500,
             ml: 2
@@ -417,7 +537,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           {type === 'playlist' && (
             <Typography sx={{
               width: 200,
-              color: 'gray',
+              color: 'rgba(139, 92, 246, 0.8)',
               fontSize: '0.9rem',
               fontWeight: 500,
               textAlign: 'left',
@@ -432,7 +552,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            color: 'gray',
+            color: 'rgba(139, 92, 246, 0.8)',
           }}>
             <AccessTime fontSize="small" aria-label="duration" />
           </Box>
@@ -453,8 +573,11 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                 alignItems: 'center',
                 padding: '8px 16px',
                 borderRadius: 1,
+                background: isCurrentTrack ? 'linear-gradient(90deg, rgba(29, 185, 84, 0.1) 0%, transparent 100%)' : 'transparent',
+                transition: 'all 0.2s ease',
                 '&:hover': { 
-                  bgcolor: 'rgba(255,255,255,0.1)',
+                  bgcolor: 'rgba(139, 92, 246, 0.1)',
+                  background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)',
                   '& .track-number': { display: 'none' },
                   '& .play-pause-btn': { display: 'flex' }
                 },
@@ -597,6 +720,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           );
         })}
       </Box>
+      </Grow>
     </Box>
     </div>
   );

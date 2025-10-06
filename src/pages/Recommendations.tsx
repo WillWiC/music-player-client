@@ -14,7 +14,7 @@ import Header from '../components/Header';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { CircularProgress, IconButton, Tooltip, Chip } from '@mui/material';
+import { IconButton, Tooltip, Chip, Fade, Grow, Skeleton } from '@mui/material';
 
 const Recommendations: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +70,8 @@ const Recommendations: React.FC = () => {
       <div className="flex-1 lg:ml-72 pb-24 pt-20">
         <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          <Fade in timeout={600}>
+            <div className="flex items-center gap-4 mb-8">
             <button
               onClick={() => navigate(-1)}
               className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
@@ -96,6 +97,7 @@ const Recommendations: React.FC = () => {
               </IconButton>
             </Tooltip>
           </div>
+          </Fade>
 
           {/* Music Insights */}
           {insights && (
@@ -161,10 +163,19 @@ const Recommendations: React.FC = () => {
 
           {/* Loading State */}
           {isLoading && (
-            <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-12 text-center">
-              <CircularProgress size={60} sx={{ color: '#22c55e' }} />
-              <div className="text-white text-xl mt-4">Analyzing your music taste...</div>
-              <div className="text-gray-400 text-sm mt-2">This may take a few moments</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton 
+                  key={i} 
+                  variant="rectangular" 
+                  animation="wave"
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.05)', 
+                    borderRadius: '1rem',
+                    height: '320px'
+                  }} 
+                />
+              ))}
             </div>
           )}
 
@@ -185,12 +196,12 @@ const Recommendations: React.FC = () => {
           {/* Recommendations Grid */}
           {!isLoading && !error && recommendations.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendations.map((recommendation) => (
-                <div
-                  key={recommendation.playlist.id}
-                  className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-green-500/30 hover:bg-white/10 transition-all group cursor-pointer"
-                  onClick={() => navigate(`/playlist/${recommendation.playlist.id}`)}
-                >
+              {recommendations.map((recommendation, index) => (
+                <Grow key={recommendation.playlist.id} in timeout={400 + (index * 50)}>
+                  <div
+                    className="bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-green-500/30 hover:bg-white/10 transition-all group cursor-pointer"
+                    onClick={() => navigate(`/playlist/${recommendation.playlist.id}`)}
+                  >
                   {/* Playlist Header */}
                   <div className="flex items-start gap-4 mb-4">
                     <div className="relative">
@@ -258,6 +269,7 @@ const Recommendations: React.FC = () => {
                     </div>
                   )}
                 </div>
+                </Grow>
               ))}
             </div>
           )}

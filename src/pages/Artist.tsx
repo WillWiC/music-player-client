@@ -6,7 +6,7 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { CircularProgress, IconButton, Tooltip, Fade, Grow, Skeleton } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import type { Artist as ArtistType, Album, Track } from '../types/spotify';
@@ -170,11 +170,6 @@ const Artist: React.FC = () => {
     }
   };
 
-  // Loading skeleton component
-  const LoadingSkeleton = ({ className }: { className?: string }) => (
-    <div className={`animate-pulse bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg ${className}`} />
-  );
-
   // ... use formatCount helper for follower formatting
 
   if (authLoading || loading) {
@@ -221,7 +216,8 @@ const Artist: React.FC = () => {
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           
           {/* Artist Header */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/10 backdrop-blur-sm p-8 mb-8">
+          <Fade in timeout={600}>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/10 backdrop-blur-sm p-8 mb-8">
             <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-end">
               
               {/* Artist Image */}
@@ -335,41 +331,47 @@ const Artist: React.FC = () => {
               </div>
             </div>
           </div>
+          </Fade>
 
           {/* Popular Tracks */}
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Popular</h2>
-              {topTracks.length > 5 && (
-                <button
-                  onClick={() => setShowAllTracks(!showAllTracks)}
-                  className="text-gray-400 hover:text-white text-sm font-medium"
-                >
-                  {showAllTracks ? 'Show less' : 'Show all'}
-                </button>
-              )}
-            </div>
+            <Fade in timeout={600}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">Popular</h2>
+                {topTracks.length > 5 && (
+                  <button
+                    onClick={() => setShowAllTracks(!showAllTracks)}
+                    className="text-gray-400 hover:text-white text-sm font-medium"
+                  >
+                    {showAllTracks ? 'Show less' : 'Show all'}
+                  </button>
+                )}
+              </div>
+            </Fade>
             
             {loadingTracks ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3">
-                    <LoadingSkeleton className="w-12 h-12" />
-                    <div className="flex-1 space-y-1">
-                      <LoadingSkeleton className="h-4 w-3/4" />
-                      <LoadingSkeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
+                  <Skeleton 
+                    key={i} 
+                    variant="rectangular" 
+                    animation="wave"
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.05)', 
+                      borderRadius: '0.5rem',
+                      height: '72px'
+                    }} 
+                  />
                 ))}
               </div>
             ) : displayedTracks.length > 0 ? (
               <div className="space-y-2">
                 {displayedTracks.map((track, index) => (
-                  <div
-                    key={track.id}
-                    className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                    onClick={() => handleTrackPlay(track)}
-                  >
+                  <Grow key={track.id} in timeout={300 + (index * 30)}>
+                    <div
+                      className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                      onClick={() => handleTrackPlay(track)}
+                    >
                     <div className="flex-shrink-0 w-8 text-gray-400 text-sm font-medium group-hover:hidden">
                       {index + 1}
                     </div>
@@ -411,6 +413,7 @@ const Artist: React.FC = () => {
                       }
                     </div>
                   </div>
+                  </Grow>
                 ))}
               </div>
             ) : (
@@ -422,36 +425,43 @@ const Artist: React.FC = () => {
 
           {/* Albums */}
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Albums</h2>
-              {albums.length > 6 && (
-                <button
-                  onClick={() => setShowAllAlbums(!showAllAlbums)}
-                  className="text-gray-400 hover:text-white text-sm font-medium"
-                >
-                  {showAllAlbums ? 'Show less' : 'Show all'}
-                </button>
-              )}
-            </div>
+            <Fade in timeout={600}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">Albums</h2>
+                {albums.length > 6 && (
+                  <button
+                    onClick={() => setShowAllAlbums(!showAllAlbums)}
+                    className="text-gray-400 hover:text-white text-sm font-medium"
+                  >
+                    {showAllAlbums ? 'Show less' : 'Show all'}
+                  </button>
+                )}
+              </div>
+            </Fade>
             
             {loadingAlbums ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <LoadingSkeleton className="aspect-square rounded-lg" />
-                    <LoadingSkeleton className="h-4 w-full" />
-                    <LoadingSkeleton className="h-3 w-3/4" />
-                  </div>
+                  <Skeleton 
+                    key={i} 
+                    variant="rectangular" 
+                    animation="wave"
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.05)', 
+                      borderRadius: '0.5rem',
+                      paddingTop: '100%'
+                    }} 
+                  />
                 ))}
               </div>
             ) : displayedAlbums.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {displayedAlbums.map((album) => (
-                  <div
-                    key={album.id}
-                    onClick={() => navigate(`/album/${album.id}`)}
-                    className="group cursor-pointer space-y-3 hover:bg-white/5 p-3 rounded-lg transition-colors"
-                  >
+                {displayedAlbums.map((album, index) => (
+                  <Grow key={album.id} in timeout={400 + (index * 50)}>
+                    <div
+                      onClick={() => navigate(`/album/${album.id}`)}
+                      className="group cursor-pointer space-y-3 hover:bg-white/5 p-3 rounded-lg transition-colors"
+                    >
                     <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-800">
                       <img
                         src={album.images?.[0]?.url || '/vite.svg'}
@@ -475,6 +485,7 @@ const Artist: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  </Grow>
                 ))}
               </div>
             ) : (
@@ -486,26 +497,33 @@ const Artist: React.FC = () => {
 
           {/* Related Artists */}
           <section>
-            <h2 className="text-2xl font-bold text-white mb-6">Related Artists</h2>
+            <Fade in timeout={600}>
+              <h2 className="text-2xl font-bold text-white mb-6">Related Artists</h2>
+            </Fade>
             
             {loadingRelated ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="space-y-3 text-center">
-                    <LoadingSkeleton className="aspect-square rounded-full mx-auto" />
-                    <LoadingSkeleton className="h-4 w-3/4 mx-auto" />
-                    <LoadingSkeleton className="h-3 w-1/2 mx-auto" />
-                  </div>
+                  <Skeleton 
+                    key={i} 
+                    variant="circular" 
+                    animation="wave"
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.05)', 
+                      width: '100%',
+                      paddingTop: '100%'
+                    }} 
+                  />
                 ))}
               </div>
             ) : relatedArtists.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {relatedArtists.slice(0, 12).map((relatedArtist) => (
-                  <div
-                    key={relatedArtist.id}
-                    onClick={() => navigate(`/artist/${relatedArtist.id}`)}
-                    className="group cursor-pointer space-y-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-center"
-                  >
+                {relatedArtists.slice(0, 12).map((relatedArtist, index) => (
+                  <Grow key={relatedArtist.id} in timeout={400 + (index * 50)}>
+                    <div
+                      onClick={() => navigate(`/artist/${relatedArtist.id}`)}
+                      className="group cursor-pointer space-y-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-center"
+                    >
                     <div className="aspect-square relative overflow-hidden rounded-full bg-gray-800 mx-auto">
                       {relatedArtist.images?.[0] ? (
                         <img
@@ -530,6 +548,7 @@ const Artist: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  </Grow>
                 ))}
               </div>
             ) : (

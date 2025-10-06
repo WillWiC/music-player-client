@@ -6,7 +6,8 @@ An advanced Spotify-style web client built with React, TypeScript, Vite and Mate
 
 ### 🎵 **Core Music Experience**
 - **OAuth PKCE Authentication** with Spotify - Secure login flow
-- **Advanced Search** - Tracks, albums, artists with inline play controls
+- **Unified Search System** - Seamless header and page search with recent searches
+- **Advanced Search** - Tracks, albums, artists with inline play controls and instant previews
 - **Personalized Dashboard** - Recently played, new releases, and top tracks
 - **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
 - **Web Playback Integration** - In-browser playback with Spotify Web Playback SDK
@@ -19,8 +20,11 @@ An advanced Spotify-style web client built with React, TypeScript, Vite and Mate
 - **Popular Playlist Filtering** - Curated selection of high-quality, well-followed playlists
 
 ### 🎨 **Enhanced User Experience**
+- **Unified Search** - Synchronized header and page search with instant results
+- **Recent Search History** - Quick access to your last 10 searches
 - **Modern Dark UI** - Sleek, Spotify-inspired interface with glassmorphism effects
 - **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
+- **Keyboard Navigation** - Arrow keys and shortcuts for efficient browsing
 - **Responsive Design** - Optimized for desktop and mobile devices
 - **Real-time Updates** - Live music data and recommendation updates
 
@@ -206,6 +210,8 @@ The application requests these Spotify permissions:
 - [Authentication Flow](./additional_readme/README_AUTH.md)
 - [Token Refresh Implementation](./additional_readme/TOKEN_REFRESH_IMPLEMENTATION.md)
 - [Category Improvements](./additional_readme/CATEGORY_IMPROVEMENTS.md)
+- [Search System Improvements](./additional_readme/SEARCH_IMPROVEMENTS.md)
+- [Search Usage Guide](./additional_readme/SEARCH_USAGE_GUIDE.md)
 
 ---
 
