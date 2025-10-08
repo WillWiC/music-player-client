@@ -11,7 +11,7 @@ This is a university capstone project that utilize Spotify API to build an advan
 - **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
 - **Web Playback Integration** - In-browser playback with Spotify Web Playback SDK
 
-### 🧠 **AI-Powered Music Intelligence** ⚡ **NEW: 3-5x FASTER!**
+### 🧠 **AI-Powered Music Intelligence** ⚡
 - **Smart Genre Detection** - Advanced pattern matching for 12+ music categories
 - **K-pop Specialization** - Enhanced detection for Korean music and major K-pop artists
 - **Personalized Recommendations** - AI-driven playlist suggestions based on listening history
@@ -216,12 +216,6 @@ The application requests these Spotify permissions:
 - **[Category System](./additional_readme/CATEGORIES.md)** - Music categorization & genre detection
 - **[Animation System](./additional_readme/ANIMATIONS.md)** - UI animations & loading states
 
-### Recent Improvements ⚡
-- [**Smart Playlist Performance**](./SMART_PLAYLIST_OPTIMIZATION.md) - **3-5x faster recommendations!** 🚀
-- [**Null Safety Enhancement**](./NULL_SAFETY_FIX.md) - Comprehensive error handling
-- [**Settings Cleanup**](./SETTINGS_CLEANUP.md) - Removed non-functional UI elements
-- [**Recent Improvements Summary**](./RECENT_IMPROVEMENTS.md) - All recent changes
-
 ---
 
 ## 🤝 Contributing
@@ -236,7 +230,7 @@ The application requests these Spotify permissions:
 
 ## 📄 License
 
-This project is only for personal use/education purpose. It is not build for commerial
+This project is only for personal use/education purpose. It is not build for commerial. Feel free to contribute and pull the project.
 
 ---
 
