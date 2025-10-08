@@ -7,13 +7,7 @@ import { refreshSpotifyTokenDetailed, isAccessTokenExpired } from '../utils/toke
 import {
   Paper,
   Typography,
-  Switch,
-  FormControlLabel,
   Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
   Divider,
   Snackbar,
@@ -25,36 +19,10 @@ import {
 } from '@mui/material';
 import { Refresh, Visibility, VisibilityOff, CheckCircle, Error } from '@mui/icons-material';
 
-type PlaybackQuality = 'low' | 'normal' | 'high';
-
-const STORAGE_KEYS = {
-  DARK: 'settings_dark_mode',
-  AUTOPLAY: 'settings_autoplay',
-  QUALITY: 'settings_playback_quality',
-  EXPLICIT: 'settings_allow_explicit'
-};
-
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { refreshAccessTokenNow, isGuest } = useAuth();
-
-  // Load initial values from localStorage with sane defaults
-  const [darkMode, setDarkMode] = React.useState<boolean>(() => {
-    try { return localStorage.getItem(STORAGE_KEYS.DARK) === '1'; } catch { return true; }
-  });
-
-  const [autoplay, setAutoplay] = React.useState<boolean>(() => {
-    try { return localStorage.getItem(STORAGE_KEYS.AUTOPLAY) !== '0'; } catch { return true; }
-  });
-
-  const [playbackQuality, setPlaybackQuality] = React.useState<PlaybackQuality>(() => {
-    try { return (localStorage.getItem(STORAGE_KEYS.QUALITY) as PlaybackQuality) || 'normal'; } catch { return 'normal'; }
-  });
-
-  const [allowExplicit, setAllowExplicit] = React.useState<boolean>(() => {
-    try { return localStorage.getItem(STORAGE_KEYS.EXPLICIT) === '1'; } catch { return true; }
-  });
 
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
@@ -75,23 +43,6 @@ const Settings: React.FC = () => {
     return diff > 0 ? msToTime(diff) : 'Expired';
   });
   const [refreshStatus, setRefreshStatus] = React.useState<'idle'|'loading'|'success'|'error'>('idle');
-
-  // Persist changes to localStorage
-  React.useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEYS.DARK, darkMode ? '1' : '0'); } catch {}
-  }, [darkMode]);
-
-  React.useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEYS.AUTOPLAY, autoplay ? '1' : '0'); } catch {}
-  }, [autoplay]);
-
-  React.useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEYS.QUALITY, playbackQuality); } catch {}
-  }, [playbackQuality]);
-
-  React.useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEYS.EXPLICIT, allowExplicit ? '1' : '0'); } catch {}
-  }, [allowExplicit]);
 
   // Update token status periodically
   React.useEffect(() => {
@@ -176,21 +127,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const resetToDefaults = () => {
-    setDarkMode(true);
-    setAutoplay(true);
-    setPlaybackQuality('normal');
-    setAllowExplicit(true);
-    try {
-      localStorage.removeItem(STORAGE_KEYS.DARK);
-      localStorage.removeItem(STORAGE_KEYS.AUTOPLAY);
-      localStorage.removeItem(STORAGE_KEYS.QUALITY);
-      localStorage.removeItem(STORAGE_KEYS.EXPLICIT);
-    } catch {}
-    setSnackbarMessage('Settings reset to defaults');
-    setSnackbarOpen(true);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
@@ -201,53 +137,6 @@ const Settings: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-4">Settings</h1>
 
           <Paper className="p-6 bg-white/5 border border-white/10 rounded-lg">
-            <Typography sx={{ color: 'white', fontWeight: 700, mb: 2 }}>Preferences</Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <FormControlLabel
-                control={<Switch checked={darkMode} onChange={() => { setDarkMode(v => !v); setSnackbarMessage('Dark mode updated'); setSnackbarOpen(true); }} />}
-                label={<Typography sx={{ color: 'white' }}>Dark mode (UI)</Typography>}
-              />
-
-              <FormControlLabel
-                control={<Switch checked={autoplay} onChange={() => { setAutoplay(v => !v); setSnackbarMessage('Autoplay preference updated'); setSnackbarOpen(true); }} />}
-                label={<Typography sx={{ color: 'white' }}>Autoplay next track</Typography>}
-              />
-
-              <FormControl fullWidth>
-                <InputLabel id="playback-quality-label" sx={{ color: 'rgba(255,255,255,0.85)' }}>Playback quality</InputLabel>
-                <Select
-                  labelId="playback-quality-label"
-                  value={playbackQuality}
-                  label="Playback quality"
-                  onChange={(e) => { setPlaybackQuality(e.target.value as PlaybackQuality); setSnackbarMessage('Playback quality updated'); setSnackbarOpen(true); }}
-                  sx={{ color: 'white' }}
-                >
-                  <MenuItem value="low">Low (conserve data)</MenuItem>
-                  <MenuItem value="normal">Normal</MenuItem>
-                  <MenuItem value="high">High (best quality)</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControlLabel
-                control={<Switch checked={allowExplicit} onChange={() => { setAllowExplicit(v => !v); setSnackbarMessage('Explicit content preference updated'); setSnackbarOpen(true); }} />}
-                label={<Typography sx={{ color: 'white' }}>Allow explicit content</Typography>}
-              />
-
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button variant="contained" color="primary" onClick={() => { setSnackbarMessage('Settings saved'); setSnackbarOpen(true); }}>Save</Button>
-                <Button variant="outlined" color="inherit" onClick={resetToDefaults}>Reset to defaults</Button>
-              </Box>
-            </Box>
-
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', mt: 3, fontSize: '0.8rem' }}>
-              * These settings are stored in your browser (localStorage) and apply only to this client.
-            </Typography>
-          </Paper>
-
-          <Paper className="p-6 bg-white/5 border border-white/10 rounded-lg mt-6">
             <Typography sx={{ color: 'white', fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
               Auth / Token Management
               {isGuest && <Chip label="Guest Mode" size="small" color="warning" />}

@@ -1,6 +1,5 @@
 # FlowBeats - Intelligent Music Player (React + TypeScript + Vite)
-
-An advanced Spotify-style web client built with React, TypeScript, Vite and Material-UI, featuring AI-powered music intelligence and personalized recommendations.
+This is a university capstone project that utilize Spotify API to build an advanced Spotify-style web client using React, with the purpose to research and build AI-powered music intelligence and personalized recommendations with a smart modern design UI/UX.
 
 ## ✨ Key Features
 
@@ -85,7 +84,7 @@ npm run dev:all
 - Click "Continue with Spotify" to authenticate
 - Grant required permissions for full functionality
 
-## 🐳 Docker Support
+## 🐳 Docker Support (In Progress)
 
 ### Development with Docker
 ```bash
@@ -208,20 +207,20 @@ The application requests these Spotify permissions:
 
 ## 📚 Additional Documentation
 
-### Core Features
-- [Docker Setup Guide](./additional_readme/DOCKER.md)
-- [Authentication Flow](./additional_readme/README_AUTH.md)
-- [Token Refresh Implementation](./additional_readme/TOKEN_REFRESH_IMPLEMENTATION.md)
-- [Category Improvements](./additional_readme/CATEGORY_IMPROVEMENTS.md)
+### Core Features & Setup
+- **[Docker Deployment](./additional_readme/DOCKER.md)** - Container setup and deployment guide
+- **[Authentication System](./additional_readme/AUTHENTICATION.md)** - OAuth 2.0 PKCE flow & token management
+
+### Feature Documentation
+- **[Search System](./additional_readme/SEARCH.md)** - Search implementation, relevance fixes, null safety
+- **[Category System](./additional_readme/CATEGORIES.md)** - Music categorization & genre detection
+- **[Animation System](./additional_readme/ANIMATIONS.md)** - UI animations & loading states
 
 ### Recent Improvements ⚡
-- [**Search System Optimization**](./SEARCH_RELEVANCE_FIX.md) - Top result relevance fix + auto-navigation
-- [**Null Safety Enhancement**](./NULL_SAFETY_FIX.md) - Comprehensive error handling for Spotify API
 - [**Smart Playlist Performance**](./SMART_PLAYLIST_OPTIMIZATION.md) - **3-5x faster recommendations!** 🚀
-
-### Search Features
-- [Search System Improvements](./additional_readme/SEARCH_IMPROVEMENTS.md)
-- [Search Usage Guide](./additional_readme/SEARCH_USAGE_GUIDE.md)
+- [**Null Safety Enhancement**](./NULL_SAFETY_FIX.md) - Comprehensive error handling
+- [**Settings Cleanup**](./SETTINGS_CLEANUP.md) - Removed non-functional UI elements
+- [**Recent Improvements Summary**](./RECENT_IMPROVEMENTS.md) - All recent changes
 
 ---
 
@@ -237,7 +236,7 @@ The application requests these Spotify permissions:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is only for personal use/education purpose. It is not build for commerial
 
 ---
 
