@@ -17,7 +17,8 @@ import {
   Chip,
   Fade,
   Grow,
-  Skeleton
+  Skeleton,
+  CircularProgress
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -39,7 +40,10 @@ const SearchPage: React.FC = () => {
     query, 
     setQuery, 
     results, 
-    isSearching, 
+    isSearching,
+    isLoadingMore,
+    hasMore,
+    loadMore,
     recentSearches, 
     removeRecentSearch, 
     clearRecentSearches
@@ -47,6 +51,51 @@ const SearchPage: React.FC = () => {
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(0); // 0: All, 1: Songs, 2: Artists, 3: Albums, 4: Playlists
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Infinite scroll handler
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container || isLoadingMore || !query) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+      // Load more when user scrolls to 80% of the page
+      if (scrollPercentage > 0.8) {
+        // Determine which type to load based on active tab
+        let typeToLoad: 'tracks' | 'albums' | 'artists' | 'playlists' | null = null;
+        
+        switch (activeTab) {
+          case 0: // All tab - don't auto-load (would be complex to handle multiple types)
+            break;
+          case 1: // Songs
+            if (hasMore.tracks) typeToLoad = 'tracks';
+            break;
+          case 2: // Artists
+            if (hasMore.artists) typeToLoad = 'artists';
+            break;
+          case 3: // Albums
+            if (hasMore.albums) typeToLoad = 'albums';
+            break;
+          case 4: // Playlists
+            if (hasMore.playlists) typeToLoad = 'playlists';
+            break;
+        }
+
+        if (typeToLoad) {
+          loadMore(typeToLoad);
+        }
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [activeTab, isLoadingMore, hasMore, query, loadMore]);
 
   React.useEffect(() => {
     // Don't auto-redirect to login; allow guest access to search UI but disable playback/searching when unauthenticated
@@ -104,7 +153,7 @@ const SearchPage: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => { /* no-op - header search handles it */ }} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main className="flex-1 lg:ml-72 pb-24 pt-20">
+      <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-24 pt-20 overflow-y-auto">
         <div className="relative max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           
           {/* Hero Section */}
@@ -658,6 +707,16 @@ const SearchPage: React.FC = () => {
                         </div>
                       </Fade>
                     )}
+                    
+                    {/* Loading indicator for Songs tab */}
+                    {isLoadingMore && (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <CircularProgress size={32} sx={{ color: '#1DB954' }} />
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2 }}>
+                          Loading more songs...
+                        </Typography>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -722,6 +781,16 @@ const SearchPage: React.FC = () => {
                             </Typography>
                           </div>
                         </Fade>
+                      </div>
+                    )}
+                    
+                    {/* Loading indicator for Artists tab */}
+                    {isLoadingMore && (
+                      <div className="flex flex-col items-center justify-center py-8 col-span-full">
+                        <CircularProgress size={32} sx={{ color: '#1DB954' }} />
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2 }}>
+                          Loading more artists...
+                        </Typography>
                       </div>
                     )}
                   </div>
@@ -800,6 +869,16 @@ const SearchPage: React.FC = () => {
                         </Fade>
                       </div>
                     )}
+                    
+                    {/* Loading indicator for Albums tab */}
+                    {isLoadingMore && (
+                      <div className="flex flex-col items-center justify-center py-8 col-span-full">
+                        <CircularProgress size={32} sx={{ color: '#1DB954' }} />
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2 }}>
+                          Loading more albums...
+                        </Typography>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -874,6 +953,16 @@ const SearchPage: React.FC = () => {
                             </Typography>
                           </div>
                         </Fade>
+                      </div>
+                    )}
+                    
+                    {/* Loading indicator for Playlists tab */}
+                    {isLoadingMore && (
+                      <div className="flex flex-col items-center justify-center py-8 col-span-full">
+                        <CircularProgress size={32} sx={{ color: '#1DB954' }} />
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2 }}>
+                          Loading more playlists...
+                        </Typography>
                       </div>
                     )}
                   </div>

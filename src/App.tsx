@@ -12,6 +12,7 @@ import Account from './pages/Account';
 import Settings from './pages/Settings';
 import About from './pages/About';
 import Artist from './pages/Artist';
+import Recommendations from './pages/recommendations';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -135,6 +136,7 @@ const AppContent: React.FC = () => {
         <Route path="/account" element={<Account />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
         <Route path="/artist/:id" element={<Artist />} />

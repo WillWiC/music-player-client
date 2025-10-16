@@ -108,7 +108,7 @@ const PlaylistRecommendations: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <span className="text-2xl">🤖</span>
-            Smart Playlist Recommendations
+            Smart Recommendation System
             {lastRefreshTime && (
               <span className="text-xs text-green-400 font-normal ml-2">
                 ⚡ Loaded in {(lastRefreshTime / 1000).toFixed(1)}s

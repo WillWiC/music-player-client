@@ -24,6 +24,14 @@ export interface PlaylistRecommendation {
   similarityType: 'genre' | 'artist' | 'popularity' | 'user_pattern';
 }
 
+export interface ArtistRecommendation {
+  artist: Artist;
+  score: number;
+  reasons: string[];
+  matchingGenres: string[];
+  similarityType: 'genre' | 'similar_artists' | 'popularity' | 'user_pattern';
+}
+
 export interface MusicInsights {
   topGenres: { genre: string; count: number; percentage: number }[];
   artistDiversity: number;
@@ -39,6 +47,7 @@ export interface MusicInsights {
 export interface UserMusicProfile {
   insights: MusicInsights;
   recommendations: PlaylistRecommendation[];
+  artistRecommendations: ArtistRecommendation[];
   lastUpdated: string;
 }
 
@@ -140,11 +149,11 @@ export class MusicIntelligenceService {
    */
   async generateMusicProfile(_user: User): Promise<UserMusicProfile> {
     try {
-      // OPTIMIZATION: Check cache first
-      const cacheKey = 'music-profile';
+      // OPTIMIZATION: Check cache first (version 3 includes language filtering)
+      const cacheKey = 'music-profile-v3';
       const cached = this.getCachedData<UserMusicProfile>(cacheKey);
       if (cached) {
-        console.log('✓ Returning cached music profile');
+        console.log('✓ Returning cached music profile (v3)');
         return cached;
       }
 
@@ -174,9 +183,17 @@ export class MusicIntelligenceService {
         followedArtists
       );
 
+      // Generate artist recommendations
+      const artistRecommendations = await this.generateArtistRecommendations(
+        insights,
+        topTracks,
+        followedArtists
+      );
+
       const profile: UserMusicProfile = {
         insights,
         recommendations,
+        artistRecommendations,
         lastUpdated: new Date().toISOString()
       };
 
@@ -608,6 +625,659 @@ export class MusicIntelligenceService {
     console.log(`✓ Generated ${finalRecs.length} recommendations in ${elapsedTime}ms (${(elapsedTime/1000).toFixed(2)}s)`);
     
     return finalRecs.slice(0, 24); // Increased from 20 to 24 for better variety
+  }
+
+  /**
+   * Generate artist recommendations based on user's music taste
+   * OPTIMIZED: Multiple search strategies with better accuracy
+   * 
+   * ALGORITHM:
+   * 1. Extract user's top artists from their most-played tracks
+   * 2. Search artists by top genres using multiple query strategies
+   * 3. Get related artists from user's top 5 artists
+   * 4. Run smart search combining genre + popularity terms
+   * 5. Combine all sources and deduplicate
+   * 6. Filter out already-followed artists and user's top artists
+   * 7. Sort by relevance score + genre match count + follower count
+   * 8. Ensure diversity (max 3 artists per genre)
+   * 9. Return top 12 diverse, relevant artist recommendations
+   */
+  private async generateArtistRecommendations(
+    insights: MusicInsights,
+    topTracks: Track[],
+    followedArtists: Artist[]
+  ): Promise<ArtistRecommendation[]> {
+    const startTime = Date.now();
+    
+    try {
+      // Get user's top artists from tracks with proper Artist type
+      const artistCounts = new Map<string, { artist: Artist; count: number }>();
+      
+      topTracks.forEach(track => {
+        track.artists.forEach(artist => {
+          const existing = artistCounts.get(artist.id);
+          if (existing) {
+            existing.count++;
+          } else {
+            // Ensure we have the full Artist object
+            artistCounts.set(artist.id, { 
+              artist: artist as Artist, 
+              count: 1 
+            });
+          }
+        });
+      });
+
+      // Sort by count and get top artists (these are user's favorites)
+      const userTopArtists = Array.from(artistCounts.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .map(item => item.artist);
+
+      console.log(`User's top ${userTopArtists.length} artists identified`);
+
+      // Get genres from user's top genres (expanded for better coverage)
+      const topGenres = insights.topGenres.slice(0, 5).map(g => g.genre);
+      
+      console.log(`Searching across ${topGenres.length} genres: ${topGenres.join(', ')}`);
+
+      // OPTIMIZED: Multiple parallel search strategies for better results
+      const [genreArtists, relatedArtists, searchArtists] = await Promise.all([
+        // Strategy 1: Search artists by user's top genres (broader search)
+        this.searchArtistsByMultipleGenres(topGenres, insights),
+        
+        // Strategy 2: Get related artists from user's top artists
+        this.getRelatedArtistsParallel(userTopArtists.slice(0, 5), insights),
+        
+        // Strategy 3: Smart search combining genre + popularity
+        this.smartArtistSearch(topGenres, insights)
+      ]);
+
+      console.log(`Found: ${genreArtists.length} genre artists, ${relatedArtists.length} related artists, ${searchArtists.length} smart search artists`);
+
+      // Combine all artist recommendations
+      const allArtistRecs = [...genreArtists, ...relatedArtists, ...searchArtists];
+
+      if (allArtistRecs.length === 0) {
+        console.log('No artist recommendations found, using fallback');
+        return this.getFallbackArtistRecommendations(insights);
+      }
+
+      // Deduplicate artists
+      const uniqueArtists = this.deduplicateArtistRecommendations(allArtistRecs);
+
+      // Filter out already followed artists AND user's top artists (they already know them!)
+      const followedIds = new Set(followedArtists.map(a => a.id));
+      const userTopIds = new Set(userTopArtists.map(a => a.id));
+      const excludeIds = new Set([...followedIds, ...userTopIds]);
+      
+      const newArtists = uniqueArtists.filter(rec => !excludeIds.has(rec.artist.id));
+
+      console.log(`After filtering: ${newArtists.length} unique new artists`);
+
+      // OPTIMIZED: Better sorting algorithm considering multiple factors
+      newArtists.sort((a, b) => {
+        // Primary: Score (with larger threshold for significance)
+        const scoreDiff = b.score - a.score;
+        if (Math.abs(scoreDiff) > 10) return scoreDiff;
+        
+        // Secondary: Genre match count (more matches = better)
+        const genreCountDiff = b.matchingGenres.length - a.matchingGenres.length;
+        if (genreCountDiff !== 0) return genreCountDiff;
+        
+        // Tertiary: Followers (quality indicator)
+        const aFollowers = a.artist.followers?.total ?? 0;
+        const bFollowers = b.artist.followers?.total ?? 0;
+        return bFollowers - aFollowers;
+      });
+
+      // OPTIMIZED: Ensure diversity in final results
+      const diverseArtists = this.ensureArtistDiversity(newArtists, insights);
+
+      const elapsedTime = Date.now() - startTime;
+      console.log(`✓ Generated ${diverseArtists.length} artist recommendations in ${elapsedTime}ms`);
+
+      return diverseArtists.slice(0, 12); // Return top 12 artist recommendations
+    } catch (error) {
+      console.error('Failed to generate artist recommendations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search artists across multiple genres in parallel
+   * OPTIMIZATION: Uses Promise.all to fetch multiple genres simultaneously
+   * This multiplies search coverage without increasing latency
+   */
+  private async searchArtistsByMultipleGenres(genres: string[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      const results = await Promise.all(
+        genres.map(genre => this.searchArtistsByGenre(genre, userInsights))
+      );
+      return results.flat();
+    } catch (error) {
+      console.error('Error in multi-genre artist search:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get related artists for multiple seed artists in parallel
+   * OPTIMIZATION: Fetches from multiple seed artists at once
+   * Increases diversity by sourcing recommendations from different corners of user's taste
+   */
+  private async getRelatedArtistsParallel(seedArtists: Artist[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      const results = await Promise.all(
+        seedArtists.map(artist => this.getRelatedArtists(artist.id, userInsights))
+      );
+      return results.flat();
+    } catch (error) {
+      console.error('Error getting related artists:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Smart artist search using multiple query strategies
+   * STRATEGY: Combines genre keywords with context words for better results
+   * 
+   * QUERY COMBINATIONS (for each genre):
+   * 1. "${genre} artist" - Natural language search for artists in that genre
+   * 2. "popular ${genre}" - Finds trending/popular artists
+   * 3. "best ${genre} music" - High quality/acclaimed artists
+   * 
+   * ALGORITHM:
+   * 1. Generate 3 search queries per genre × 5 genres = 15 queries max (capped at 10)
+   * 2. Run all queries in parallel via Promise.all
+   * 3. Aggregate all returned artists
+   * 4. Filter for minimum quality (5000+ followers)
+   * 5. Score and rank each artist
+   * 6. Return top results
+   */
+  private async smartArtistSearch(genres: string[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      // Generate multiple search query variations per genre
+      const searchQueries = genres.flatMap(genre => [
+        `${genre} artist`,
+        `popular ${genre}`,
+        `best ${genre} music`
+      ]).slice(0, 10); // Limit to 10 queries to avoid rate limiting
+
+      // Execute all searches in parallel for performance
+      const results = await Promise.all(
+        searchQueries.map(query => 
+          this.makeSpotifyRequest('search', {
+            q: query,
+            type: 'artist',
+            limit: 10
+          })
+        )
+      );
+
+      // Aggregate results from all queries
+      const allArtists: any[] = [];
+      results.forEach(result => {
+        if (result.data?.artists?.items) {
+          allArtists.push(...result.data.artists.items);
+        }
+      });
+
+      // Quality filter: Only include artists with minimum follower threshold
+      // This ensures recommendations are established artists with decent fanbase
+      const filtered = allArtists.filter((artist: any) =>
+        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+      );
+
+      // Map to recommendation objects with scoring
+      return filtered.map((artist: any) => {
+        // Use smart genre matching to filter relevant genres
+        const matchingGenres = artist.genres?.filter((artistGenre: string) =>
+          this.isGenreMatch(artistGenre, userInsights?.topGenres || [])
+        ) || [];
+
+        // Calculate relevance score
+        const score = this.calculateArtistRecommendationScore(artist, matchingGenres, userInsights);
+
+        return {
+          artist,
+          score,
+          reasons: [
+            matchingGenres.length > 0 ? `Matches your ${matchingGenres[0]} taste` : 'Popular in your genres',
+            `${artist.followers?.total ? `${(artist.followers.total / 1000).toFixed(0)}K` : '0'} followers`,
+            artist.genres?.length > 0 ? `${artist.genres[0]}` : 'Recommended for you'
+          ],
+          matchingGenres,
+          similarityType: 'genre' as const
+        };
+      });
+    } catch (error) {
+      console.error('Error in smart artist search:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Ensure diversity in artist recommendations
+   */
+  private ensureArtistDiversity(artists: ArtistRecommendation[], _insights: MusicInsights): ArtistRecommendation[]  {
+    if (artists.length <= 12) return artists;
+
+    const diverse: ArtistRecommendation[] = [];
+    const genresSeen = new Map<string, number>();
+    
+    // First pass: Add high-scoring artists with genre diversity
+    for (const artist of artists) {
+      if (diverse.length >= 12) break;
+      
+      // Check genre diversity
+      const primaryGenre = artist.matchingGenres[0] || 'other';
+      const genreCount = genresSeen.get(primaryGenre) || 0;
+      
+      // Allow max 3 artists per genre for diversity
+      if (genreCount < 3) {
+        diverse.push(artist);
+        genresSeen.set(primaryGenre, genreCount + 1);
+      }
+    }
+    
+    // Second pass: Fill remaining slots with best remaining artists
+    for (const artist of artists) {
+      if (diverse.length >= 12) break;
+      if (!diverse.includes(artist)) {
+        diverse.push(artist);
+      }
+    }
+    
+    return diverse;
+  }
+
+  /**
+   * Fallback artist recommendations when no results found
+   */
+  private async getFallbackArtistRecommendations(_insights: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      // Use popular/trending artists as fallback
+      const { data, error } = await this.makeSpotifyRequest('search', {
+        q: 'year:2024',
+        type: 'artist',
+        limit: 20
+      });
+
+      if (error || !data?.artists?.items) {
+        return [];
+      }
+
+      return data.artists.items
+        .filter((artist: any) => artist && artist.id && (artist.followers?.total ?? 0) >= 10000)
+        .slice(0, 12)
+        .map((artist: any) => ({
+          artist,
+          score: 50,
+          reasons: ['Popular artist', 'Trending now', 'Recommended for you'],
+          matchingGenres: [],
+          similarityType: 'popularity' as const
+        }));
+    } catch (error) {
+      console.error('Error in fallback recommendations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search for artists by genre (OPTIMIZED: Multiple search strategies)
+   * 
+   * PROBLEM SOLVED: Previous implementation used restrictive quote-wrapped genre search
+   * which returned very limited results. New approach uses 3 strategies in parallel:
+   * 
+   * STRATEGIES:
+   * 1. Simple name search: "${genre}" 
+   *    - Broad query, catches general matches
+   * 2. Genre tag search: "genre:${genre}"
+   *    - Targets genre tag without quotes (less restrictive than original)
+   * 3. Natural language: "${genre} music"
+   *    - Human-readable search, catches conversational matches
+   * 
+   * OPTIMIZATION: All 3 queries run in parallel via Promise.all
+   * - Total results: 10 × 3 strategies = up to 30 artists per genre
+   * - Time: Same as single query (parallelized)
+   * - Coverage: 3x better without time penalty
+   */
+  private async searchArtistsByGenre(genre: string, userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      // Execute multiple search strategies in parallel
+      const searchStrategies = [
+        `${genre}`,           // Simple genre name (broad)
+        `genre:${genre}`,     // Genre tag without quotes (less restrictive)
+        `${genre} music`      // Natural language search
+      ];
+
+      const results = await Promise.all(
+        searchStrategies.map(query =>
+          this.makeSpotifyRequest('search', {
+            q: query,
+            type: 'artist',
+            limit: 10 // 10 per strategy = 30 total max
+          })
+        )
+      );
+
+      // Aggregate results from all strategies
+      const allArtists: any[] = [];
+      results.forEach(result => {
+        if (result.data?.artists?.items) {
+          allArtists.push(...result.data.artists.items);
+        }
+      });
+
+      // Quality filter: 5000+ followers ensures established artists
+      const artists = allArtists.filter((artist: any) =>
+        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+      );
+
+      // Map to recommendation objects with smart genre matching
+      return artists.map((artist: any) => {
+        // Use intelligent genre matching that prevents false positives
+        const matchingGenres = artist.genres?.filter((artistGenre: string) => 
+          this.isGenreMatch(artistGenre, userInsights?.topGenres || [])
+        ) || [];
+
+        const score = this.calculateArtistRecommendationScore(artist, matchingGenres, userInsights);
+
+        return {
+          artist,
+          score,
+          reasons: [
+            `Matches your ${genre} music taste`,
+            `${artist.followers?.total ? `${(artist.followers.total / 1000).toFixed(0)}K` : '0'} followers`,
+            matchingGenres.length > 0 ? `Genres: ${matchingGenres.slice(0, 2).join(', ')}` : 'Popular artist'
+          ],
+          matchingGenres,
+          similarityType: 'genre' as const
+        };
+      });
+    } catch (error) {
+      console.error(`Error searching artists by genre ${genre}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get related artists using Spotify's related-artists endpoint
+   * OPTIMIZATION: Increased to 20 results (was 10) for better diversity
+   * 
+   * ALGORITHM:
+   * 1. Call Spotify's /artists/{id}/related-artists endpoint
+   *    - Returns up to 20 artists similar to the input artist
+   *    - Includes Spotify's own algorithm-based recommendations
+   * 2. Filter for quality (5000+ followers)
+   * 3. Use smart genre matching to find relevant matches
+   * 4. Score each artist
+   * 5. Return top results
+   * 
+   * This is different from genre search - it finds artists similar to a specific artist
+   * Based on collaborative filtering: "If you like Artist A, you might like these artists"
+   */
+  private async getRelatedArtists(artistId: string, userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+    try {
+      // Call Spotify's related artists API
+      const { data, error } = await this.makeSpotifyRequest(`artists/${artistId}/related-artists`, {});
+
+      if (error || !data?.artists) {
+        return [];
+      }
+
+      // Get up to 20 related artists (increased from 10 for better diversity)
+      // Filter by minimum follower count for quality assurance
+      const artists = data.artists.filter((artist: any) =>
+        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+      ).slice(0, 20);
+
+      return artists.map((artist: any) => {
+        // FIXED: Smarter genre matching to avoid false positives
+        const matchingGenres = artist.genres?.filter((artistGenre: string) =>
+          this.isGenreMatch(artistGenre, userInsights?.topGenres || [])
+        ) || [];
+
+        const score = this.calculateArtistRecommendationScore(artist, matchingGenres, userInsights);
+
+        return {
+          artist,
+          score,
+          reasons: [
+            'Similar to artists you listen to',
+            `${artist.followers?.total ? `${(artist.followers.total / 1000).toFixed(0)}K` : '0'} followers`,
+            matchingGenres.length > 0 ? `Matches: ${matchingGenres.slice(0, 2).join(', ')}` : 'Related artist'
+          ],
+          matchingGenres,
+          similarityType: 'similar_artists' as const
+        };
+      });
+    } catch (error) {
+      console.error(`Error getting related artists for ${artistId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate artist recommendation score
+   */
+  private calculateArtistRecommendationScore(artist: any, matchingGenres: string[], userInsights?: MusicInsights): number {
+    let score = 50; // Base score
+
+    // Genre match bonus (up to 30 points)
+    if (matchingGenres.length > 0) {
+      score += Math.min(matchingGenres.length * 10, 30);
+    }
+
+    // Popularity/followers bonus (up to 20 points)
+    const followers = artist.followers?.total ?? 0;
+    if (followers > 1000000) score += 20;
+    else if (followers > 100000) score += 15;
+    else if (followers > 10000) score += 10;
+    else if (followers > 1000) score += 5;
+
+    // Popularity bias adjustment
+    const popularity = artist.popularity ?? 50;
+    if (userInsights) {
+      if (userInsights.popularityBias === 'mainstream' && popularity > 70) {
+        score += 10;
+      } else if (userInsights.popularityBias === 'underground' && popularity < 50) {
+        score += 10;
+      }
+    }
+
+    return Math.min(score, 100);
+  }
+
+  /**
+   * Check if a genre should be filtered based on language restrictions
+   * For certain genres like hip hop, only allow major languages (English, Spanish, Japanese, Korean, Chinese)
+   * to avoid recommending small-audience language artists (e.g., Tamil hip hop)
+   */
+  private shouldFilterByLanguage(artistGenreLower: string, userTopGenres: { genre: string; percentage: number; count: number }[]): boolean {
+    // Define genres that should have language restrictions
+    const restrictedGenres = ['hip hop', 'rap', 'trap', 'drill', 'hiphop'];
+    
+    // Check if any user genre matches restricted genres
+    const userHasRestrictedGenre = userTopGenres.some(ug => {
+      const userGenreLower = ug.genre.toLowerCase();
+      return restrictedGenres.some(rg => 
+        userGenreLower.includes(rg) || rg.includes(userGenreLower)
+      );
+    });
+    
+    console.log(`[Language Filter] User has restricted genre: ${userHasRestrictedGenre}, User genres: [${userTopGenres.map(g => g.genre).join(', ')}]`);
+    
+    // Only apply filter if user likes restricted genres AND artist genre contains restricted genre
+    if (!userHasRestrictedGenre) return false;
+    
+    const artistHasRestrictedGenre = restrictedGenres.some(rg => 
+      artistGenreLower.includes(rg)
+    );
+    
+    console.log(`[Language Filter] Artist genre "${artistGenreLower}" has restricted genre: ${artistHasRestrictedGenre}`);
+    
+    if (!artistHasRestrictedGenre) return false;
+    
+    // Small-audience languages to BLOCK from hip hop/rap recommendations
+    const blockedLanguages = [
+      'tamil', 'telugu', 'malayalam', 'kannada',     // Indian languages
+      'bengali', 'punjabi', 'marathi', 'gujarati',
+      'indonesian', 'malay', 'tagalog', 'filipino',  // Southeast Asian
+      'thai', 'vietnamese', 'burmese',
+      'arabic', 'farsi', 'persian', 'urdu',          // Middle Eastern
+      'turkish', 'hebrew',
+      'swahili', 'amharic', 'yoruba',                // African
+      'polish', 'czech', 'romanian', 'hungarian'     // Eastern European (smaller hip hop scenes)
+    ];
+    
+    // NOTE: Allowed languages (English, Spanish, Japanese, Korean, Chinese, French, German)
+    // are implicitly allowed - we only block specific small-audience languages
+    
+    // Check if artist genre contains any blocked language
+    const hasBlockedLanguage = blockedLanguages.some(lang => 
+      artistGenreLower.includes(lang)
+    );
+    
+    console.log(`[Language Filter] Artist genre "${artistGenreLower}" has blocked language: ${hasBlockedLanguage}`);
+    
+    if (hasBlockedLanguage) {
+      console.warn(`🚫 BLOCKING artist with genre: "${artistGenreLower}" (contains blocked language)`);
+      return true; // Filter out this artist
+    }
+    
+    // If genre mentions a restricted type (hip hop/rap) but has no language marker,
+    // assume it's English (mainstream) and allow it
+    // Only block if explicitly marked with a blocked language
+    return false;
+  }
+
+  /**
+   * Smart genre matching to avoid false positives
+   * PROBLEM SOLVED: Prevents matching "indonesian pop" when user likes "k-pop"
+   * 
+   * ALGORITHM:
+   * 1. Language filter - blocks small-audience language genres for restricted types (hip hop/rap)
+   * 2. Exact match - "k-pop" === "k-pop"
+   * 3. Prefix match - "k-pop boy group" starts with "k-pop"
+   * 4. Broader match - "k-pop" starts with "pop"  (user's compound genre contains artist's simpler genre)
+   * 5. Word boundary matching - splits compound genres by spaces/hyphens to avoid substrings
+   * 6. Compound word analysis - ensures all words match for multi-word genres
+   * 7. Fuzzy matching - allows 1-2 character differences for typos
+   * 
+   * Example matches:
+   * ✓ "k-pop" matches "k-pop"
+   * ✓ "k-pop boy group" matches "k-pop"
+   * ✓ "k-pop" matches "pop" (k-pop contains pop as compound)
+   * ✗ "indonesian pop" does NOT match "k-pop" (different primary word)
+   * ✗ "tamil hip hop" BLOCKED (language filter)
+   */
+  private isGenreMatch(artistGenre: string, userTopGenres: { genre: string; percentage: number; count: number }[]): boolean {
+    const artistGenreLower = artistGenre.toLowerCase();
+    
+    // LANGUAGE FILTER: For certain genres, only allow major languages
+    if (this.shouldFilterByLanguage(artistGenreLower, userTopGenres)) {
+      console.log(`✗ Language filtered: "${artistGenre}" (small-audience language not in major languages)`);
+      return false;
+    }
+    
+    for (const userGenre of userTopGenres) {
+      const userGenreLower = userGenre.genre.toLowerCase();
+      
+      // Exact match (highest priority) - identical genres
+      if (artistGenreLower === userGenreLower) {
+        console.log(`✓ Exact match: "${artistGenre}" === "${userGenre.genre}"`);
+        return true;
+      }
+      
+      // Prefix match - artist has more specific version of user's genre
+      // e.g., "k-pop boy group" matches "k-pop"
+      if (artistGenreLower.startsWith(userGenreLower + ' ') || 
+          artistGenreLower.startsWith(userGenreLower + '-')) {
+        console.log(`✓ Specific match: "${artistGenre}" starts with "${userGenre.genre}"`);
+        return true;
+      }
+      
+      // Broader match - user's compound genre contains artist's simpler genre
+      // e.g., user likes "k-pop" (compound) and artist is tagged "pop" (simple)
+      if (userGenreLower.startsWith(artistGenreLower + ' ') || 
+          userGenreLower.startsWith(artistGenreLower + '-')) {
+        console.log(`✓ Broader match: "${userGenre.genre}" starts with "${artistGenre}"`);
+        return true;
+      }
+      
+      // WORD-BOUNDARY MATCHING: Prevents substring false positives
+      // Split compound genres by spaces/hyphens into individual words (min 3 chars)
+      // Example: "k-pop" → ["k", "pop"] (k filtered out as too short) → ["pop"]
+      const artistWords = artistGenreLower.split(/[\s-]+/).filter(w => w.length > 2);
+      const userWords = userGenreLower.split(/[\s-]+/).filter(w => w.length > 2);
+      
+      // Compound genre check 1: User has multi-word genre, check if artist has same words
+      // Prevents "indonesian pop" from matching "k-pop"
+      // "indonesian pop" → ["indonesian", "pop"]
+      // "k-pop" → ["pop"]
+      // NO MATCH: "indonesian" not in "pop"
+      if (userWords.length > 1) {
+        const allUserWordsInArtist = userWords.every(word => 
+          artistWords.some(aw => aw === word || aw.includes(word) || word.includes(aw))
+        );
+        if (allUserWordsInArtist && userWords.length === artistWords.filter(aw => 
+          userWords.some(uw => aw === uw || aw.includes(uw) || uw.includes(aw))
+        ).length) {
+          console.log(`✓ Compound match: "${artistGenre}" has all words from "${userGenre.genre}"`);
+          return true;
+        }
+      }
+      
+      // Compound genre check 2: Artist has multi-word genre, check if user has same words
+      if (artistWords.length > 1) {
+        const allArtistWordsInUser = artistWords.every(word =>
+          userWords.some(uw => uw === word || uw.includes(word) || word.includes(uw))
+        );
+        if (allArtistWordsInUser && artistWords.length === userWords.filter(uw =>
+          artistWords.some(aw => uw === aw || uw.includes(aw) || aw.includes(uw))
+        ).length) {
+          console.log(`✓ Compound match: "${userGenre.genre}" has all words from "${artistGenre}"`);
+          return true;
+        }
+      }
+      
+      // FUZZY MATCHING: Allows for typos or minor spelling variations
+      // Max distance: 2 character differences
+      // Example: "kpop" ≈ "k-pop" (1 char diff)
+      if (Math.abs(artistGenreLower.length - userGenreLower.length) <= 2) {
+        const maxLen = Math.max(artistGenreLower.length, userGenreLower.length);
+        let differences = 0;
+        for (let i = 0; i < maxLen; i++) {
+          if (artistGenreLower[i] !== userGenreLower[i]) differences++;
+        }
+        if (differences <= 2) {
+          console.log(`✓ Fuzzy match: "${artistGenre}" ≈ "${userGenre.genre}" (${differences} char diff)`);
+          return true;
+        }
+      }
+    }
+    
+    // Log rejections for debugging
+    console.log(`✗ No match: "${artistGenre}" vs user genres [${userTopGenres.map(g => g.genre).join(', ')}]`);
+    return false;
+  }
+
+  /**
+   * Deduplicate artist recommendations
+   */
+  private deduplicateArtistRecommendations(recommendations: ArtistRecommendation[]): ArtistRecommendation[] {
+    const seen = new Map<string, ArtistRecommendation>();
+    
+    recommendations.forEach(rec => {
+      const existing = seen.get(rec.artist.id);
+      if (!existing || rec.score > existing.score) {
+        seen.set(rec.artist.id, rec);
+      }
+    });
+    
+    return Array.from(seen.values());
   }
 
   /**

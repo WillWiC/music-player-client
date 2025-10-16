@@ -8,7 +8,8 @@ import { useAuth } from '../context/auth';
 import { 
   MusicIntelligenceService, 
   type UserMusicProfile, 
-  type PlaylistRecommendation, 
+  type PlaylistRecommendation,
+  type ArtistRecommendation, 
   type MusicInsights 
 } from '../services/musicIntelligenceService';
 
@@ -16,6 +17,7 @@ export interface UseMusicIntelligenceReturn {
   // Data
   profile: UserMusicProfile | null;
   recommendations: PlaylistRecommendation[];
+  artistRecommendations: ArtistRecommendation[];
   insights: MusicInsights | null;
   
   // State
@@ -204,6 +206,7 @@ export const useMusicIntelligence = (): UseMusicIntelligenceReturn => {
     // Data
     profile,
     recommendations: profile?.recommendations || [],
+    artistRecommendations: profile?.artistRecommendations || [],
     insights: profile?.insights || null,
     
     // State

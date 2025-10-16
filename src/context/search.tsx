@@ -14,11 +14,14 @@ interface SearchContextType {
   setQuery: (query: string) => void;
   results: SearchResults;
   isSearching: boolean;
+  isLoadingMore: boolean;
+  hasMore: { tracks: boolean; albums: boolean; artists: boolean; playlists: boolean };
   recentSearches: string[];
   addRecentSearch: (query: string) => void;
   removeRecentSearch: (query: string) => void;
   clearRecentSearches: () => void;
   performSearch: (query: string) => Promise<void>;
+  loadMore: (type: 'tracks' | 'albums' | 'artists' | 'playlists') => Promise<void>;
   clearResults: () => void;
 }
 
@@ -29,8 +32,12 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResults>({ tracks: [], albums: [], artists: [], playlists: [] });
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState({ tracks: true, albums: true, artists: true, playlists: true });
+  const [offsets, setOffsets] = useState({ tracks: 0, albums: 0, artists: 0, playlists: 0 });
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const LIMIT = 40; // Fetch 40 items at a time
 
   // Load recent searches from localStorage on mount
   useEffect(() => {
@@ -90,6 +97,8 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults({ tracks: [], albums: [], artists: [], playlists: [] });
+      setOffsets({ tracks: 0, albums: 0, artists: 0, playlists: 0 });
+      setHasMore({ tracks: true, albums: true, artists: true, playlists: true });
       return;
     }
 
@@ -103,7 +112,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     try {
       const res = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track,album,artist,playlist&limit=20`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track,album,artist,playlist&limit=${LIMIT}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -112,11 +121,31 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       
+      const tracks = data.tracks?.items || [];
+      const albums = data.albums?.items || [];
+      const artists = data.artists?.items || [];
+      const playlists = data.playlists?.items || [];
+      
       setResults({
-        tracks: data.tracks?.items || [],
-        albums: data.albums?.items || [],
-        artists: data.artists?.items || [],
-        playlists: data.playlists?.items || []
+        tracks,
+        albums,
+        artists,
+        playlists
+      });
+      
+      // Set initial offsets and hasMore flags
+      setOffsets({
+        tracks: LIMIT,
+        albums: LIMIT,
+        artists: LIMIT,
+        playlists: LIMIT
+      });
+      
+      setHasMore({
+        tracks: tracks.length === LIMIT && (data.tracks?.total || 0) > LIMIT,
+        albums: albums.length === LIMIT && (data.albums?.total || 0) > LIMIT,
+        artists: artists.length === LIMIT && (data.artists?.total || 0) > LIMIT,
+        playlists: playlists.length === LIMIT && (data.playlists?.total || 0) > LIMIT
       });
     } catch (err) {
       console.error('Search failed', err);
@@ -124,11 +153,59 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsSearching(false);
     }
-  }, [token, addRecentSearch]);
+  }, [token, addRecentSearch, LIMIT]);
+
+  const loadMore = useCallback(async (type: 'tracks' | 'albums' | 'artists' | 'playlists') => {
+    if (!query.trim() || !token || !hasMore[type] || isLoadingMore) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+
+    try {
+      const currentOffset = offsets[type];
+      const res = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type.slice(0, -1)}&limit=${LIMIT}&offset=${currentOffset}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      
+      const key = type as keyof SearchResults;
+      const newItems = data[key]?.items || [];
+      const total = data[key]?.total || 0;
+      
+      setResults(prev => ({
+        ...prev,
+        [type]: [...prev[type], ...newItems]
+      }));
+      
+      // Update offset
+      setOffsets(prev => ({
+        ...prev,
+        [type]: currentOffset + LIMIT
+      }));
+      
+      // Update hasMore
+      setHasMore(prev => ({
+        ...prev,
+        [type]: results[type].length + newItems.length < total && newItems.length === LIMIT
+      }));
+    } catch (err) {
+      console.error(`Failed to load more ${type}`, err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [query, token, hasMore, isLoadingMore, offsets, LIMIT]);
 
   const clearResults = useCallback(() => {
     setResults({ tracks: [], albums: [], artists: [], playlists: [] });
     setQuery('');
+    setOffsets({ tracks: 0, albums: 0, artists: 0, playlists: 0 });
+    setHasMore({ tracks: true, albums: true, artists: true, playlists: true });
   }, []);
 
   // Auto-search when query changes (with debounce)
@@ -152,7 +229,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addRecentSearch(searchQuery);
 
         fetch(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track,album,artist,playlist&limit=20`,
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track,album,artist,playlist&limit=${LIMIT}`,
           { headers: { Authorization: `Bearer ${token}` } }
         )
           .then(res => {
@@ -160,11 +237,31 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             return res.json();
           })
           .then(data => {
+            const tracks = data.tracks?.items || [];
+            const albums = data.albums?.items || [];
+            const artists = data.artists?.items || [];
+            const playlists = data.playlists?.items || [];
+            
             setResults({
-              tracks: data.tracks?.items || [],
-              albums: data.albums?.items || [],
-              artists: data.artists?.items || [],
-              playlists: data.playlists?.items || []
+              tracks,
+              albums,
+              artists,
+              playlists
+            });
+            
+            // Set initial offsets and hasMore flags
+            setOffsets({
+              tracks: LIMIT,
+              albums: LIMIT,
+              artists: LIMIT,
+              playlists: LIMIT
+            });
+            
+            setHasMore({
+              tracks: tracks.length === LIMIT && (data.tracks?.total || 0) > LIMIT,
+              albums: albums.length === LIMIT && (data.albums?.total || 0) > LIMIT,
+              artists: artists.length === LIMIT && (data.artists?.total || 0) > LIMIT,
+              playlists: playlists.length === LIMIT && (data.playlists?.total || 0) > LIMIT
             });
           })
           .catch(err => {
@@ -194,11 +291,14 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setQuery,
         results,
         isSearching,
+        isLoadingMore,
+        hasMore,
         recentSearches,
         addRecentSearch,
         removeRecentSearch,
         clearRecentSearches,
         performSearch,
+        loadMore,
         clearResults
       }}
     >

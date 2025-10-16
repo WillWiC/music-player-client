@@ -412,7 +412,7 @@ const Artist: React.FC = () => {
                         : '--:--'
                       }
                     </div>
-                  </div>
+                  </div>  
                   </Grow>
                 ))}
               </div>

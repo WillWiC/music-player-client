@@ -1,4 +1,36 @@
-// Custom category mapping for simplified music genres
+/**
+ * Category Mapping Utility
+ * Maps Spotify genres to simplified, user-friendly categories
+ * 
+ * PURPOSE:
+ * - Group hundreds of Spotify genres into ~20 main categories
+ * - Provide consistent colors, icons, and descriptions
+ * - Enable priority-based matching (K-Pop before general Pop)
+ * - Support keyword-based category detection
+ * 
+ * USAGE:
+ * - Category detection from artist genres
+ * - UI rendering with consistent styling
+ * - Browse/Discovery features
+ * - Recommendation filtering
+ * 
+ * PRIORITY SYSTEM:
+ * - Higher priority categories matched first
+ * - Prevents K-Pop from matching under generic "Pop"
+ * - Ensures specific genres take precedence
+ * 
+ * STRUCTURE:
+ * Each category has:
+ * - id: Unique identifier
+ * - name: Display name
+ * - color: Hex color for UI
+ * - icon: Emoji or abbreviation
+ * - spotifyGenres: List of matching Spotify genre tags
+ * - keywords: Additional search keywords
+ * - priority: Match priority (higher = checked first)
+ */
+
+// Custom category interface for genre organization
 export interface CustomCategory {
   id: string;
   name: string;
@@ -10,12 +42,21 @@ export interface CustomCategory {
   keywords?: string[]; // Additional search keywords
 }
 
+/**
+ * Main category definitions
+ * Organized by priority to prevent false matches
+ * Priority 10: Geographic/specific genres (K-Pop, J-Pop, Mandopop)
+ * Priority 8-9: Major genres (Hip-Hop, Rock, EDM)
+ * Priority 5-7: Subgenres and variations
+ * Priority 1-4: General/catch-all categories
+ */
 export const CUSTOM_CATEGORIES: CustomCategory[] = [
+  // HIGHEST PRIORITY: Specific regional pop genres
   {
     id: 'kpop',
     name: 'K-Pop',
     color: '#ff6b9d',
-  icon: 'KR',
+    icon: 'KR',
     description: 'Korean pop music and K-culture',
     priority: 10,
     spotifyGenres: [
@@ -38,6 +79,7 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
     ],
     keywords: ['chinese', 'mandarin', 'cantonese', 'china', 'taiwan', 'hong kong', 'mandopop', 'cantopop']
   },
+  // HIGH PRIORITY: Major genres with wide appeal
   {
     id: 'pop',
     name: 'Pop',

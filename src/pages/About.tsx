@@ -24,6 +24,7 @@ const About: React.FC = () => {
               <li>Sign in with Spotify and control playback.</li>
               <li>View what’s playing across your devices and transfer playback.</li>
               <li>Search and play tracks using a minimal UI.</li>
+              <li>Local build in genre recommendation artist songs.</li>
             </ul>
           </section>
 

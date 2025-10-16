@@ -1,4 +1,21 @@
-// Spotify Web API types
+/**
+ * Spotify Web API Type Definitions
+ * Complete TypeScript interfaces for Spotify data models
+ * 
+ * COVERS:
+ * - Core objects: User, Artist, Album, Track, Playlist
+ * - Features: Followers, Images, External URLs
+ * - Playback: Device, Playback State
+ * - Search: Search Results
+ * 
+ * Used throughout the app for:
+ * - Type-safe API responses
+ * - Component prop typing
+ * - Redux state
+ * - Hook return values
+ */
+
+// Spotify Web API error response
 export interface SpotifyError {
   error: {
     status: number;
@@ -6,21 +23,28 @@ export interface SpotifyError {
   };
 }
 
+/** Image object from Spotify (used in multiple contexts) */
 export interface Image {
   url: string;
   height: number | null;
   width: number | null;
 }
 
+/** External URL object (typically links to Spotify web player) */
 export interface ExternalUrls {
   spotify: string;
 }
 
+/** Followers information object */
 export interface Followers {
   href: string | null;
   total: number;
 }
 
+/**
+ * User object from Spotify
+ * Contains user profile information and settings
+ */
 export interface User {
   country?: string;
   display_name: string | null;
@@ -34,24 +58,32 @@ export interface User {
   href: string;
   id: string;
   images: Image[];
-  product?: string;
+  product?: string; // "premium" or "free"
   type: 'user';
   uri: string;
 }
 
+/**
+ * Artist object from Spotify
+ * Contains artist profile, genres, popularity
+ */
 export interface Artist {
   external_urls: ExternalUrls;
   followers?: Followers;
-  genres?: string[];
+  genres?: string[]; // Genre tags (e.g., "k-pop", "hip hop")
   href: string;
   id: string;
   images?: Image[];
   name: string;
-  popularity?: number;
+  popularity?: number; // 0-100 popularity score
   type: 'artist';
   uri: string;
 }
 
+/**
+ * Album object from Spotify
+ * Contains album information and track list
+ */
 export interface Album {
   album_type: 'album' | 'single' | 'compilation';
   total_tracks: number;
