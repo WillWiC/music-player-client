@@ -250,7 +250,8 @@ const Header: React.FC<HeaderProps> = ({
         sx={{
           left: { xs: 0, lg: '288px' },
           width: { xs: '100%', lg: 'calc(100% - 288px)' },
-          bgcolor: '#000000',
+          bgcolor: '#0a0a0a',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           boxShadow: 'none'

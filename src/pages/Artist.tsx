@@ -395,7 +395,7 @@ const Artist: React.FC = () => {
                       />
                     </div>
                     
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0"> 
                       <div className={`font-medium truncate ${
                         currentTrack?.id === track.id ? 'text-green-400' : 'text-white'
                       }`}>

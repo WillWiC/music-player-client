@@ -79,30 +79,48 @@ const Library: React.FC = () => {
       return;
     }
 
+    /**
+     * Fetches all items from a paginated Spotify endpoint
+     * @param url - Initial API endpoint URL
+     * @param dataKey - Key to extract items from response (e.g., 'items', 'artists')
+     * @returns Array of all items across all pages
+     */
+    const fetchAllPages = async (url: string, dataKey: string = 'items'): Promise<any[]> => {
+      const allItems: any[] = [];
+      let nextUrl: string | null = url;
+
+      while (nextUrl) {
+        const res: Response = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) break;
+        
+        const data: any = await res.json();
+        const items = dataKey === 'artists' ? data.artists?.items : data.items;
+        if (items) allItems.push(...items);
+        
+        nextUrl = data.next || (dataKey === 'artists' ? data.artists?.next : null);
+      }
+
+      return allItems;
+    };
+
     const loadAll = async () => {
       setLoading(true);
       try {
-        // Load ALL data in PARALLEL for maximum speed
-        const [pRes, aRes, tRes, arRes] = await Promise.all([
-          fetch('https://api.spotify.com/v1/me/playlists?limit=50', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('https://api.spotify.com/v1/me/albums?limit=50', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('https://api.spotify.com/v1/me/tracks?limit=50', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('https://api.spotify.com/v1/me/following?type=artist&limit=50', { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-
-        // Parse all responses in parallel
-        const [pData, aData, tData, arData] = await Promise.all([
-          pRes.ok ? pRes.json() : null,
-          aRes.ok ? aRes.json() : null,
-          tRes.ok ? tRes.json() : null,
-          arRes.ok ? arRes.json() : null
+        // Load ALL data with pagination for complete library
+        const [playlistItems, albumItems, trackItems, artistItems] = await Promise.all([
+          fetchAllPages('https://api.spotify.com/v1/me/playlists?limit=50'),
+          fetchAllPages('https://api.spotify.com/v1/me/albums?limit=50'),
+          fetchAllPages('https://api.spotify.com/v1/me/tracks?limit=50'),
+          fetchAllPages('https://api.spotify.com/v1/me/following?type=artist&limit=50', 'artists')
         ]);
 
         // Update all state at once
-        setPlaylists(pData?.items || []);
-        setAlbums((aData?.items || []).map((i: any) => i.album));
-        setTracks((tData?.items || []).map((i: any) => i.track));
-        setArtists(arData?.artists?.items || []);
+        setPlaylists(playlistItems);
+        setAlbums(albumItems.map((i: any) => i.album));
+        setTracks(trackItems.map((i: any) => i.track));
+        setArtists(artistItems);
+        
+        console.log(`Loaded library: ${playlistItems.length} playlists, ${albumItems.length} albums, ${trackItems.length} tracks, ${artistItems.length} artists`);
       } catch (err) {
         console.error('Failed to load library:', err);
       } finally {
@@ -207,7 +225,7 @@ const Library: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex-shrink-0">
-                          <IconButton onClick={() => handlePlay(track)} sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, color: 'black' }}>
+                          <IconButton onClick={() => handlePlay(track)} sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, color: 'white' }}>
                             {currentTrack?.id === track.id && isPlaying ? <Pause /> : <PlayArrow />}
                           </IconButton>
                         </div>
