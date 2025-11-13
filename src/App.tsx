@@ -12,7 +12,7 @@ import Account from './pages/Account';
 import Settings from './pages/Settings';
 import About from './pages/About';
 import Artist from './pages/Artist';
-import Recommendations from './pages/recommendations';
+import Recommendations from './pages/Recommendations';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
