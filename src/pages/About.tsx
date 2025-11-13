@@ -13,7 +13,7 @@ const About: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="w-full max-w-4xl mx-auto py-24 px-6">
+        <div className="w-full max-w-4xl mx-auto py-4 px-6">
           <h1 className="text-4xl font-extrabold mb-4">About</h1>
 
           <p className="text-gray-300 mb-4">Flowbeats is a compact web client built on top of the Spotify Web API and Web Playback SDK. It focuses on fast, minimal playback while keeping a small footprint.</p>

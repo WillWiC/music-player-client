@@ -152,7 +152,7 @@ const Library: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12">
+        <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12">
           <Fade in timeout={600}>
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-white">Your Library</h1>

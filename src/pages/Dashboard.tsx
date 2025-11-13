@@ -21,7 +21,7 @@ const Dashboard: React.FC = () => {
   const [user, setUser] = React.useState<User | null>(null);
   const [playlists, setPlaylists] = React.useState<Playlist[]>([]);
 
-  // Local UI state & refs (restored to ensure variables referenced below exist)
+  // Local UI state & refs - sidebar for mobile toggle only
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showScrollToTop] = React.useState(false);
   const [greeting, setGreeting] = React.useState('Welcome');
@@ -481,11 +481,11 @@ const Dashboard: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-72 pb-24 pt-20">
+      {/* Main Content - Always has left margin on desktop for permanent sidebar */}
+      <div className="flex-1 lg:ml-72 pb-24 pt-20 transition-all duration-300">
         
-        {/* Content Container */}
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-10">
+        {/* Content Container - Full width on all screen sizes */}
+        <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12 space-y-10">
           {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}

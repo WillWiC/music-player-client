@@ -93,7 +93,7 @@ const Recommendations: React.FC = () => {
       />
       
       <div className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12 space-y-8">
+        <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12 space-y-8">
           {/* Header */}
           <Fade in timeout={600}>
             <div className="flex items-center gap-4 mb-8">

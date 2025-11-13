@@ -154,7 +154,7 @@ const SearchPage: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-24 pt-20 overflow-y-auto">
-        <div className="relative max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full py-8 px-4 sm:px-6 lg:px-8">
           
           {/* Hero Section */}
           <Fade in timeout={600}>

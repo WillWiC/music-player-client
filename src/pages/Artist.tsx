@@ -213,7 +213,7 @@ const Artist: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
 
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
           
           {/* Artist Header */}
           <Fade in timeout={600}>

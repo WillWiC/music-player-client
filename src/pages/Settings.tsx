@@ -133,7 +133,7 @@ const Settings: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-4xl mx-auto py-10 px-4 sm:px-8 lg:px-12">
+        <div className="relative max-w-4xl mx-auto py-1 px-4 sm:px-8 lg:px-12">
           <h1 className="text-3xl font-bold text-white mb-4">Settings</h1>
 
           <Paper className="p-6 bg-white/5 border border-white/10 rounded-lg">

@@ -379,11 +379,11 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
         width: '100%',
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '2rem',
+        padding: '0.5rem 1rem' ,
       }}>
       {/* Header with Fade Animation */}
       <Fade in={!loading} timeout={600}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2}}>
           <IconButton 
             onClick={onBack} 
             sx={{ 
@@ -424,7 +424,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.3) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(16, 185, 129, 0.15) 100%)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255,255,255,0.05)',
-            mb: 4,
+            mb: 2,
             boxShadow: '0 8px 32px rgba(88, 28, 135, 0.2)',
           }}>
             <Box sx={{ display: 'flex', gap: 4 }}>

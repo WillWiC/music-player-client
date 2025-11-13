@@ -259,10 +259,11 @@ const Header: React.FC<HeaderProps> = ({
       >
         <Toolbar sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
+            {/* Sidebar toggle button - only visible on mobile */}
             <IconButton
               onClick={onMobileMenuToggle}
               sx={{ display: { xs: 'flex', lg: 'none' }, bgcolor: 'rgba(255,255,255,0.03)' }}
-              title="Open menu"
+              title="Toggle sidebar"
             >
               <MenuIcon sx={{ color: 'white' }} />
             </IconButton>

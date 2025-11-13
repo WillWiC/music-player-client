@@ -139,6 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         >
           Flowbeats
         </Typography>
+        {/* Close button only on mobile (overlay mode) */}
         {isMobile && onClose && (
           <IconButton
             onClick={onClose}

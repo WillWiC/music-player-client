@@ -782,7 +782,7 @@ const Category: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
       
       <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-7xl mx-auto py-10 px-6 sm:px-8 lg:px-12">
+        <div className="relative w-full py-10 px-6 sm:px-8 lg:px-12">
           
           {/* Back Button */}
           <div className="mb-8">
