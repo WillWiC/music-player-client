@@ -1,220 +1,221 @@
-# FlowBeats - Intelligent Music Player (React + TypeScript + Vite)
-This is a university capstone project that utilize Spotify API to build an advanced Spotify-style web client using React, with the purpose to research and build AI-powered music intelligence and personalized recommendations with a smart modern design UI/UX.
+# 🎵 FlowBeats - Intelligent Music Player
+
+> A modern Spotify-style web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence and personalized recommendations.
+
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06b6d4?logo=tailwindcss)](https://tailwindcss.com/)
+
+This is a university capstone project that utilizes the Spotify API to build an advanced web client with AI-powered music intelligence and a modern, sleek UI/UX.
+
+---
 
 ## ✨ Key Features
 
-### 🎵 **Core Music Experience**
-- **OAuth PKCE Authentication** with Spotify - Secure login flow
-- **Unified Search System** - Seamless header and page search with recent searches
-- **Advanced Search** - Tracks, albums, artists with inline play controls and instant previews
+### 🎵 Core Music Experience
+- **OAuth PKCE Authentication** - Secure Spotify login flow with automatic token refresh
+- **Unified Search System** - Header and page search with recent search history
+- **Advanced Search** - Tracks, albums, artists with inline play controls
 - **Personalized Dashboard** - Recently played, new releases, and top tracks
 - **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
-- **Web Playback Integration** - In-browser playback with Spotify Web Playback SDK
+- **Web Playback SDK** - Full in-browser playback control
 
-### 🧠 **AI-Powered Music Intelligence** ⚡
-- **Smart Genre Detection** - Advanced pattern matching for 12+ music categories
-- **K-pop Specialization** - Enhanced detection for Korean music and major K-pop artists
-- **Personalized Recommendations** - AI-driven playlist suggestions based on listening history
-- **Music Profile Analysis** - Detailed insights into your musical preferences
-- **Popular Playlist Filtering** - Curated selection of high-quality, well-followed playlists
-- **Performance Optimized** - Parallel execution, smart caching, and 50% fewer API calls
-- **Instant Cache** - Sub-100ms load times for cached recommendations
+### 🧠 AI-Powered Music Intelligence
+- **Smart Genre Detection** - Pattern matching for 12+ music categories
+- **K-pop Specialization** - Enhanced detection for Korean music and artists
+- **Personalized Recommendations** - AI-driven playlist suggestions
+- **Music Profile Analysis** - Insights into your listening preferences
+- **Performance Optimized** - Smart caching with sub-100ms load times
 
-### 🎨 **Enhanced User Experience**
-- **Unified Search** - Synchronized header and page search with instant results
-- **Recent Search History** - Quick access to your last 10 searches
-- **Modern Dark UI** - Sleek, Spotify-inspired interface with glassmorphism effects
+### 🎨 Modern UI/UX
+- **Dark Theme** - Spotify-inspired design with glassmorphism effects
+- **Responsive Design** - Optimized for desktop and mobile
+- **Smooth Animations** - Transitions and hover effects
 - **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
-- **Keyboard Navigation** - Arrow keys and shortcuts for efficient browsing
-- **Responsive Design** - Optimized for desktop and mobile devices
-- **Real-time Updates** - Live music data and recommendation updates
+
+---
+
+## 📁 Project Structure
+
+```
+music-player-client/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── Header.tsx       # Navigation header with search
+│   │   ├── Sidebar.tsx      # Navigation sidebar
+│   │   ├── Player.tsx       # Music player controls
+│   │   ├── MediaView.tsx    # Album/Playlist detail view
+│   │   └── PlaylistRecommendations.tsx  # AI recommendations widget
+│   │
+│   ├── pages/               # Route pages
+│   │   ├── Dashboard.tsx    # Main landing page
+│   │   ├── Search.tsx       # Search results page
+│   │   ├── Browse.tsx       # Browse categories
+│   │   ├── Library.tsx      # User's music library
+│   │   ├── Recommendations.tsx  # Full recommendations page
+│   │   ├── Artist.tsx       # Artist detail page
+│   │   ├── Account.tsx      # User account settings
+│   │   └── Login.tsx        # Authentication page
+│   │
+│   ├── context/             # React Context providers
+│   │   ├── auth.tsx         # Authentication state & token refresh
+│   │   ├── player.tsx       # Music player state
+│   │   ├── playlists.tsx    # Playlist management
+│   │   ├── search.tsx       # Search state & history
+│   │   └── toast.tsx        # Notification system
+│   │
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useMusicIntelligence.ts  # AI recommendations hook
+│   │   └── useSpotifyApi.ts         # API request hook with auto-refresh
+│   │
+│   ├── services/            # Business logic & API services
+│   │   ├── musicIntelligenceService.ts  # AI recommendation engine
+│   │   ├── audioFeaturesService.ts      # Audio analysis
+│   │   └── recommendationEngine.ts      # Recommendation algorithms
+│   │
+│   ├── utils/               # Utility functions
+│   │   ├── tokenRefresh.ts      # Token refresh utilities
+│   │   ├── categoryMapping.ts   # Genre/category mappings
+│   │   └── numberFormat.ts      # Number formatting (K, M)
+│   │
+│   ├── types/               # TypeScript type definitions
+│   │   └── spotify.ts       # Spotify API types
+│   │
+│   ├── store/               # Redux store (if needed)
+│   │   └── playerSlice.ts   # Player state slice
+│   │
+│   ├── App.tsx              # Main application component
+│   ├── main.tsx             # Application entry point
+│   └── index.css            # Global styles
+│
+├── server/                  # Backend auth server
+│   └── index.ts             # Token refresh endpoint
+│
+├── docker/                  # Docker configuration
+│   ├── Dockerfile           # Production build
+│   ├── docker-compose.yml   # Production compose
+│   └── docker-compose.dev.yml  # Development compose
+│
+├── additional_readme/       # Extended documentation
+│   ├── AUTHENTICATION.md    # Auth flow details
+│   ├── SEARCH.md            # Search implementation
+│   ├── CATEGORIES.md        # Category system
+│   ├── DOCKER.md            # Docker setup
+│   └── ANIMATIONS.md        # Animation system
+│
+└── package.json             # Dependencies & scripts
+```
+
+---
 
 ## 🛠 Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite
-- **UI Framework**: Material-UI (MUI) v7
-- **State Management**: Redux Toolkit
-- **Routing**: React Router v7
-- **Styling**: Tailwind CSS with custom components
-- **API Integration**: Spotify Web API
-- **Authentication**: OAuth 2.0 PKCE flow
-- **Deployment**: Docker support with multi-stage builds
+| Category | Technologies |
+|----------|-------------|
+| **Frontend** | React 19, TypeScript 5.6, Vite 6 |
+| **UI Framework** | Material-UI (MUI) v7, Tailwind CSS |
+| **State Management** | React Context, Redux Toolkit |
+| **Routing** | React Router v7 |
+| **API Integration** | Spotify Web API, Web Playback SDK |
+| **Authentication** | OAuth 2.0 PKCE Flow |
+| **Deployment** | Docker, Nginx |
 
 ---
 
 ## 📋 Requirements
 
 - **Node.js** 18+ and npm
-- **Spotify Account** (Premium required for playback functionality)
-- **Spotify App Registration** - Client ID configured in Spotify Developer Dashboard
+- **Spotify Account** (Premium required for playback)
+- **Spotify Developer App** - Register at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 - **Redirect URI** - Must match your app URL (e.g., `http://localhost:5173`)
 
 ---
 
-## 🚀 Quick Start (Development)
+## 🚀 Quick Start
 
-### 1. **Install Dependencies**
+### 1. Clone & Install
 ```bash
+git clone https://github.com/WillWiC/music-player-client.git
+cd music-player-client
 npm install
-# or for legacy peer deps compatibility
-npm run install:legacy
 ```
 
-### 2. **Environment Configuration**
+### 2. Environment Setup
 Create a `.env` file in the project root:
-
 ```env
 VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
 VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173/
+VITE_AUTH_SERVER_URL=http://localhost:3001
 ```
 
-> **Important**: Register the redirect URI in your Spotify Developer Dashboard
-
-### 3. **Development Server**
+### 3. Start Development
 ```bash
-# Start frontend only
+# Frontend only
 npm run dev
 
-# Start both frontend and backend
+# Frontend + Backend (recommended)
 npm run dev:all
 ```
 
-### 4. **Access the Application**
-- Open `http://localhost:5173` in your browser
-- Click "Continue with Spotify" to authenticate
-- Grant required permissions for full functionality
-
-## 🐳 Docker Support (In Progress)
-
-### Development with Docker
-```bash
-# Build development image
-npm run docker:build:dev
-
-# Run with live reload
-npm run docker:run:dev        # Windows
-npm run docker:run:dev:unix   # Linux/macOS
-
-# Docker Compose (recommended)
-npm run docker:compose:dev
-```
-
-### Production Deployment
-```bash
-# Build production image
-npm run docker:build:prod
-
-# Run production container
-npm run docker:run
-
-# Docker Compose production
-npm run docker:compose:prod
-```
-
-## 🎯 Music Intelligence Features
-
-### **Smart Recommendations**
-- **Genre-Aware Suggestions**: Detects 12+ music categories including K-pop, Electronic, Hip-hop, Rock, Classical, and more
-- **Popular Playlist Curation**: Filters for high-quality playlists with substantial follower counts
-- **Personalized Discovery**: AI-powered recommendations based on your listening history
-- **Cultural Specialization**: Enhanced detection for K-pop artists, Korean music, and Asian pop
-
-### **Advanced Analytics**
-- **Music Profile Analysis**: Detailed breakdown of your musical preferences
-- **Listening Pattern Recognition**: Identifies trends in your music consumption
-- **Diversity Scoring**: Measures the variety in your music taste
-- **Genre Distribution**: Visual representation of your musical preferences
+### 4. Open in Browser
+Navigate to `http://localhost:5173` and click "Continue with Spotify"
 
 ---
 
-## 🔧 Production Build
+## 🐳 Docker Deployment
 
-### Standard Build
+### Development
 ```bash
-# Build for production
-npm run build
-
-# Preview locally
-npm run preview
+npm run docker:compose:dev
 ```
 
-### Docker Production
+### Production
 ```bash
-# Build and run production container
 npm run docker:build:prod
-npm run docker:run
-
-# Or use Docker Compose
 npm run docker:compose:prod
 ```
+
+---
 
 ---
 
 ## 🔑 Spotify API Scopes
 
-The application requests these Spotify permissions:
-
-### **Required Scopes**
-- `streaming` — Control Spotify playback
-- `user-read-email` — Access user profile
-- `user-read-private` — Access user account details
-- `user-library-read` — Read saved tracks and albums
-- `user-follow-read` — Read followed artists
-- `user-read-recently-played` — Access listening history
-- `user-top-read` — Access top artists and tracks
-- `playlist-read-private` — Read private playlists
-- `playlist-read-collaborative` — Read collaborative playlists
-
-> **Note**: If you previously authorized the app before new scopes were added, logout and re-login to grant additional permissions.
+| Scope | Description |
+|-------|-------------|
+| `streaming` | Control Spotify playback |
+| `user-read-email` | Access user profile |
+| `user-read-private` | Access account details |
+| `user-library-read` | Read saved tracks/albums |
+| `user-follow-read` | Read followed artists |
+| `user-read-recently-played` | Access listening history |
+| `user-top-read` | Access top artists/tracks |
+| `playlist-read-private` | Read private playlists |
+| `playlist-read-collaborative` | Read collaborative playlists |
 
 ---
 
 ## 🔍 Troubleshooting
 
-### **Playback Issues**
-- ✅ Verify **Spotify Premium** subscription
-- ✅ Ensure Spotify app is **active** on a device
-- ✅ Check that both accounts are **logged into the same Spotify account**
-- ✅ Try refreshing the **Web Playback SDK** connection
-
-### **Empty Library/Data**
-- ✅ **Re-authorize** the application (logout → login)
-- ✅ Ensure all **required scopes** are granted
-- ✅ Check **internet connection** and API availability
-
-### **Authentication Errors**
-- ✅ Verify `VITE_SPOTIFY_REDIRECT_URI` matches **registered URI**
-- ✅ Check **Client ID** is correct
-- ✅ Ensure redirect URI is properly **registered** in Spotify Dashboard
-- ✅ Clear browser **cache and cookies**
-
-### **Recommendation Issues**
-- ✅ Allow time for **music intelligence** to analyze your listening history
-- ✅ Ensure you have **sufficient listening data** (recommended: 20+ tracks)
-- ✅ Check that **genre detection** is working by viewing your music profile
-
----
-
-## 🎨 UI Features
-
-- **Modern Dark Theme** - Spotify-inspired design with glassmorphism effects
-- **Hidden Scrollbars** - Clean interface with maintained scroll functionality  
-- **Responsive Layout** - Optimized for desktop and mobile viewing
-- **Interactive Components** - Smooth animations and transitions
-- **Accessibility** - WCAG compliant design patterns
+| Issue | Solution |
+|-------|----------|
+| **Playback not working** | Verify Spotify Premium subscription |
+| **Empty library** | Re-authorize the app (logout → login) |
+| **Auth errors** | Check redirect URI matches Spotify Dashboard |
+| **No recommendations** | Need 20+ tracks in listening history |
 
 ---
 
 ## 📚 Additional Documentation
 
-### Core Features & Setup
-- **[Docker Deployment](./additional_readme/DOCKER.md)** - Container setup and deployment guide
-- **[Authentication System](./additional_readme/AUTHENTICATION.md)** - OAuth 2.0 PKCE flow & token management
-
-### Feature Documentation
-- **[Search System](./additional_readme/SEARCH.md)** - Search implementation, relevance fixes, null safety
-- **[Category System](./additional_readme/CATEGORIES.md)** - Music categorization & genre detection
-- **[Animation System](./additional_readme/ANIMATIONS.md)** - UI animations & loading states
+| Document | Description |
+|----------|-------------|
+| [AUTHENTICATION.md](./additional_readme/AUTHENTICATION.md) | OAuth 2.0 PKCE flow & token management |
+| [SEARCH.md](./additional_readme/SEARCH.md) | Search implementation details |
+| [CATEGORIES.md](./additional_readme/CATEGORIES.md) | Music categorization system |
+| [DOCKER.md](./additional_readme/DOCKER.md) | Docker deployment guide |
+| [ANIMATIONS.md](./additional_readme/ANIMATIONS.md) | UI animation system |
 
 ---
 
@@ -230,14 +231,14 @@ The application requests these Spotify permissions:
 
 ## 📄 License
 
-This project is only for personal use/education purpose. It is not build for commerial. Feel free to contribute and pull the project.
+This project is for personal use and educational purposes only. Not intended for commercial use.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Spotify** for their comprehensive Web API and Web Playback SDK
-- **Material-UI** for the excellent React component library
-- **Vite** for the fast development experience
-- **React Team** for the powerful frontend framework
+- [Spotify](https://developer.spotify.com/) - Web API & Web Playback SDK
+- [Material-UI](https://mui.com/) - React component library
+- [Vite](https://vitejs.dev/) - Next-gen frontend tooling
+- [React](https://react.dev/) - UI framework
 

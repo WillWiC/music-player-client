@@ -5,11 +5,10 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress, IconButton, Fade, Grow, Typography } from '@mui/material';
-import { PlayArrow, ArrowBack, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { IconButton, Fade, Typography, Skeleton, Grow } from '@mui/material';
+import { PlayArrow, ChevronLeft, ChevronRight, AccessTime } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
 import { getCategoryById, mapGenresToCategories, getCategorySearchTerms, type CustomCategory } from '../utils/categoryMapping';
-import { formatCount } from '../utils/numberFormat';
 
 interface Playlist {
   id: string;
@@ -61,33 +60,11 @@ const Category: React.FC = () => {
   const [artists, setArtists] = React.useState<Artist[]>([]);
   const [artistStart, setArtistStart] = React.useState(0);
   const [visibleCount, setVisibleCount] = React.useState(5);
-  const viewportRef = React.useRef<HTMLDivElement | null>(null);
   const [tracks, setTracks] = React.useState<Track[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [error, setError] = React.useState<string>('');
   const isLoadingRef = React.useRef(false);
-
-  // Add CSS animations
-  React.useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fade-in {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in {
-        animation: fade-in 0.8s ease-out forwards;
-      }
-      .animate-fade-in > * {
-        animation: fade-in 0.6s ease-out forwards;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
   // Load category on mount
   React.useEffect(() => {
@@ -100,21 +77,22 @@ const Category: React.FC = () => {
   // Update visibleCount based on viewport
   React.useEffect(() => {
     const onResize = () => {
-      // Always show 5 artists per row as requested
-      setVisibleCount(5);
-      // Reset artist start if it's beyond valid range
-      setArtistStart(prev => Math.min(prev, Math.max(0, artists.length - 5)));
+      const width = window.innerWidth;
+      if (width >= 1536) setVisibleCount(7); // 2xl
+      else if (width >= 1280) setVisibleCount(6); // xl
+      else if (width >= 1024) setVisibleCount(5); // lg
+      else if (width >= 768) setVisibleCount(4); // md
+      else setVisibleCount(3); // sm
+      
+      setArtistStart(prev => Math.min(prev, Math.max(0, artists.length - visibleCount)));
     };
     onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [artists.length]);  // Compute per-item pixel width accounting for gap and padding when containerWidth is known
+  }, [artists.length]);
+
   const maxArtistStart = React.useMemo(() => {
-    // Compute start index for the last page using non-overlapping pages.
-    // This allows the final page to contain fewer than `visibleCount` items
-    // instead of backfilling from the previous page.
-    const pages = Math.ceil(artists.length / Math.max(1, visibleCount));
-    return Math.max(0, (pages - 1) * visibleCount);
+    return Math.max(0, artists.length - visibleCount);
   }, [artists.length, visibleCount]);
 
   // Fetch artists and playlists for the category using the new Spotify API hook
@@ -130,8 +108,11 @@ const Category: React.FC = () => {
     
     try {
       // Use optimized search terms for better API results
+      let genreSearches: string[] = [];
+      
+      // Default behavior
       const searchTerms = getCategorySearchTerms(categoryId!);
-      const genreSearches = searchTerms.slice(0, 4); // Use optimized terms
+      genreSearches = searchTerms.slice(0, 6); // Use optimized terms
       
       // Pre-allocate Sets for efficient deduplication
       const artistIds = new Set<string>();
@@ -158,19 +139,19 @@ const Category: React.FC = () => {
           const artistUrl = buildSpotifyUrl('search', {
             q: artistQuery,
             type: 'artist',
-            limit: 12
+            limit: 50
           });
           
           const playlistUrl = buildSpotifyUrl('search', {
             q: genre,
             type: 'playlist', 
-            limit: 12
+            limit: 50
           });
           
           const trackUrl = buildSpotifyUrl('search', {
             q: trackQuery,
             type: 'track',
-            limit: 18
+            limit: 50
           });
           
           // Execute all requests in parallel using the hook
@@ -248,7 +229,6 @@ const Category: React.FC = () => {
         const categoryConfig: Record<string, {
           minPopularity: number;
           minFollowers: number;
-          genrePatterns: string[];
           namePatterns?: RegExp[];
           excludePatterns?: string[];
           qualityThreshold: number;
@@ -256,15 +236,13 @@ const Category: React.FC = () => {
           'kpop': {
             minPopularity: 35,
             minFollowers: 80000,
-            genrePatterns: ['k-pop', 'k-rap', 'korean', 'k pop', 'kpop'],
             namePatterns: [hangulRegex],
             excludePatterns: ['j-pop', 'japanese', 'mandopop', 'cantopop'],
-            qualityThreshold: 150
+            qualityThreshold: 120
           },
           'chinese-pop': {
             minPopularity: 30,
             minFollowers: 40000,
-            genrePatterns: ['mandopop', 'cantopop', 'chinese', 'cpop', 'mandarin', 'cantonese', 'taiwan'],
             namePatterns: [cjkRegex],
             excludePatterns: ['k-pop', 'j-pop', 'japanese', 'korean'],
             qualityThreshold: 120
@@ -272,70 +250,60 @@ const Category: React.FC = () => {
           'pop': {
             minPopularity: 40,
             minFollowers: 150000,
-            genrePatterns: ['pop', 'dance pop', 'electropop', 'synth-pop', 'indie pop'],
             excludePatterns: ['k-pop', 'mandopop', 'cantopop', 'hip hop', 'rap', 'rock', 'metal', 'country'],
             qualityThreshold: 180
           },
           'hiphop': {
             minPopularity: 32,
             minFollowers: 80000,
-            genrePatterns: ['hip hop', 'rap', 'trap', 'hip-hop', 'drill', 'grime'],
             excludePatterns: ['k-rap', 'pop rap'],
             qualityThreshold: 140
           },
           'edm': {
             minPopularity: 28,
             minFollowers: 40000,
-            genrePatterns: ['edm', 'electronic', 'house', 'techno', 'trance', 'dubstep', 'electro', 'dance'],
             excludePatterns: [],
             qualityThreshold: 120
           },
           'rock': {
             minPopularity: 30,
             minFollowers: 60000,
-            genrePatterns: ['rock', 'metal', 'punk', 'grunge', 'alternative rock'],
             excludePatterns: ['pop rock'],
             qualityThreshold: 130
           },
           'indie': {
             minPopularity: 22,
             minFollowers: 20000,
-            genrePatterns: ['indie', 'alternative', 'lo-fi', 'bedroom pop', 'dream pop', 'shoegaze'],
             excludePatterns: [],
             qualityThreshold: 100
           },
           'jazz': {
             minPopularity: 18,
             minFollowers: 10000,
-            genrePatterns: ['jazz', 'bebop', 'swing', 'fusion', 'blues', 'smooth jazz'],
             excludePatterns: [],
             qualityThreshold: 90
           },
           'rnb': {
             minPopularity: 32,
             minFollowers: 70000,
-            genrePatterns: ['r&b', 'soul', 'neo soul', 'funk', 'motown', 'rnb'],
             excludePatterns: [],
             qualityThreshold: 130
           },
           'latin': {
             minPopularity: 32,
             minFollowers: 80000,
-            genrePatterns: ['latin', 'reggaeton', 'salsa', 'bachata', 'merengue', 'cumbia', 'spanish'],
             excludePatterns: [],
             qualityThreshold: 130
           },
           'country': {
             minPopularity: 28,
             minFollowers: 40000,
-            genrePatterns: ['country', 'folk', 'americana', 'bluegrass', 'western'],
             excludePatterns: [],
             qualityThreshold: 110
           },
           'classical': {
             minPopularity: 15,
             minFollowers: 5000,
-            genrePatterns: ['classical', 'orchestral', 'opera', 'baroque', 'symphony', 'chamber'],
             excludePatterns: [],
             qualityThreshold: 80
           }
@@ -344,9 +312,15 @@ const Category: React.FC = () => {
         const config = categoryConfig[categoryId!] || {
           minPopularity: 25,
           minFollowers: 30000,
-          genrePatterns: [],
           qualityThreshold: 100
         };
+
+        // Determine active genre patterns based on selection or category defaults
+        let activeGenrePatterns: string[] = [];
+        let isSubGenreMode = false;
+
+        // Use the category's defined genres as the base patterns
+        activeGenrePatterns = category?.spotifyGenres || [];
         
         const scoreArtist = (artist: Artist) => {
           let score = 0;
@@ -359,9 +333,10 @@ const Category: React.FC = () => {
           let hasRelevantName = false;
           let hasExcludedGenre = false;
           
-          // Check genre patterns
-          for (const pattern of config.genrePatterns) {
-            if (genres.some(g => g.includes(pattern))) {
+          // Check genre patterns against ACTIVE patterns
+          for (const pattern of activeGenrePatterns) {
+            const p = pattern.toLowerCase();
+            if (genres.some(g => g.includes(p))) {
               hasRelevantGenre = true;
               break;
             }
@@ -388,15 +363,20 @@ const Category: React.FC = () => {
           }
           
           // REJECTION RULES
-          // For language-specific categories, require either genre or name match
-          if (categoryId === 'kpop' || categoryId === 'chinese-pop') {
-            if (!hasRelevantGenre && !hasRelevantName) return 0;
-            if (hasExcludedGenre) return 0;
-          } else {
-            // For other categories, require genre match
+          // If in sub-genre mode, we require a genre match (name match is not enough)
+          if (isSubGenreMode) {
             if (!hasRelevantGenre) return 0;
-            // Reject if has excluded genre and low popularity
-            if (hasExcludedGenre && popularity < 60) return 0;
+          } else {
+            // For language-specific categories, require either genre or name match
+            if (categoryId === 'kpop' || categoryId === 'chinese-pop') {
+              if (!hasRelevantGenre && !hasRelevantName) return 0;
+              if (hasExcludedGenre) return 0;
+            } else {
+              // For other categories, require genre match
+              if (!hasRelevantGenre) return 0;
+              // Reject if has excluded genre and low popularity
+              if (hasExcludedGenre && popularity < 60) return 0;
+            }
           }
           
           // Quality gates
@@ -439,11 +419,12 @@ const Category: React.FC = () => {
           let exactMatches = 0;
           let partialMatches = 0;
           
-          for (const pattern of config.genrePatterns) {
+          for (const pattern of activeGenrePatterns) {
+            const p = pattern.toLowerCase();
             for (const genre of genres) {
-              if (genre === pattern) {
+              if (genre === p) {
                 exactMatches++;
-              } else if (genre.includes(pattern)) {
+              } else if (genre.includes(p)) {
                 partialMatches++;
               }
             }
@@ -681,6 +662,7 @@ const Category: React.FC = () => {
       toast.showToast('Failed to load category content', 'error');
     } finally {
       setLoadingPlaylists(false);
+      isLoadingRef.current = false;
     }
   }, [category, categoryId, makeRequest, toast]);
 
@@ -750,22 +732,18 @@ const Category: React.FC = () => {
   // Guest experience
   if (!token && !isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+      <div className="min-h-screen bg-black flex">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
         <main className="flex-1 lg:ml-72 pb-24 pt-20">
           <div className="relative max-w-6xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
             <div className="text-center">
-              <Typography variant="h3" sx={{ fontWeight: 700, color: 'white', mb: 2 }}>
-                Music Category
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(156, 163, 175, 1)', mb: 4 }}>
-                Sign in to explore this music category
-              </Typography>
+              <h1 className="text-4xl font-bold text-white mb-6">Music Category</h1>
+              <p className="text-gray-400 mb-8 text-lg">Sign in to explore this music category</p>
               <button 
                 onClick={() => navigate('/login')}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors"
+                className="px-8 py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105"
               >
                 Sign In to Browse
               </button>
@@ -777,590 +755,249 @@ const Category: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white">
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
       
-      <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative w-full py-10 px-6 sm:px-8 lg:px-12">
-          
-          {/* Back Button */}
-          <div className="mb-8">
-            <IconButton 
-              onClick={() => navigate('/browse')}
-              sx={{ 
-                color: 'white', 
-                bgcolor: 'rgba(255,255,255,0.1)', 
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                '&:hover': { 
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  transform: 'translateX(-4px)',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.3)'
-                },
-                transition: 'all 0.3s ease',
-                width: 48,
-                height: 48
-              }}
-            >
-              <ArrowBack sx={{ fontSize: 20 }} />
-            </IconButton>
+      <main className="flex-1 lg:ml-72 relative z-0">
+        {/* Dynamic Background Gradient Overlay */}
+        {category && (
+          <div 
+            className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+            style={{ 
+              background: `linear-gradient(to bottom, ${category.color}, transparent)` 
+            }}
+          />
+        )}
+
+        <div className="relative z-10 pb-24">
+          {/* Header Section */}
+          <div className="pt-24 px-10 md:px-12 pb-8">
+            {category ? (
+              <Fade in timeout={600}>
+                <div className="flex flex-col md:flex-row items-end gap-8">
+                  <div 
+                    className="w-32 h-32 md:w-40 md:h-40 shadow-2xl flex items-center justify-center text-6xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10"
+                    style={{ boxShadow: `0 20px 50px -12px ${category.color}50` }}
+                  >
+                    <span className="filter drop-shadow-lg transform scale-110">
+                      {category.icon}
+                    </span>
+                  </div>
+                  <div className="flex-1 mb-2">
+                    <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
+                      {category.name}
+                    </h1>
+                    <p className="text-gray-300 text-lg max-w-2xl mb-6 font-medium">
+                      {category.description || `Discover the best music in ${category.name}`}
+                    </p>
+                    
+                    <div className="flex items-center gap-6 text-sm font-semibold text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"/>
+                        {loadingPlaylists ? '...' : artists.length} Artists
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
+                        {loadingPlaylists ? '...' : tracks.length} Songs
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"/>
+                        {loadingPlaylists ? '...' : playlists.length} Playlists
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Fade>
+            ) : (
+                <div className="flex flex-col md:flex-row items-end gap-8">
+                    <Skeleton variant="rectangular" width={160} height={160} sx={{ bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }} />
+                    <div className="flex-1">
+                        <Skeleton width="20%" height={30} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+                        <Skeleton width="60%" height={80} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+                        <Skeleton width="40%" height={40} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+                    </div>
+                </div>
+            )}
           </div>
 
-          {/* Category Header */}
-          {category && (
-            <Fade in timeout={600}>
-              <div className="mb-12 flex items-center gap-8">
-              <div 
-                className="w-40 h-40 rounded-2xl flex items-center justify-center text-7xl shadow-2xl transition-transform duration-300 hover:scale-105"
-                style={{ 
-                  background: `linear-gradient(135deg, ${category.color}, ${category.color}80)`,
-                  boxShadow: `0 20px 40px ${category.color}20`
-                }}
-              >
-                <div style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
-                  {category.icon}
+          {/* Main Content Area */}
+          <div className="px-10 md:px-12 space-y-16">
+            
+            {/* Loading & Error States */}
+            {loadingPlaylists && (
+              <div className="space-y-12">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    {[...Array(6)].map((_, i) => (
+                        <Skeleton key={i} variant="circular" width="100%" height="auto" sx={{ aspectRatio: '1/1', bgcolor: 'rgba(255,255,255,0.1)' }} />
+                    ))}
+                </div>
+                <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} variant="rectangular" height={60} sx={{ bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }} />
+                    ))}
                 </div>
               </div>
-              <div className="flex-1">
-                <Typography variant="h2" sx={{ 
-                  fontWeight: 900, 
-                  color: 'white', 
-                  mb: 1.5,
-                  fontSize: '3rem',
-                  background: 'linear-gradient(135deg, #fff 0%, rgba(156, 163, 175, 1) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  {category.name}
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(209, 213, 219, 1)', mb: 2, fontSize: '1.25rem' }}>
-                  Discover the best music in this category
-                </Typography>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <span>🎵 Artists</span>
-                  <span>•</span>
-                  <span>🎧 Songs</span>
-                  <span>•</span>
-                  <span>📱 Playlists</span>
-                </div>
+            )}
+
+            {error && !loadingPlaylists && (
+              <div className="text-center py-20 text-red-400 bg-red-500/10 rounded-xl border border-red-500/20">
+                <Typography variant="h6" fontWeight="bold">{error}</Typography>
+                <button onClick={fetchCategoryContent} className="mt-4 px-6 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">Try Again</button>
               </div>
-            </div>
-            </Fade>
-          )}
+            )}
 
-          {/* Loading State */}
-          {loadingPlaylists && (
-            <div className="flex flex-col items-center justify-center py-32">
-              <div className="relative">
-                <CircularProgress 
-                  size={80} 
-                  thickness={4}
-                  sx={{ 
-                    color: category?.color || '#22c55e',
-                    '& .MuiCircularProgress-circle': {
-                      strokeLinecap: 'round',
-                    }
-                  }} 
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-2xl animate-pulse" style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
-                    {category?.icon || '🎵'}
-                  </div>
-                </div>
-              </div>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: 'white', mt: 3, mb: 1 }}>
-                Loading {category?.name}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(156, 163, 175, 1)', textAlign: 'center', maxWidth: '28rem' }}>
-                Discovering the best artists, songs, and playlists for you...
-              </Typography>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && !loadingPlaylists && (
-            <div className="text-center py-24">
-              <div className="bg-gradient-to-br from-red-950/30 to-red-900/20 border border-red-500/30 rounded-3xl p-10 max-w-lg mx-auto backdrop-blur-sm">
-                <div className="text-6xl mb-4">😔</div>
-                <Typography variant="h5" sx={{ color: '#fca5a5', fontWeight: 700, mb: 1.5 }}>
-                  Something went wrong
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(209, 213, 219, 1)', mb: 3, lineHeight: 1.75 }}>
-                  {error}
-                </Typography>
-                <button 
-                  onClick={() => {
-                    fetchCategoryContent();
-                  }}
-                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Content Sections - Always show all sections with content */}
-          {!loadingPlaylists && !error && (
-            <div className="space-y-16">
-              
-              {/* Popular Artists Section - carousel (no horizontal scroll) */}
-              {artists.length > 0 && (
-                <div className="animate-fade-in">
-                  <Fade in timeout={600}>
-                    <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-6">
-                      <div>
-                        <Typography variant="h3" sx={{ 
-                          fontWeight: 900, 
-                          mb: 1,
-                          fontSize: '2.5rem',
-                          background: 'linear-gradient(135deg, #fff 0%, rgba(156, 163, 175, 1) 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text'
-                        }}>
-                          Recently Popular Artists
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: 'rgba(209, 213, 219, 1)', fontSize: '1.125rem' }}>
-                          Top performers in {category?.name}
-                        </Typography>
-                      </div>
-                      <div className="hidden md:flex items-center gap-3">
-                        <div className="w-1 h-12 bg-gradient-to-b from-green-400 to-green-600 rounded-full"></div>
-                        <div className="text-3xl opacity-60">{category?.icon}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm text-gray-400 bg-gradient-to-r from-white/10 to-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
-                        <span className="text-green-400 font-semibold">{artists.length}</span> artists
-                        {/* Debug info - remove in production */}
-                        <span className="ml-2 text-xs opacity-60">
-                          ({artistStart + 1}-{Math.min(artistStart + visibleCount, artists.length)} showing)
-                        </span>
-                      </div>
-                      {/* keyboard hint removed as per design preference */}
-                    </div>
-                  </div>
-                  </Fade>
-
-                  <div 
-                    className="relative"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowRight') setArtistStart(s => Math.min(s + visibleCount, maxArtistStart));
-                      if (e.key === 'ArrowLeft') setArtistStart(s => Math.max(0, s - visibleCount));
-                    }}
-                  >
-                    <div className="absolute left-0 top-0 h-full w-20 z-20 flex items-center justify-center pointer-events-auto">
-                      <div className="w-full h-full flex items-center justify-center group">
-                        <IconButton
-                          aria-label="Previous Artists"
-                          onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
-                          disabled={artistStart <= 0}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          sx={{
-                            background: 'linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4))',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: 'white',
-                            width: 48,
-                            height: 48,
-                            transition: 'all 0.25s ease',
-                            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
-                            '&:hover': {
-                              background: 'linear-gradient(90deg, rgba(0,0,0,0.82), rgba(0,0,0,0.6))',
-                              transform: 'translateX(-4px) scale(1.02)'
-                            },
-                            '&.Mui-disabled': {
-                              background: 'linear-gradient(90deg, rgba(0,0,0,0.25), rgba(0,0,0,0.15))',
-                              color: 'rgba(255,255,255,0.3)'
-                            }
-                          }}
+            {!loadingPlaylists && !error && (
+              <>
+                {/* Artists Section */}
+                {artists.length > 0 && (
+                  <section className="relative group/section">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-white">Popular Artists</h2>
+                      <div className="flex gap-2">
+                        <IconButton 
+                            disabled={artistStart <= 0}
+                            onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
+                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
                         >
-                          <ChevronLeft sx={{ color: artistStart <= 0 ? 'rgba(255,255,255,0.3)' : 'white', fontSize: 24 }} />
+                            <ChevronLeft />
                         </IconButton>
-                      </div>
-                    </div>
-
-                    <div className="overflow-hidden px-8 py-4 bg-gradient-to-r from-white/[0.02] to-white/[0.05] rounded-3xl border border-white/10 backdrop-blur-sm shadow-2xl" ref={viewportRef}>
-                      <div className="grid grid-cols-5 gap-6">
-                        {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
-                          <Grow key={artist.id} in timeout={400 + (index * 50)}>
-                            <div
-                              className="group cursor-pointer flex flex-col items-center transition-all duration-500 hover:scale-105"
-                              onClick={() => handleArtistPlay(artist)}
-                            >
-                            <div className="relative mb-4">
-                              <div
-                                className="relative overflow-hidden rounded-full bg-gradient-to-br from-white/20 via-white/10 to-white/5 border-2 border-white/20 transition-all duration-500 shadow-2xl group-hover:shadow-green-500/25 group-hover:border-green-400/50 group-hover:scale-110"
-                                style={{
-                                  width: '120px',
-                                  height: '120px',
-                                }}
-                              >
-                                <img 
-                                  src={artist.images?.[0]?.url || '/vite.svg'} 
-                                  alt={artist.name} 
-                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                                  <div className="bg-green-500 hover:bg-green-400 text-black rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110">
-                                    <PlayArrow sx={{ fontSize: '28px' }} />
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Popularity indicator */}
-                              <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-green-400 text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                                {artist.popularity || 0}
-                              </div>
-                            </div>
-                            
-                            <div className="text-center max-w-full">
-                              <Typography
-                                variant="subtitle1"
-                                sx={{
-                                  color: 'white',
-                                  fontWeight: 700,
-                                  mb: 0.5,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  cursor: 'pointer',
-                                  transition: 'color 0.3s',
-                                  '&:hover': {
-                                    color: '#86efac'
-                                  }
-                                }}
-                                role="link"
-                                tabIndex={0}
-                                onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
-                              >
-                                {artist.name}
-                              </Typography>
-                              <Typography variant="body2" sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                gap: 1, 
-                                color: 'rgba(156, 163, 175, 1)' 
-                              }}>
-                                <span>{artist.followers ? formatCount(artist.followers.total) : '0'} followers</span>
-                                {artist.genres && artist.genres.length > 0 && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="truncate max-w-20">{artist.genres[0]}</span>
-                                  </>
-                                )}
-                              </Typography>
-                            </div>
-                          </div>
-                          </Grow>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="absolute right-0 top-0 h-full w-20 z-20 flex items-center justify-center pointer-events-auto">
-                      <div className="w-full h-full flex items-center justify-center group">
-                        <IconButton
-                          aria-label="Next Artists"
-                          onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
-                          disabled={artistStart >= maxArtistStart}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          sx={{
-                            background: 'linear-gradient(90deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6))',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: 'white',
-                            width: 48,
-                            height: 48,
-                            transition: 'all 0.25s ease',
-                            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
-                            '&:hover': {
-                              background: 'linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.82))',
-                              transform: 'translateX(4px) scale(1.02)'
-                            },
-                            '&.Mui-disabled': {
-                              background: 'linear-gradient(90deg, rgba(0,0,0,0.15), rgba(0,0,0,0.25))',
-                              color: 'rgba(255,255,255,0.3)'
-                            }
-                          }}
+                        <IconButton 
+                            disabled={artistStart >= maxArtistStart}
+                            onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
+                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
                         >
-                          <ChevronRight sx={{ color: artistStart >= maxArtistStart ? 'rgba(255,255,255,0.3)' : 'white', fontSize: 24 }} />
+                            <ChevronRight />
                         </IconButton>
                       </div>
                     </div>
                     
-                    {/* Page indicators */}
-                    {Math.ceil(artists.length / visibleCount) > 1 && (
-                      <div className="flex justify-center mt-6 gap-2">
-                        {Array.from({ length: Math.ceil(artists.length / visibleCount) }, (_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setArtistStart(i * visibleCount)}
-                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                              Math.floor(artistStart / visibleCount) === i
-                                ? 'bg-green-400 w-8 shadow-lg shadow-green-400/50'
-                                : 'bg-white/30 hover:bg-white/60'
-                            }`}
-                          />
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-6">
+                        {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
+                            <Grow in timeout={300 + index * 50} key={artist.id}>
+                                <div 
+                                    className="group/card flex flex-col items-center cursor-pointer"
+                                    onClick={() => handleArtistPlay(artist)}
+                                >
+                                    <div className="relative w-full aspect-square mb-4 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
+                                        <img 
+                                            src={artist.images?.[0]?.url || '/vite.svg'} 
+                                            alt={artist.name}
+                                            className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg transform scale-50 group-hover/card:scale-100 transition-transform duration-300">
+                                                <PlayArrow sx={{ fontSize: 28, color: 'white  ' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <h3 
+                                        className="text-white font-bold text-center truncate w-full hover:text-green-400 hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] transition-all cursor-pointer z-10"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/artist/${artist.id}`);
+                                        }}
+                                    >
+                                        {artist.name}
+                                    </h3>
+                                    <p className="text-gray-400 text-sm">Artist</p>
+                                </div>
+                            </Grow>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  </section>
+                )}
 
-              {/* Popular Songs Section */}
-              {tracks.length > 0 && (
-                <div className="animate-fade-in">
-                  <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <Typography variant="h3" sx={{ fontWeight: 900, color: 'white', mb: 1, fontSize: '2.25rem' }}>
-                        Popular Songs
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(156, 163, 175, 1)' }}>
-                        Trending tracks in {category?.name}
-                      </Typography>
-                    </div>
-                    <div className="text-sm text-gray-500 bg-white/5 px-3 py-1 rounded-full">
-                      {tracks.length} songs
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] rounded-2xl p-6 backdrop-blur-sm border border-white/10 shadow-2xl">
-                    <div className="space-y-2">
+                {/* Songs Section */}
+                {tracks.length > 0 && (
+                  <section>
+                    <h2 className="text-2xl font-bold text-white mb-6">Popular Songs</h2>
+                    <div className="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
+                      {/* Table Header */}
+                      <div className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-4 border-b border-white/10 text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
+                        <div className="w-8 text-center">#</div>
+                        <div>Title</div>
+                        <div className="hidden md:block">Album</div>
+                        <div className="text-right"><AccessTime fontSize="small" /></div>
+                      </div>
+                      
+                      {/* Rows */}
                       {tracks.map((track, index) => (
                         <div 
                           key={track.id}
-                          className="group cursor-pointer flex items-center gap-6 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                          className="group grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
                           onClick={() => handleTrackPlay(track)}
-                          style={{ animationDelay: `${index * 0.05}s` }}
                         >
-                          {/* Track Number */}
-                          <div className="w-10 text-center">
-                            <span className="text-gray-400 font-semibold group-hover:hidden">
-                              {index + 1}
-                            </span>
-                            <IconButton
-                              size="small"
-                              className="hidden group-hover:flex transform transition-transform hover:scale-110"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTrackPlay(track);
-                              }}
-                              sx={{ 
-                                color: '#22c55e',
-                                '&:hover': {
-                                  bgcolor: 'rgba(34, 197, 94, 0.1)',
-                                }
-                              }}
-                            >
-                              <PlayArrow sx={{ fontSize: 22 }} />
-                            </IconButton>
+                          <div className="w-8 text-center text-gray-400 group-hover:text-white font-medium relative flex items-center justify-center">
+                            <span className="group-hover:opacity-0 transition-opacity duration-200">{index + 1}</span>
+                            <PlayArrow className="absolute opacity-0 group-hover:opacity-100 text-green-500 transition-opacity duration-200" sx={{ fontSize: 24 }} />
                           </div>
-
-                          {/* Album Art */}
-                          <div className="relative">
+                          <div className="flex items-center gap-4 overflow-hidden">
                             <img 
-                              src={track.album?.images?.[0]?.url || '/vite.svg'} 
-                              alt={track.name}
-                              className="w-14 h-14 rounded-lg object-cover shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                              src={track.album?.images?.[0]?.url} 
+                              alt="" 
+                              className="w-12 h-12 rounded shadow-md group-hover:shadow-lg transition-shadow"
                             />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-base">
+                                {track.name}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate group-hover:text-gray-300">
+                                {track.artists.map(a => a.name).join(', ')}
+                              </div>
+                            </div>
                           </div>
-
-                          {/* Track Info */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-bold text-base truncate group-hover:text-green-400 transition-colors duration-300 mb-1">
-                              {track.name}
-                            </h3>
-                            <p className="text-gray-400 text-sm truncate group-hover:text-gray-300 transition-colors">
-                              {track.artists?.map(artist => artist.name).join(', ')}
-                            </p>
+                          <div className="hidden md:block text-sm text-gray-400 truncate group-hover:text-gray-300">
+                            {track.album.name}
                           </div>
-
-                          {/* Album Name */}
-                          <div className="hidden lg:block flex-1 min-w-0">
-                            <p className="text-gray-500 text-sm truncate group-hover:text-gray-400 transition-colors">
-                              {track.album?.name}
-                            </p>
-                          </div>
-
-                          {/* Duration */}
-                          <div className="text-gray-500 text-sm font-mono group-hover:text-green-400 transition-colors">
+                          <div className="text-sm text-gray-400 font-mono text-right group-hover:text-gray-300">
                             {Math.floor(track.duration_ms / 60000)}:
                             {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
-                          </div>
-
-                          {/* Track Actions */}
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <IconButton
-                              size="small"
-                              sx={{ 
-                                color: 'rgba(255,255,255,0.6)',
-                                '&:hover': { color: '#22c55e' }
-                              }}
-                            >
-                              <span className="text-xs">♡</span>
-                            </IconButton>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-              )}
+                  </section>
+                )}
 
-              {/* Related Playlists Section */}
-              {playlists.length > 0 && (
-                <div className="animate-fade-in">
-                  <Fade in timeout={600}>
-                    <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <Typography variant="h3" sx={{ fontWeight: 900, color: 'white', mb: 1, fontSize: '2.25rem' }}>
-                        Related Playlists
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(156, 163, 175, 1)' }}>
-                        Curated collections for {category?.name} lovers
-                      </Typography>
-                    </div>
-                    <div className="text-sm text-gray-500 bg-white/5 px-3 py-1 rounded-full">
-                      {playlists.length} playlists
-                    </div>
-                  </div>
-                  </Fade>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                    {playlists.map((playlist, index) => (
-                      <Grow key={playlist.id} in timeout={400 + (index * 50)}>
-                        <div 
-                          className="group cursor-pointer relative transform transition-all duration-300 hover:scale-105"
-                          style={{ animationDelay: `${index * 0.1}s` }}
-                        >
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-green-500/50 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-green-500/20 backdrop-blur-sm">
-                          
-                          {/* Playlist Image */}
-                          <div className="aspect-square relative">
-                            <img 
-                              src={playlist.images?.[0]?.url || '/vite.svg'} 
-                              alt={playlist.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          </div>
-                          
-                          {/* Play Button Overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-sm">
-                            <IconButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlaylistPlay(playlist);
-                              }}
-                              sx={{
-                                bgcolor: '#22c55e',
-                                color: 'black',
-                                '&:hover': { 
-                                  bgcolor: '#16a34a', 
-                                  transform: 'scale(1.2)',
-                                  boxShadow: '0 8px 25px rgba(34, 197, 94, 0.4)'
-                                },
-                                width: 64,
-                                height: 64,
-                                transition: 'all 0.3s ease'
-                              }}
+                {/* Playlists Section */}
+                {playlists.length > 0 && (
+                  <section>
+                    <h2 className="text-2xl font-bold text-white mb-6">Related Playlists</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                      {playlists.map((playlist, index) => (
+                        <Grow in timeout={300 + (index % 10) * 50} key={playlist.id}>
+                            <div 
+                            className="group p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl"
+                            onClick={() => handlePlaylistPlay(playlist)}
                             >
-                              <PlayArrow sx={{ fontSize: 32 }} />
-                            </IconButton>
-                          </div>
-
-                          {/* Track Count Badge */}
-                          <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-semibold px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            {playlist.tracks?.total} tracks
-                          </div>
-                        </div>
-                        
-                        {/* Playlist Info */}
-                        <div className="mt-4 px-1">
-                          <Typography variant="subtitle2" sx={{ 
-                            color: 'white', 
-                            fontWeight: 700, 
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            mb: 1,
-                            transition: 'color 0.3s',
-                            '.group:hover &': {
-                              color: '#86efac'
-                            }
-                          }}>
-                            {playlist.name}
-                          </Typography>
-                          <Typography variant="caption" sx={{ 
-                            color: 'rgba(107, 114, 128, 1)', 
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block',
-                            lineHeight: 1.75,
-                            mb: 0.5
-                          }}>
-                            {playlist.description || `Curated by ${playlist.owner?.display_name}`}
-                          </Typography>
-                          <div className="flex items-center justify-between">
-                            <Typography variant="caption" sx={{ color: 'rgba(75, 85, 99, 1)' }}>
-                              By {playlist.owner?.display_name}
-                            </Typography>
-                            {playlist.tracks?.total && playlist.tracks.total > 50 && (
-                              <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-semibold">
-                                MEGA
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      </Grow>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-            </div>
-          )}
-
-          {/* No Content State */}
-          {!loadingPlaylists && !error && playlists.length === 0 && artists.length === 0 && tracks.length === 0 && category && (
-            <div className="text-center py-32">
-              <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-3xl p-12 max-w-lg mx-auto backdrop-blur-sm border border-white/10 shadow-2xl">
-                <div className="text-8xl mb-6 opacity-50">
-                  <span style={{ fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Segoe UI"' }}>
-                    {category.icon}
-                  </span>
-                </div>
-                <Typography variant="h5" sx={{ color: 'rgba(209, 213, 219, 1)', fontWeight: 700, mb: 1.5 }}>
-                  No content available
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(107, 114, 128, 1)', mb: 4, lineHeight: 1.75 }}>
-                  We couldn't find any artists, songs, or playlists for {category.name} right now.
-                </Typography>
-                <div className="space-y-3">
-                  <button 
-                    onClick={fetchCategoryContent}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
-                  >
-                    Try Again
-                  </button>
-                  <button 
-                    onClick={() => navigate('/browse')}
-                    className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all duration-300 border border-white/20"
-                  >
-                    Browse Other Categories
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                            <div className="relative aspect-square mb-4 rounded-lg overflow-hidden shadow-lg">
+                                <img 
+                                src={playlist.images?.[0]?.url || '/vite.svg'} 
+                                alt={playlist.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 translate-y-2 group-hover:translate-y-0 duration-300">
+                                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                                        <PlayArrow sx={{ fontSize: 28, color: 'white' }} />
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-white truncate mb-1 group-hover:text-green-400 transition-colors">
+                                {playlist.name}
+                            </h3>
+                            <p className="text-sm text-gray-400 truncate line-clamp-2">
+                                By {playlist.owner.display_name}
+                            </p>
+                            </div>
+                        </Grow>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </main>
     </div>

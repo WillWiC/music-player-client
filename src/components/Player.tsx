@@ -140,58 +140,10 @@ const Player: React.FC = () => {
     return <VolumeUp />;
   };
 
-  if (!currentTrack) {
-    return (
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.72) 0%, rgba(18, 18, 18, 0.78) 100%)',
-          backdropFilter: 'blur(32px) saturate(180%)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          p: { xs: 1.5, md: 2 },
-          zIndex: (theme) => theme.zIndex.drawer + 10,
-          isolation: 'isolate',
-          transform: 'translateZ(0)',
-          boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.4), 0 -4px 16px rgba(0, 0, 0, 0.25)'
-        }}
-      >
-        <Box sx={{ maxWidth: '1200px', mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ color: 'text.secondary' }}>
-            <Avatar sx={{ 
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%)', 
-              width: 40, 
-              height: 40,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.1)'
-            }}>
-              <MusicNote sx={{ fontSize: 20, color: '#b3b3b3' }} />
-            </Avatar>
-            <Box>
-              <Typography variant="body2" sx={{ 
-                color: '#ffffff', 
-                fontWeight: 600,
-                mb: 0.3,
-                fontSize: '0.8rem',
-                lineHeight: 1.2
-              }}>
-                No track playing
-              </Typography>
-              <Typography variant="caption" sx={{ 
-                color: '#b3b3b3',
-                fontSize: '0.7rem',
-                opacity: 0.9
-              }}>
-                Connect to a device and play a song
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-      </Box>
-    );
-  }
+  const isTrackLoaded = !!currentTrack;
+  const trackName = currentTrack?.name || 'No track playing';
+  const artistNames = currentTrack?.artists?.map(artist => artist.name).join(', ') || 'Connect to a device';
+  const albumImage = currentTrack?.album?.images?.[0]?.url || '';
 
   return (
     <Box
@@ -249,81 +201,94 @@ const Player: React.FC = () => {
             boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3)',
             transition: 'all 0.3s ease'
           }}>
-            <CardMedia
-              component="img"
-              image={currentTrack.album?.images?.[0]?.url || '/vite.svg'}
-              alt={`${currentTrack.name} cover`}
-              sx={{
+            {isTrackLoaded ? (
+              <CardMedia
+                component="img"
+                image={albumImage || '/vite.svg'}
+                alt={`${trackName} cover`}
+                sx={{
+                  width: { xs: 40, md: 48 },
+                  height: { xs: 40, md: 48 },
+                  borderRadius: 1.5,
+                  boxShadow: isRemotePlaying 
+                    ? '0 6px 24px rgba(251, 146, 60, 0.25), 0 3px 12px rgba(0, 0, 0, 0.5)'
+                    : '0 6px 24px rgba(29, 185, 84, 0.2), 0 3px 12px rgba(0, 0, 0, 0.5)',
+                  position: 'relative',
+                  border: isRemotePlaying 
+                    ? '2px solid rgba(251, 146, 60, 0.4)' 
+                    : '1px solid rgba(255, 255, 255, 0.12)',
+                  transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    boxShadow: isRemotePlaying 
+                      ? '0 8px 32px rgba(251, 146, 60, 0.35), 0 4px 16px rgba(0, 0, 0, 0.6)'
+                      : '0 8px 32px rgba(29, 185, 84, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6)',
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: -1,
+                    borderRadius: 'inherit',
+                    background: isRemotePlaying 
+                      ? 'linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.1))'
+                      : 'linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.05))',
+                    zIndex: -1,
+                    opacity: isPlaying ? 1 : 0.6,
+                    animation: isPlaying ? 'pulse 3s infinite ease-in-out' : 'none',
+                    filter: 'blur(6px)'
+                  },
+                  '&::after': isRemotePlaying ? {
+                    content: '"🎵"',
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    fontSize: 12,
+                    backgroundColor: 'rgba(251, 146, 60, 0.95)',
+                    borderRadius: '50%',
+                    width: 16,
+                    height: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid rgba(24, 24, 24, 0.8)',
+                    animation: isPlaying ? 'pulse 2s infinite ease-in-out' : 'none',
+                    boxShadow: '0 2px 8px rgba(251, 146, 60, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.2)',
+                    fontWeight: 600
+                  } : {}
+                }}
+              />
+            ) : (
+              <Avatar sx={{ 
                 width: { xs: 40, md: 48 },
                 height: { xs: 40, md: 48 },
                 borderRadius: 1.5,
-                boxShadow: isRemotePlaying 
-                  ? '0 6px 24px rgba(251, 146, 60, 0.25), 0 3px 12px rgba(0, 0, 0, 0.5)'
-                  : '0 6px 24px rgba(29, 185, 84, 0.2), 0 3px 12px rgba(0, 0, 0, 0.5)',
-                position: 'relative',
-                border: isRemotePlaying 
-                  ? '2px solid rgba(251, 146, 60, 0.4)' 
-                  : '1px solid rgba(255, 255, 255, 0.12)',
-                transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                '&:hover': {
-                  transform: 'scale(1.02)',
-                  boxShadow: isRemotePlaying 
-                    ? '0 8px 32px rgba(251, 146, 60, 0.35), 0 4px 16px rgba(0, 0, 0, 0.6)'
-                    : '0 8px 32px rgba(29, 185, 84, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6)',
-                },
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  inset: -1,
-                  borderRadius: 'inherit',
-                  background: isRemotePlaying 
-                    ? 'linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.1))'
-                    : 'linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.05))',
-                  zIndex: -1,
-                  opacity: isPlaying ? 1 : 0.6,
-                  animation: isPlaying ? 'pulse 3s infinite ease-in-out' : 'none',
-                  filter: 'blur(6px)'
-                },
-                '&::after': isRemotePlaying ? {
-                  content: '"🎵"',
-                  position: 'absolute',
-                  top: -6,
-                  right: -6,
-                  fontSize: 12,
-                  backgroundColor: 'rgba(251, 146, 60, 0.95)',
-                  borderRadius: '50%',
-                  width: 16,
-                  height: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid rgba(24, 24, 24, 0.8)',
-                  animation: isPlaying ? 'pulse 2s infinite ease-in-out' : 'none',
-                  boxShadow: '0 2px 8px rgba(251, 146, 60, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.2)',
-                  fontWeight: 600
-                } : {}
-              }}
-            />
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: 'text.secondary'
+              }}>
+                <MusicNote />
+              </Avatar>
+            )}
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography 
                 variant="body2" 
-                onClick={handleTrackClick}
+                onClick={isTrackLoaded ? handleTrackClick : undefined}
                 sx={{ 
                   color: '#ffffff',
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: isTrackLoaded ? 'pointer' : 'default',
                   fontSize: { xs: '0.8rem', md: '0.85rem' },
                   lineHeight: 1.2,
                   letterSpacing: '-0.01em',
-                  '&:hover': { 
+                  '&:hover': isTrackLoaded ? { 
                     color: isRemotePlaying ? '#fb923c' : '#1db954',
                     textShadow: isRemotePlaying 
                       ? '0 0 8px rgba(251, 146, 60, 0.4)' 
                       : '0 0 8px rgba(29, 185, 84, 0.4)',
                     transform: 'translateY(-1px)'
-                  },
+                  } : {},
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -332,7 +297,7 @@ const Player: React.FC = () => {
                   mb: 0.5
                 }}
               >
-                {currentTrack.name}
+                {trackName}
               </Typography>
               <Typography 
                 variant="caption" 
@@ -344,20 +309,20 @@ const Player: React.FC = () => {
                   display: 'block',
                   fontSize: { xs: '0.7rem', md: '0.75rem' },
                   fontWeight: 500,
-                  cursor: 'pointer',
+                  cursor: isTrackLoaded ? 'pointer' : 'default',
                   transition: 'color 0.3s ease',
-                  '&:hover': {
+                  '&:hover': isTrackLoaded ? {
                     color: '#ffffff'
-                  }
+                  } : {}
                 }}
-                onClick={() => {
-                  const firstArtist = currentTrack.artists?.[0];
+                onClick={isTrackLoaded ? () => {
+                  const firstArtist = currentTrack?.artists?.[0];
                   if (firstArtist) {
                     navigate(`/artist/${firstArtist.id}`);
                   }
-                }}
+                } : undefined}
               >
-                {currentTrack.artists?.map(artist => artist.name).join(', ')}
+                {artistNames}
               </Typography>
               {isRemotePlaying && activeDeviceName && (
                 <Typography 
@@ -425,6 +390,9 @@ const Player: React.FC = () => {
                         : 'rgba(34, 197, 94, 0.25)')
                     : 'rgba(255, 255, 255, 0.05)'
                 },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                },
                 transition: 'all 0.2s ease',
                 width: 30,
                 height: 30
@@ -436,6 +404,7 @@ const Player: React.FC = () => {
 
             <IconButton 
               onClick={previousTrack}
+              disabled={!isTrackLoaded}
               aria-label="Previous track"
               sx={{ 
                 color: 'text.secondary',
@@ -443,6 +412,9 @@ const Player: React.FC = () => {
                   color: 'text.primary',
                   transform: 'scale(1.05)',
                   background: 'rgba(255, 255, 255, 0.05)'
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.1)'
                 },
                 transition: 'all 0.2s ease',
                 width: 34,
@@ -454,16 +426,19 @@ const Player: React.FC = () => {
             </IconButton>
 
             <IconButton 
-              onClick={togglePlay}
+              onClick={isTrackLoaded ? togglePlay : undefined}
+              disabled={!isTrackLoaded}
               aria-label={isPlaying ? 'Pause' : 'Play'}
               sx={{
-                background: isRemotePlaying 
-                  ? 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)'
-                  : 'linear-gradient(135deg, #1db954 0%, #1ed760 50%, #169c46 100%)',
-                color: '#ffffff',
+                background: !isTrackLoaded
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : (isRemotePlaying 
+                      ? 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)'
+                      : 'linear-gradient(135deg, #1db954 0%, #1ed760 50%, #169c46 100%)'),
+                color: !isTrackLoaded ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
                 width: { xs: 38, md: 42 },
                 height: { xs: 38, md: 42 },
-                '&:hover': {
+                '&:hover': !isTrackLoaded ? {} : {
                   background: isRemotePlaying 
                     ? 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)'
                     : 'linear-gradient(135deg, #169c46 0%, #15803d 50%, #14532d 100%)',
@@ -473,16 +448,18 @@ const Player: React.FC = () => {
                     : '0 6px 24px rgba(29, 185, 84, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2)'
                 },
                 transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
-                boxShadow: isRemotePlaying
+                boxShadow: !isTrackLoaded ? 'none' : (isRemotePlaying
                   ? '0 3px 16px rgba(251, 146, 60, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.15)'
-                  : '0 3px 16px rgba(29, 185, 84, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.15)',
+                  : '0 3px 16px rgba(29, 185, 84, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.15)'),
                 mx: 0.8,
-                '&:active': {
+                '&:active': !isTrackLoaded ? {} : {
                   transform: 'scale(0.98)'
                 },
-                border: isRemotePlaying 
-                  ? '1px solid rgba(251, 146, 60, 0.3)'
-                  : '1px solid rgba(29, 185, 84, 0.3)'
+                border: !isTrackLoaded 
+                  ? '1px solid rgba(255, 255, 255, 0.05)'
+                  : (isRemotePlaying 
+                      ? '1px solid rgba(251, 146, 60, 0.3)'
+                      : '1px solid rgba(29, 185, 84, 0.3)')
               }}
               title={isRemotePlaying 
                 ? `${isPlaying ? 'Pause' : 'Play'} (controlling ${activeDeviceName})`
@@ -494,6 +471,7 @@ const Player: React.FC = () => {
 
             <IconButton 
               onClick={nextTrack}
+              disabled={!isTrackLoaded}
               aria-label="Next track"
               sx={{ 
                 color: 'text.secondary',
@@ -501,6 +479,9 @@ const Player: React.FC = () => {
                   color: 'text.primary',
                   transform: 'scale(1.05)',
                   background: 'rgba(255, 255, 255, 0.05)'
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.1)'
                 },
                 transition: 'all 0.2s ease',
                 width: 34,
@@ -535,6 +516,9 @@ const Player: React.FC = () => {
                         ? 'rgba(251, 146, 60, 0.25)' 
                         : 'rgba(34, 197, 94, 0.25)')
                     : 'rgba(255, 255, 255, 0.05)'
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.1)'
                 },
                 transition: 'all 0.2s ease',
                 width: 30,
@@ -572,6 +556,7 @@ const Player: React.FC = () => {
                 value={duration > 0 ? position : 0}
                 max={duration}
                 onChange={handleProgressChange}
+                disabled={!isTrackLoaded}
                 sx={{
                   flex: 1,
                   height: 5,

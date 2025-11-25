@@ -301,3 +301,14 @@ body {
   animation: tabOpenHighlight 0.7s ease-out;
   border-radius: 0.75rem;
 }
+
+/* App Background Pattern */
+.app-background {
+  background-color: #000000;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom right, #000000, #111827, #000000);
+  background-size: 24px 24px, 100% 100%;
+  background-position: 0 0, 0 0;
+  background-attachment: fixed;
+}

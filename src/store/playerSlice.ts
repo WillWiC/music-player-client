@@ -42,18 +42,32 @@ interface PlayerState {
 }
 
 /** Initial player state - all reset to default/empty */
+const loadPersistedState = (): Partial<PlayerState> => {
+  try {
+    const saved = localStorage.getItem('spotify_player_state');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load player state', e);
+  }
+  return {};
+};
+
+const persisted = loadPersistedState();
+
 const initialState: PlayerState = {
   playing: false,
-  currentTrack: null,
-  position: 0,
-  duration: 0,
-  volume: 0.5,
+  currentTrack: persisted.currentTrack || null,
+  position: persisted.position || 0,
+  duration: persisted.duration || 0,
+  volume: persisted.volume || 0.5,
   deviceId: null,
   activeDeviceId: null,
   activeDeviceName: null,
   isRemotePlaying: false,
-  isShuffled: false,
-  repeatMode: 'off',
+  isShuffled: persisted.isShuffled || false,
+  repeatMode: persisted.repeatMode || 'off',
 }
 
 /**

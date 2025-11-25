@@ -3,21 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/auth';
-import { refreshSpotifyTokenDetailed, isAccessTokenExpired } from '../utils/tokenRefresh';
 import {
-  Paper,
+  Container,
+  Card,
+  CardContent,
   Typography,
-  Box,
   Button,
-  Divider,
   Snackbar,
   Alert,
-  Chip,
-  CircularProgress,
   IconButton,
   Tooltip
 } from '@mui/material';
-import { Refresh, Visibility, VisibilityOff, CheckCircle, Error } from '@mui/icons-material';
+import { 
+  Refresh, 
+  Visibility, 
+  VisibilityOff, 
+  CheckCircle, 
+  Error,
+  Security,
+  Settings as SettingsIcon,
+  Timer,
+  CloudSync,
+  Key,
+  ContentCopy
+} from '@mui/icons-material';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +35,7 @@ const Settings: React.FC = () => {
 
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
+  
   // Token status state
   const [tokenExpiryTs, setTokenExpiryTs] = React.useState<number | null>(() => {
     try { const v = localStorage.getItem('spotify_token_expiry'); return v ? parseInt(v, 10) : null; } catch { return null; }
@@ -50,10 +60,10 @@ const Settings: React.FC = () => {
       try {
         const v = localStorage.getItem('spotify_token_expiry');
         const rt = localStorage.getItem('spotify_refresh_token');
-  const tv = localStorage.getItem('spotify_token');
+        const tv = localStorage.getItem('spotify_token');
         const ts = v ? parseInt(v, 10) : null;
         setTokenExpiryTs(ts);
-  setTokenValue(tv);
+        setTokenValue(tv);
         setHasRefreshToken(!!rt);
         if (!ts) return setTimeRemaining('—');
         const diff = ts - Date.now();
@@ -86,16 +96,11 @@ const Settings: React.FC = () => {
 
     setRefreshStatus('loading');
     try {
-      console.log('Refreshing token using new system...');
       const result = await refreshAccessTokenNow();
 
       if (result.success) {
-        // Update UI state with new token info
-        if (result.newToken) {
-          setTokenValue(result.newToken);
-        }
+        if (result.newToken) setTokenValue(result.newToken);
         
-        // Update expiry info
         const expiryStr = localStorage.getItem('spotify_token_expiry');
         if (expiryStr) {
           const expiryTs = parseInt(expiryStr, 10);
@@ -105,8 +110,6 @@ const Settings: React.FC = () => {
         }
 
         setHasRefreshToken(!!localStorage.getItem('spotify_refresh_token'));
-        
-        // Notify other parts of the app about token update
         window.dispatchEvent(new Event('spotify_token_updated'));
 
         setRefreshStatus('success');
@@ -118,7 +121,6 @@ const Settings: React.FC = () => {
         setSnackbarOpen(true);
       }
     } catch (err) {
-      console.error('Refresh error:', err);
       setRefreshStatus('error');
       setSnackbarMessage('Unexpected error during token refresh');
       setSnackbarOpen(true);
@@ -127,171 +129,192 @@ const Settings: React.FC = () => {
     }
   };
 
+  const copyToken = () => {
+    if (tokenValue) {
+      navigator.clipboard.writeText(tokenValue);
+      setSnackbarMessage('Token copied to clipboard');
+      setSnackbarOpen(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
-      <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
-
-      <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-4xl mx-auto py-1 px-4 sm:px-8 lg:px-12">
-          <h1 className="text-3xl font-bold text-white mb-4">Settings</h1>
-
-          <Paper className="p-6 bg-white/5 border border-white/10 rounded-lg">
-            <Typography sx={{ color: 'white', fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              Auth / Token Management
-              {isGuest && <Chip label="Guest Mode" size="small" color="warning" />}
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Token Status Section */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  Access token expiry: 
-                  <strong style={{ color: 'white' }}>
-                    {tokenExpiryTs ? new Date(tokenExpiryTs).toLocaleString() : '—'}
-                  </strong>
-                  {tokenExpiryTs && isAccessTokenExpired() && <Chip label="Expired" size="small" color="error" />}
+    <div className="h-screen app-background flex overflow-hidden">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        onHomeClick={() => navigate('/dashboard')}
+      />
+      
+      <div className="flex-1 flex flex-col lg:ml-72 relative h-full">
+        <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
+        
+        <main className="flex-1 flex flex-col justify-center p-6 overflow-y-auto">
+          <Container maxWidth="md">
+            {/* Header Section - Compact */}
+            <div className="flex items-center gap-5 mb-6">
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg border-2 border-white/10 shrink-0">
+                <SettingsIcon sx={{ fontSize: 28, color: 'white' }} />
+              </div>
+              
+              <div>
+                <Typography variant="h5" className="text-white font-bold leading-tight">
+                  Settings
                 </Typography>
-                
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  Time remaining: 
-                  <strong style={{ color: timeRemaining === 'Expired' ? '#f44336' : 'white' }}>
-                    {timeRemaining}
-                  </strong>
+                <Typography className="text-gray-400 text-xs">
+                  Authentication & Security
                 </Typography>
-                
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  Refresh token: 
-                  <strong style={{ color: 'white' }}>
-                    {hasRefreshToken ? 'Available' : 'Missing'}
-                  </strong>
-                  {hasRefreshToken ? 
-                    <CheckCircle sx={{ color: '#4caf50', fontSize: 18 }} /> : 
-                    <Error sx={{ color: '#f44336', fontSize: 18 }} />
-                  }
-                </Typography>
-              </Box>
+              </div>
+            </div>
 
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={refreshNow} 
-                  disabled={refreshStatus === 'loading' || !hasRefreshToken || isGuest}
-                  startIcon={
-                    refreshStatus === 'loading' ? <CircularProgress size={16} /> : <Refresh />
-                  }
-                  sx={{ 
-                    bgcolor: refreshStatus === 'success' ? '#4caf50' : undefined,
-                    '&:hover': {
-                      bgcolor: refreshStatus === 'success' ? '#45a049' : undefined
-                    }
-                  }}
-                >
-                  {refreshStatus === 'loading' ? 'Refreshing...' : 
-                   refreshStatus === 'success' ? 'Refreshed!' :
-                   'Refresh Token'}
-                </Button>
-                
-                <Button 
-                  variant="outlined" 
-                  color="inherit" 
-                  onClick={() => { 
-                    localStorage.removeItem('spotify_token'); 
-                    localStorage.removeItem('spotify_token_expiry'); 
-                    setTokenExpiryTs(null); 
-                    setTokenValue(null);
-                    setSnackbarMessage('Access token cleared'); 
-                    setSnackbarOpen(true); 
-                  }}
-                  disabled={!tokenValue}
-                >
-                  Clear Token
-                </Button>
-                
-                {!isGuest && (
-                  <Button 
-                    variant="outlined" 
-                    color="secondary" 
-                    onClick={async () => {
-                      const result = await refreshSpotifyTokenDetailed();
-                      if (result.success) {
-                        setSnackbarMessage('Token refreshed using utility function!');
-                      } else {
-                        setSnackbarMessage(`Utility refresh failed: ${result.error}`);
-                      }
-                      setSnackbarOpen(true);
-                    }}
-                  >
-                    Test Utility Refresh
-                  </Button>
-                )}
-              </Box>
-
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-
-              {/* Token Display Section */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.85)' }}>Access Token:</Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Typography sx={{ 
-                    color: 'white', 
-                    fontFamily: 'monospace', 
-                    wordBreak: 'break-all',
-                    bgcolor: 'rgba(255,255,255,0.03)',
-                    p: 1,
-                    borderRadius: 1,
-                    flex: 1,
-                    minWidth: 200
-                  }}>
-                    {tokenValue ? 
-                      (showToken ? tokenValue : `${tokenValue.slice(0, 12)}...${tokenValue.slice(-12)}`) : 
-                      'No token available'
-                    }
+            <Card className="bg-white/5 border border-white/10 backdrop-blur-md">
+              <CardContent className="p-0">
+                <div className="px-5 py-3 border-b border-white/10 flex items-center gap-2 bg-black/20">
+                  <Security className="text-green-500" fontSize="small" />
+                  <Typography variant="subtitle2" className="text-white font-bold">
+                    System Status
                   </Typography>
-                  
-                  <Tooltip title={showToken ? "Hide token" : "Show full token"}>
-                    <IconButton 
-                      size="small" 
-                      onClick={() => setShowToken(s => !s)}
-                      disabled={!tokenValue}
-                      sx={{ color: 'white' }}
-                    >
-                      {showToken ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    onClick={() => { 
-                      if (tokenValue) {
-                        navigator.clipboard?.writeText(tokenValue); 
-                        setSnackbarMessage('Token copied to clipboard'); 
-                        setSnackbarOpen(true); 
-                      }
-                    }}
-                    disabled={!tokenValue}
-                  >
-                    Copy
-                  </Button>
-                </Box>
-              </Box>
+                </div>
 
-              {/* Help Text */}
-              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', mt: 1 }}>
-                💡 The refresh token allows automatic renewal of your access token without re-login. 
-                {isGuest && " Guest mode doesn't support token refresh."}
-              </Typography>
-            </Box>
-          </Paper>
+                <div className="p-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    
+                    {/* Session Status Box */}
+                    <div className="relative overflow-hidden bg-black/20 p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300">
+                      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Timer sx={{ fontSize: 60 }} />
+                      </div>
+                      
+                      <div className="relative z-10">
+                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                          Session Status
+                        </Typography>
+                        
+                        <div className="flex items-center gap-3 mb-3">
+                           <div className={`px-3 py-1 rounded-full flex items-center gap-2 border ${timeRemaining !== 'Expired' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${timeRemaining !== 'Expired' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                              <span className="font-bold text-xs">{timeRemaining !== 'Expired' ? 'Active' : 'Expired'}</span>
+                           </div>
+                        </div>
 
-          <Snackbar open={snackbarOpen} autoHideDuration={2000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-            <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>{snackbarMessage}</Alert>
-          </Snackbar>
-        </div>
-      </main>
+                        <div className="flex flex-col">
+                            <Typography className="text-gray-500 text-[10px] mb-0.5">Time Remaining</Typography>
+                            <Typography className="text-white font-mono font-bold text-xl tracking-tight">
+                              {timeRemaining}
+                            </Typography>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Refresh Token Box */}
+                    <div className="relative overflow-hidden bg-black/20 p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300 flex flex-col justify-between">
+                       <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <CloudSync sx={{ fontSize: 60 }} />
+                      </div>
+
+                      <div className="relative z-10">
+                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                          Refresh Token
+                        </Typography>
+                        <div className="flex items-center gap-2 mb-3">
+                          {hasRefreshToken ? (
+                            <div className="flex items-center gap-2 text-green-400">
+                              <CheckCircle fontSize="small" />
+                              <div>
+                                <span className="font-bold text-xs block">Available</span>
+                                <span className="text-[10px] text-green-400/60">Auto-renewal enabled</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-red-400">
+                              <Error fontSize="small" />
+                              <div>
+                                <span className="font-bold text-xs block">Missing</span>
+                                <span className="text-[10px] text-red-400/60">Manual login required</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        size="small"
+                        onClick={refreshNow}
+                        disabled={refreshStatus === 'loading' || isGuest}
+                        startIcon={refreshStatus === 'loading' ? <Refresh className="animate-spin" fontSize="small" /> : <Refresh fontSize="small" />}
+                        className={`relative z-10 py-1.5 font-bold rounded-lg shadow-lg normal-case text-xs transition-all ${
+                          refreshStatus === 'loading' 
+                            ? 'bg-gray-700 text-gray-400' 
+                            : 'bg-green-500 hover:bg-green-400 text-black hover:scale-[1.02]'
+                        }`}
+                      >
+                        {refreshStatus === 'loading' ? 'Refreshing...' : 'Refresh Session'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Token Inspector */}
+                  <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+                    <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded-md bg-white/5 text-gray-400">
+                          <Key style={{ fontSize: 14 }} />
+                        </div>
+                        <Typography className="text-gray-300 text-[10px] font-medium uppercase tracking-wider">Access Token</Typography>
+                      </div>
+                      <div className="flex gap-1">
+                        <Tooltip title="Copy Token">
+                          <IconButton size="small" onClick={copyToken} className="text-gray-400 hover:text-white">
+                            <ContentCopy style={{ fontSize: 14 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={showToken ? "Hide Token" : "Show Token"}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setShowToken(!showToken)}
+                            className="text-gray-400 hover:text-white"
+                          >
+                            {showToken ? <VisibilityOff style={{ fontSize: 14 }} /> : <Visibility style={{ fontSize: 14 }} />}
+                          </IconButton>
+                        </Tooltip>
+                      </div>
+                    </div>
+                    
+                    <div className="relative group">
+                      <div className={`absolute inset-0 bg-white/5 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-300 z-10 ${showToken ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                          <Security className="text-gray-600 mb-1" style={{ fontSize: 20 }} />
+                          <Typography className="text-gray-500 font-mono text-[10px]">
+                              Hidden
+                          </Typography>
+                      </div>
+                      <div className="p-3 font-mono text-[10px] text-gray-300 break-all leading-relaxed h-[60px] overflow-y-auto bg-black/20 custom-scrollbar">
+                        {tokenValue || 'No token available'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Container>
+        </main>
+      </div>
+
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={refreshStatus === 'error' ? 'error' : 'success'}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

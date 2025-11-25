@@ -3,22 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { useAuth } from '../context/auth';
 import { 
-  Box, 
   Typography, 
-  IconButton, 
-  Stack,
-  CardMedia,
-  Skeleton,
-  Fade,
-  Grow
+  Tooltip
 } from '@mui/material';
 import { useToast } from '../context/toast';
 import {
   PlayArrow,
-  ArrowBack,
-  MoreHoriz,
   Pause,
-  AccessTime
+  AccessTime,
+  Shuffle,
+  Repeat,
+  RepeatOne,
+  MusicNote,
+  PlayCircleFilled
 } from '@mui/icons-material';
 import type { Album as AlbumType, Playlist as PlaylistType, Track } from '../types/spotify';
 
@@ -30,9 +27,9 @@ interface MediaViewProps {
 }
 
 const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) => {
-  const { token } = useAuth();
-  const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const { play, pause, currentTrack, isPlaying, toggleShuffle, isShuffled, repeatMode, setRepeat } = usePlayer();
   const [mediaData, setMediaData] = useState<AlbumType | PlaylistType | null>(null);
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,41 +210,41 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     if (tracks.length === 0) return;
     
     try {
-      let firstTrack;
-      if (type === 'album') {
-        // For albums, play using the album context and offset
-        const trackItem = tracks[0];
-        firstTrack = trackItem;
-        if (mediaData) {
-          firstTrack = { ...firstTrack, album: mediaData as AlbumType };
-        }
-        // Use play with context_uri if available
-        if ((mediaData as AlbumType)?.uri) {
-          await play(firstTrack);
-        } else if (firstTrack) {
-          await play(firstTrack);
+      const contextUri = (mediaData as any)?.uri;
+      
+      if (contextUri) {
+        // If we have a context URI (album/playlist), use it
+        if (isShuffled) {
+           // If shuffled, just play the context. Spotify usually picks a random song or respects the shuffle state.
+           await play({ context_uri: contextUri });
+        } else {
+           // If not shuffled, start from the beginning
+           await play({ context_uri: contextUri, offset: { position: 0 } });
         }
       } else {
-        // For playlists, use the playlist context_uri and offset so Spotify continues tracks
-        const playlist = mediaData as PlaylistType;
-        const firstItem = tracks[0];
-        firstTrack = firstItem?.track;
-        if (playlist?.uri) {
-          // Play using the playlist context and offset via the player context's play function
-          // The play function will prefer using URI playback when provided as a Track object
-          await play(firstTrack);
-        } else if (firstTrack) {
-          await play(firstTrack);
-        }
+        // Fallback if no context URI (shouldn't happen for standard albums/playlists)
+        // Just play the first track
+        const firstTrack = tracks[0];
+        await play(type === 'album' ? firstTrack : firstTrack.track);
+      }
 
-        if (onTrackPlay && firstTrack) {
-          onTrackPlay(firstTrack, type);
+      // Notify parent if needed (using the first track as a placeholder)
+      if (onTrackPlay) {
+        const firstItem = tracks[0];
+        const trackToReport = type === 'album' ? firstItem : firstItem?.track;
+        if (trackToReport) {
+          onTrackPlay(trackToReport, type);
         }
       }
     } catch (error) {
       console.error(`Failed to play ${type}:`, error);
       toast.showToast(`Unable to play ${type}. Make sure you have Spotify Premium and the Spotify app is open.`, 'error');
     }
+  };
+
+  const toggleRepeatMode = () => {
+    const nextMode = repeatMode === 'off' ? 'context' : repeatMode === 'context' ? 'track' : 'off';
+    setRepeat(nextMode);
   };
 
   // Helper functions to get data based on type
@@ -274,15 +271,10 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     }
   };
 
-  const getSubtitle = () => {
-    if (!mediaData) return '';
-    if (type === 'album') {
-      const album = mediaData as AlbumType;
-      return `${album.total_tracks} tracks • ${album.artists?.map((artist: any) => artist.name).join(', ')}`;
-    } else {
-      const playlist = mediaData as PlaylistType;
-      return `${playlist.tracks.total} tracks • By ${playlist.owner.display_name}`;
-    }
+  const formatDuration = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(0);
+    return `${minutes}:${Number(seconds) < 10 ? '0' : ''}${seconds}`;
   };
 
   const getTrackFromItem = (item: any) => {
@@ -291,79 +283,40 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
-        <Box sx={{ padding: 4 }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-            <IconButton onClick={onBack} sx={{ 
-              color: 'white',
-              bgcolor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-              <ArrowBack />
-            </IconButton>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Loading...
-            </Typography>
-          </Stack>
-          
-          <Box sx={{ 
-            padding: '2rem',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.2) 0%, rgba(59, 130, 246, 0.1) 50%, rgba(16, 185, 129, 0.1) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.05)',
-          }}>
-            <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
-              <Skeleton 
-                variant="rectangular" 
-                width={250} 
-                height={250} 
-                sx={{ 
-                  borderRadius: 2,
-                  bgcolor: 'rgba(139, 92, 246, 0.1)'
-                }} 
-              />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" sx={{ fontSize: '3rem', mb: 2, bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
-                <Skeleton variant="text" sx={{ fontSize: '1rem', mb: 1, bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
-                <Skeleton variant="text" sx={{ fontSize: '1rem', bgcolor: 'rgba(139, 92, 246, 0.1)' }} />
-              </Box>
-            </Box>
-          </Box>
-        </Box>
+      <div className="animate-pulse space-y-8">
+        <div className="flex flex-col md:flex-row items-end gap-8">
+          <div className="w-52 h-52 bg-white/10 rounded-lg shadow-2xl" />
+          <div className="flex-1 space-y-4 mb-2">
+            <div className="h-4 bg-white/10 rounded w-24" />
+            <div className="h-12 bg-white/10 rounded w-3/4" />
+            <div className="h-4 bg-white/10 rounded w-1/2" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 bg-white/5 rounded-md" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
-        <Box sx={{ padding: 4 }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-            <IconButton onClick={onBack} sx={{ 
-              color: 'white',
-              bgcolor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-              <ArrowBack />
-            </IconButton>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Error
-            </Typography>
-          </Stack>
-          
-          <Typography sx={{ 
-            color: '#ef4444', 
-            textAlign: 'center', 
-            mt: 4,
-            padding: '2rem',
-            borderRadius: '12px',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
-          }}>
-            {error}
-          </Typography>
-        </Box>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="text-6xl mb-4">😕</div>
+        <Typography variant="h5" className="text-red-400 font-bold mb-2">
+          Oops! Something went wrong
+        </Typography>
+        <Typography className="text-gray-400 mb-6">
+          {error}
+        </Typography>
+        <button 
+          onClick={onBack}
+          className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
@@ -371,357 +324,234 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
   if (!mediaData) return null;
 
+  const totalDuration = tracks.reduce((acc, track) => {
+    const t = getTrackFromItem(track);
+    return acc + (t?.duration_ms || 0);
+  }, 0);
+  const formattedDuration = formatDuration(totalDuration);
+
   return (
-  <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black">
-      <Box sx={{
-        color: 'white',
-        flex: 1,
-        width: '100%',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0.5rem 1rem' ,
-      }}>
-      {/* Header with Fade Animation */}
-      <Fade in={!loading} timeout={600}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2}}>
-          <IconButton 
-            onClick={onBack} 
-            sx={{ 
-              color: 'white',
-              bgcolor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              '&:hover': {
-                bgcolor: 'rgba(139, 92, 246, 0.2)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                transform: 'translateX(-2px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" sx={{ 
-            color: 'white', 
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #fff 0%, rgba(139, 92, 246, 1) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            {type.charAt(0).toUpperCase() + type.slice(1)}
-          </Typography>
-        </Stack>
-      </Fade>
+    <div className="relative min-h-full pb-24">
+      {/* Header Section */}
+      <div className="relative pt-32 pb-8 px-12">
+        {/* Background Gradient */}
+        <div 
+          className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none"
+          style={{
+            background: `linear-gradient(to bottom, ${getImage() ? 'var(--dominant-color, #4c1d95)' : '#4c1d95'}, transparent)`,
+          }}
+        />
 
-      {/* Media Info with Grow Animation */}
-      <Grow in={!loading} timeout={700}>
-        <Box>
-          {/* Gradient Header Background */}
-          <Box sx={{
-            position: 'relative',
-            padding: '2rem',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.3) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(16, 185, 129, 0.15) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            mb: 2,
-            boxShadow: '0 8px 32px rgba(88, 28, 135, 0.2)',
-          }}>
-            <Box sx={{ display: 'flex', gap: 4 }}>
-              <Box sx={{
-                width: 250,
-                height: 250,
-                borderRadius: 2,
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 60%, rgba(16, 185, 129, 0.1) 100%)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 12px 40px rgba(139, 92, 246, 0.3)',
-                backdropFilter: 'blur(8px)',
-                transition: 'transform 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.02)',
-                  boxShadow: '0 16px 48px rgba(139, 92, 246, 0.4)',
-                }
-              }}>
-                <CardMedia
-                  component="img"
-                  image={getImage()}
-                  alt={getTitle()}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-end">
+          {/* Cover Image */}
+          <div className="relative group shrink-0">
+            <div className="w-52 h-52 shadow-2xl rounded-lg overflow-hidden relative">
+              {getImage() ? (
+                <img 
+                  src={getImage()} 
+                  alt={getTitle()} 
+                  className="w-full h-full object-cover shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
                 />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
-                  {getTitle()}
-                </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)', mb: 2 }}>
-                  {getDescription()}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 3 }}>
-                  {getSubtitle()}
-                </Typography>
-                
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <IconButton 
-                    onClick={playAllTracks}
-                    sx={{ 
-                      bgcolor: '#1db954', 
-                      color: 'white',
-                      width: 56,
-                      height: 56,
-                      '&:hover': { 
-                        bgcolor: '#1ed760', 
-                        transform: 'scale(1.05)',
-                        boxShadow: '0 8px 24px rgba(29, 185, 84, 0.4)'
-                      },
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <PlayArrow sx={{ fontSize: '2rem' }} />
-                  </IconButton>
-                  
-                  <IconButton sx={{ 
-                    color: 'rgba(255,255,255,0.7)',
-                    '&:hover': { 
-                      color: 'white',
-                      bgcolor: 'rgba(255,255,255,0.1)'
-                    }
-                  }}>
-                    <MoreHoriz />
-                  </IconButton>
-                </Stack>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Grow>
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                  <MusicNote sx={{ fontSize: 64, opacity: 0.2 }} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                <button 
+                  onClick={playAllTracks}
+                  className="transform scale-90 group-hover:scale-100 transition-transform duration-200"
+                >
+                  <PlayCircleFilled sx={{ fontSize: 64, color: 'white' }} />
+                </button>
+              </div>
+            </div>
+          </div>
 
-      {/* Tracks List with Grow Animation */}
-      <Grow in={!loading} timeout={800}>
-        <Box sx={{
-          background: 'rgba(255,255,255,0.02)',
-          borderRadius: '12px',
-          padding: '1rem',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.05)'
-        }}>
-        {/* Table Header */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          padding: '8px 16px',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
-          mb: 1
-        }}>
-          {/* # column */}
-          <Typography sx={{
-            width: 40,
-            color: 'rgba(139, 92, 246, 0.8)',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            textAlign: 'center',
-          }}>
-            #
-          </Typography>
-          {/* Title column */}
-          <Typography sx={{
-            flex: 1,
-            color: 'rgba(139, 92, 246, 0.8)',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            ml: 2
-          }}>
-            Title
-          </Typography>
-          {/* Album column (only for playlists) */}
-          {type === 'playlist' && (
-            <Typography sx={{
-              width: 200,
-              color: 'rgba(139, 92, 246, 0.8)',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              textAlign: 'left',
-              mr: 2
-            }}>
-              Album
-            </Typography>
-          )}
-          {/* Duration icon column */}
-          <Box sx={{
-            width: 60,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'rgba(139, 92, 246, 0.8)',
-          }}>
-            <AccessTime fontSize="small" aria-label="duration" />
-          </Box>
-        </Box>
-        
-        {tracks.map((item, index) => {
-          const track = getTrackFromItem(item);
-          if (!track) return null;
-          
-          const isCurrentTrack = currentTrack?.id === track.id;
-          const isCurrentlyPlaying = isCurrentTrack && isPlaying;
-          
-          return (
-            <Box
-              key={track.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 16px',
-                borderRadius: 1,
-                background: isCurrentTrack ? 'linear-gradient(90deg, rgba(29, 185, 84, 0.1) 0%, transparent 100%)' : 'transparent',
-                transition: 'all 0.2s ease',
-                '&:hover': { 
-                  bgcolor: 'rgba(139, 92, 246, 0.1)',
-                  background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)',
-                  '& .track-number': { display: 'none' },
-                  '& .play-pause-btn': { display: 'flex' }
-                },
-                cursor: 'pointer',
-                minHeight: '56px'
-              }}
-              onClick={() => handleTrackPlay(track, index)}
-            >
-              <Box sx={{ 
-                width: 40, 
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                {/* Track Number - always visible unless we're hovering */}
-                <Typography 
-                  className="track-number"
-                  sx={{ 
-                    color: isCurrentTrack ? '#1db954' : 'gray',
-                    fontSize: '0.9rem',
-                    fontWeight: isCurrentTrack ? 'bold' : 'normal'
-                  }}
-                >
-                  {index + 1}
-                </Typography>
-                
-                {/* Play/Pause Button - only visible on hover */}
-                <Box 
-                  className="play-pause-btn"
-                  sx={{ 
-                    display: 'none',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    color: isCurrentTrack ? '#1db954' : 'white',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': {
-                      transform: 'scale(1.3)'
-                    }
-                  }}
-                >
-                  {isCurrentlyPlaying ? (
-                    <Pause sx={{ fontSize: 16 }} />
-                  ) : (
-                    <PlayArrow sx={{ fontSize: 16 }} />
-                  )}
-                </Box>
-              </Box>
+          {/* Info */}
+          <div className="flex flex-col gap-4 w-full">
+            <span className="uppercase text-xs font-bold tracking-wider text-white/80">
+              {type}
+            </span>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none">
+              {getTitle()}
+            </h1>
+            
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                {getDescription() && (
+                  <span className="text-white/60 line-clamp-1 max-w-2xl">
+                    {getDescription()}
+                  </span>
+                )}
+              </div>
               
-              <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, ml: 2 }}>
-                <CardMedia
-                  component="img"
-                  image={track.album?.images?.[0]?.url || getImage() || '/vite.svg'}
-                  alt={track.name}
-                  sx={{ width: 40, height: 40, borderRadius: 1, mr: 2 }}
-                />
-                
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography 
-                    sx={{ 
-                      color: currentTrack?.id === track.id ? '#1db954' : 'white',
-                      fontWeight: currentTrack?.id === track.id ? 'bold' : 'normal',
-                      fontSize: '1rem',
-                      lineHeight: 1.3
-                    }}
-                    noWrap
-                  >
-                    {track.name}
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      color: 'gray', 
-                      fontSize: '0.875rem',
-                      lineHeight: 1.3
-                    }}
-                    noWrap
-                  >
-                    {track.artists?.map((artist: any, i: number) => (
-                      <span key={artist.id || artist.name}>
-                        {artist.id ? (
-                          <Box
-                            component="span"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/artist/${artist.id}`); }}
-                            tabIndex={0}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigate(`/artist/${artist.id}`); } }}
-                            sx={{
-                              cursor: 'pointer',
-                              color: 'inherit',
-                              textDecoration: 'none',
-                              transition: 'color 120ms ease, transform 120ms ease',
-                              '&:hover': {
-                                color: '#1db954',
-                                transform: 'translateY(-1px)'
-                              },
-                              '&:focus': {
-                                outline: 'none',
-                                textDecoration: 'underline'
-                              }
+              <div className="flex items-center gap-2 text-sm text-white/70 mt-2">
+                <span className="font-bold text-white">
+                  {type === 'playlist' ? (
+                    <span 
+                      className="hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const ownerId = (mediaData as PlaylistType).owner?.id;
+                        if (ownerId) navigate(`/user/${ownerId}`);
+                      }}
+                    >
+                      {(mediaData as PlaylistType).owner?.display_name}
+                    </span>
+                  ) : (
+                    (mediaData as AlbumType).artists?.map((a, i) => (
+                      <React.Fragment key={a.id || i}>
+                        <span 
+                          className="hover:underline cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/artist/${a.id}`);
+                          }}
+                        >
+                          {a.name}
+                        </span>
+                        {i < ((mediaData as AlbumType).artists?.length || 0) - 1 && ', '}
+                      </React.Fragment>
+                    ))
+                  )}
+                </span>
+                <span>•</span>
+                <span>{tracks.length} songs,</span>
+                <span className="text-white/50">{formattedDuration}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="px-12 py-6 flex items-center gap-6 sticky top-0 z-10 bg-gradient-to-b from-black/20 to-transparent backdrop-blur-xl border-b border-white/5">
+        <button 
+          onClick={playAllTracks}
+          className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-white hover:scale-105 hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
+        >
+          <PlayArrow sx={{ fontSize: 32 }} />
+        </button>
+
+        <div className="flex items-center gap-4">
+          <Tooltip title={isShuffled ? "Disable Shuffle" : "Enable Shuffle"}>
+            <button 
+              onClick={() => toggleShuffle()}
+              className={`transition-colors ${isShuffled ? 'text-green-500' : 'text-white/50 hover:text-white'}`}
+            >
+              <Shuffle sx={{ fontSize: 32 }} />
+            </button>
+          </Tooltip>
+          
+          <Tooltip title={`Repeat: ${repeatMode === 'off' ? 'Off' : repeatMode === 'context' ? 'All' : 'One'}`}>
+            <button 
+              onClick={toggleRepeatMode}
+              className={`transition-colors ${repeatMode !== 'off' ? 'text-green-500' : 'text-white/50 hover:text-white'}`}
+            >
+              {repeatMode === 'track' ? (
+                <RepeatOne sx={{ fontSize: 32 }} />
+              ) : (
+                <Repeat sx={{ fontSize: 32 }} />
+              )}
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+
+      {/* Tracks List */}
+      <div className="px-8 mt-4">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
+          <div className="w-8 text-center">#</div>
+          <div>Title</div>
+          <div className="hidden md:block text-right">Album</div>
+          <div className="w-16 text-center"><AccessTime sx={{ fontSize: 16 }} /></div>
+        </div>
+
+        <div className="flex flex-col">
+          {tracks.map((item, index) => {
+            const track = getTrackFromItem(item);
+            if (!track) return null;
+            
+            const isCurrentTrack = currentTrack?.id === track.id;
+            const isCurrentlyPlaying = isCurrentTrack && isPlaying;
+            
+            return (
+              <div 
+                key={track.id}
+                className={`
+                  group grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 rounded-md items-center
+                  hover:bg-white/10 transition-colors cursor-pointer
+                  ${isCurrentTrack ? 'bg-white/10' : ''}
+                `}
+                onClick={() => handleTrackPlay(track, index)}
+              >
+                <div className="w-8 text-center flex justify-center items-center text-white/50 font-medium">
+                  <span className="group-hover:hidden">
+                    {isCurrentlyPlaying ? (
+                      <img 
+                        src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
+                        alt="playing" 
+                        className="w-3 h-3"
+                      />
+                    ) : (
+                      <span className={isCurrentTrack ? 'text-green-500' : ''}>{index + 1}</span>
+                    )}
+                  </span>
+                  <button className="hidden group-hover:block text-white">
+                    {isCurrentlyPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4 min-w-0">
+                  {track.album?.images?.[0]?.url && (
+                    <img 
+                      src={track.album.images[0].url} 
+                      alt="" 
+                      className="w-10 h-10 rounded shadow-sm object-cover"
+                    />
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className={`truncate font-medium ${isCurrentTrack ? 'text-green-500' : 'text-white'}`}>
+                      {track.name}
+                    </span>
+                    <span className="text-sm text-white/50 truncate group-hover:text-white/70 transition-colors">
+                      {track.artists?.map((a: any, i: number) => (
+                        <React.Fragment key={a.id || i}>
+                          <span 
+                            className="hover:underline hover:text-white cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/artist/${a.id}`);
                             }}
                           >
-                            {artist.name}
-                          </Box>
-                        ) : (
-                          <span>{artist.name}</span>
-                        )}
-                        {i < (track.artists?.length || 0) - 1 ? ', ' : ''}
-                      </span>
-                    ))}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              {type === 'playlist' && (
-                <Typography sx={{ 
-                  width: 200,
-                  color: 'gray', 
-                  fontSize: '0.875rem',
-                  mr: 2,
-                  textAlign: 'left'
-                }} noWrap>
+                            {a.name}
+                          </span>
+                          {i < (track.artists?.length || 0) - 1 && ', '}
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </div>
+                </div>
+
+                <div 
+                  className="hidden md:block text-right text-sm text-white/50 truncate hover:text-white transition-colors cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (track.album?.id) navigate(`/album/${track.album.id}`);
+                  }}
+                >
                   {track.album?.name}
-                </Typography>
-              )}
-              
-              
-              <Box sx={{ 
-                width: 60, 
-                display: 'flex', 
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <Typography sx={{ 
-                  color: 'gray', 
-                  fontSize: '0.875rem', 
-                  fontFamily: 'monospace'
-                }}>
-                  {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
-                </Typography>
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-      </Grow>
-    </Box>
+                </div>
+
+                <div className="w-16 text-center text-sm text-white/50 font-variant-numeric tabular-nums">
+                  {formatDuration(track.duration_ms)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

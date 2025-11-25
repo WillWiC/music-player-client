@@ -6,14 +6,10 @@ import { formatCount } from '../utils/numberFormat';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import {
-  Tabs,
-  Tab,
   IconButton,
   Fade,
   Grow,
-  Skeleton,
-  Card,
-  CardContent
+  Typography
 } from '@mui/material';
 import { PlayArrow, Pause } from '@mui/icons-material';
 import { useToast } from '../context/toast';
@@ -147,135 +143,248 @@ const Library: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white">
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => {}} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12">
+      <main className="flex-1 lg:ml-72 relative z-0">
+        {/* Dynamic Background Gradient */}
+        <div 
+          className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+          style={{ 
+            background: `linear-gradient(to bottom, #7c3aed, transparent)` 
+          }}
+        />
+
+        <div className="relative z-10 pb-24 pt-24 px-8 lg:px-12">
+          {/* Header Section */}
           <Fade in timeout={600}>
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-white">Your Library</h1>
-              <p className="text-gray-400 text-sm">Saved playlists, albums, tracks and top artists</p>
+            <div className="flex flex-col md:flex-row items-end gap-8 mb-10">
+              <div 
+                className="w-40 h-40 shadow-2xl flex items-center justify-center text-7xl bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg border border-white/10"
+              >
+                <span className="filter drop-shadow-lg">📚</span>
+              </div>
+              <div className="flex-1 mb-2">
+                <Typography variant="overline" className="font-bold tracking-wider opacity-80">
+                  Personal Collection
+                </Typography>
+                <Typography variant="h1" sx={{ 
+                  fontWeight: 900, 
+                  fontSize: { xs: '3rem', md: '5rem' },
+                  lineHeight: 1,
+                  mb: 2,
+                  textShadow: '0 4px 24px rgba(0,0,0,0.5)'
+                }}>
+                  Your Library
+                </Typography>
+                
+                <div className="flex items-center gap-6 text-sm font-medium text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"/>
+                    {playlists.length} Playlists
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"/>
+                    {tracks.length} Liked Songs
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"/>
+                    {albums.length} Albums
+                  </div>
+                </div>
+              </div>
             </div>
           </Fade>
 
-          <Fade in timeout={700}>
-            <div className="mb-6">
-              <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="primary">
-                <Tab label={`Your Playlists (${playlists.length})`} />
-                <Tab label={`Liked Songs (${tracks.length})`} />
-                <Tab label={`Saved Albums (${albums.length})`} />
-                <Tab label={`Liked / Following Artists (${artists.length})`} />
-              </Tabs>
+          {/* Custom Tabs */}
+          <div className="sticky top-[64px] z-30 backdrop-blur-xl mb-8 -mx-8 lg:-mx-12 px-8 lg:px-12 py-4">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar">
+              {[
+                { label: 'Playlists', count: playlists.length },
+                { label: 'Liked Songs', count: tracks.length },
+                { label: 'Albums', count: albums.length },
+                { label: 'Artists', count: artists.length }
+              ].map((item, index) => (
+                <button
+                  key={index}
+                  onClick={() => setTab(index)}
+                  className={`
+                    px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap
+                    ${tab === index 
+                      ? 'bg-white text-black scale-105 shadow-lg shadow-white/10' 
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}
+                  `}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
-          </Fade>
+          </div>
 
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Grow in key={i} timeout={200 + i * 30}>
-                  <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3 }}>
-                    <CardContent sx={{ p: 3 }}>
-                      <div className="flex items-center gap-4">
-                        <Skeleton variant="rectangular" width={56} height={56} sx={{ borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
-                          <Skeleton variant="text" width="40%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Grow>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                <div key={i} className="bg-white/5 rounded-lg p-4 space-y-4 animate-pulse">
+                  <div className="aspect-square bg-white/10 rounded-md" />
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  <div className="h-3 bg-white/10 rounded w-1/2" />
+                </div>
               ))}
             </div>
           ) : (
-            <div className={tabHighlight ? 'tab-open-highlight' : ''}>
+            <div className={tabHighlight ? 'animate-fade-in' : ''}>
+              
+              {/* Playlists Tab */}
               {tab === 0 && (
-                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
                   {playlists.map((pl, index) => (
                     <Grow in timeout={250 + index * 30} key={pl.id}>
-                      <div className="cursor-pointer" onClick={() => navigate(`/playlist/${pl.id}`)}>
-                        <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105">
-                          <div className="aspect-square">
-                            <img src={pl.images?.[0]?.url || '/vite.svg'} alt={pl.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="p-2">
-                            <div className="text-sm text-white font-semibold truncate">{pl.name}</div>
-                            <div className="text-xs text-gray-400 truncate">{pl.owner?.display_name}</div>
+                      <div 
+                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        onClick={() => navigate(`/playlist/${pl.id}`)}
+                      >
+                        <div className="relative aspect-square mb-3 rounded-md overflow-hidden shadow-md">
+                          <img 
+                            src={pl.images?.[0]?.url || '/vite.svg'} 
+                            alt={pl.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <PlayArrow sx={{ fontSize: 32, color: 'white' }} />
                           </div>
                         </div>
+                        <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem' }}>
+                          {pl.name}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="gray" noWrap sx={{ fontSize: '0.75rem' }}>
+                          By {pl.owner?.display_name}
+                        </Typography>
                       </div>
                     </Grow>
                   ))}
                 </div>
               )}
 
+              {/* Liked Songs Tab */}
               {tab === 1 && (
-                <div className="space-y-2">
+                <div className="bg-white/5 rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-white/10 text-sm text-gray-400 uppercase tracking-wider">
+                    <div className="w-8 text-center">#</div>
+                    <div>Title</div>
+                    <div className="hidden md:block">Album</div>
+                    <div className="text-right">Duration</div>
+                  </div>
+                  
                   {tracks.map((track, index) => (
-                    <Grow in timeout={200 + index * 20} key={track.id}>
-                      <div className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all duration-300">
-                        <img src={track.album?.images?.[0]?.url || '/vite.svg'} alt={track.name} className="w-14 h-14 object-cover rounded-md flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white font-semibold truncate">{track.name}</div>
-                          <div className="text-xs text-gray-400 truncate">
-                            <span className="truncate block">{track.album?.name}</span>
-                            <span className="truncate">{track.artists?.map((a:any) => a.name).join(', ')}</span>
+                    <div 
+                      key={track.id}
+                      className="group grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer"
+                      onClick={() => handlePlay(track)}
+                    >
+                      <div className="w-8 text-center text-gray-400 group-hover:text-white">
+                        <span className="group-hover:hidden">{index + 1}</span>
+                        <IconButton 
+                          size="small"
+                          className="hidden group-hover:inline-flex"
+                          sx={{ color: '#22c55e', padding: 0 }}
+                        >
+                          {currentTrack?.id === track.id && isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
+                        </IconButton>
+                      </div>
+                      <div className="flex items-center gap-4 overflow-hidden">
+                        <img 
+                          src={track.album?.images?.[0]?.url || '/vite.svg'} 
+                          alt="" 
+                          className="w-10 h-10 rounded shadow-sm"
+                        />
+                        <div className="min-w-0">
+                          <div className="font-medium text-white truncate group-hover:text-green-400 transition-colors">
+                            {track.name}
+                          </div>
+                          <div className="text-sm text-gray-400 truncate">
+                            {track.artists?.map((a:any) => a.name).join(', ')}
                           </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          <IconButton onClick={() => handlePlay(track)} sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, color: 'white' }}>
-                            {currentTrack?.id === track.id && isPlaying ? <Pause /> : <PlayArrow />}
-                          </IconButton>
-                        </div>
                       </div>
-                    </Grow>
+                      <div className="hidden md:block text-sm text-gray-400 truncate">
+                        {track.album?.name}
+                      </div>
+                      <div className="text-sm text-gray-400 font-mono text-right">
+                        {Math.floor(track.duration_ms / 60000)}:
+                        {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
 
+              {/* Albums Tab */}
               {tab === 2 && (
-                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
                   {albums.map((al, index) => (
                     <Grow in timeout={250 + index * 30} key={al.id}>
-                      <div className="cursor-pointer" onClick={() => navigate(`/album/${al.id}`)}>
-                        <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10 hover:border-green-500/30 transition-all duration-300 hover:scale-105">
-                          <div className="aspect-square">
-                            <img src={al.images?.[0]?.url || '/vite.svg'} alt={al.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="p-2">
-                            <div className="text-sm text-white font-semibold truncate">{al.name}</div>
-                            <div className="text-xs text-gray-400 truncate">{al.artists?.map((a:any) => a.name).join(', ')}</div>
+                      <div 
+                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        onClick={() => navigate(`/album/${al.id}`)}
+                      >
+                        <div className="relative aspect-square mb-3 rounded-md overflow-hidden shadow-md">
+                          <img 
+                            src={al.images?.[0]?.url || '/vite.svg'} 
+                            alt={al.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <PlayArrow sx={{ fontSize: 32, color: 'white' }} />
                           </div>
                         </div>
+                        <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem' }}>
+                          {al.name}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="gray" noWrap sx={{ fontSize: '0.75rem' }}>
+                          {al.artists?.map((a:any) => a.name).join(', ')}
+                        </Typography>
                       </div>
                     </Grow>
                   ))}
                 </div>
               )}
 
+              {/* Artists Tab */}
               {tab === 3 && (
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
                   {artists.map((artist, index) => (
-                    <Grow in timeout={200 + index * 20} key={artist.id}>
-                      <div className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all duration-300">
-                        <img src={artist.images?.[0]?.url} alt={artist.name} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div
-                            className="text-sm text-white font-semibold truncate cursor-pointer hover:text-green-300 transition-colors"
-                            role="link"
-                            tabIndex={0}
-                            onClick={() => navigate(`/artist/${artist.id}`)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/artist/${artist.id}`); }}
-                          >
-                            {artist.name}
-                          </div>
-                          <div className="text-xs text-gray-400">{artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : ''}</div>
+                    <Grow in timeout={250 + index * 30} key={artist.id}>
+                      <div 
+                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        onClick={() => navigate(`/artist/${artist.id}`)}
+                      >
+                        <div className="relative aspect-square mb-3 rounded-full overflow-hidden shadow-md">
+                          <img 
+                            src={artist.images?.[0]?.url || '/vite.svg'} 
+                            alt={artist.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
                         </div>
-                        <div className="flex-shrink-0">
-                          <a href={artist.external_urls?.spotify} target="_blank" rel="noreferrer" className="text-xs text-green-300 underline">Open</a>
-                        </div>
+                        <Typography 
+                          variant="subtitle2" 
+                          fontWeight="bold" 
+                          align="center" 
+                          noWrap
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              color: '#22c55e',
+                              textShadow: '0 0 10px rgba(34, 197, 94, 0.5)'
+                            }
+                          }}
+                        >
+                          {artist.name}
+                        </Typography>
+                        <Typography variant="caption" display="block" align="center" color="gray" sx={{ fontSize: '0.75rem' }}>
+                          {artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : 'Artist'}
+                        </Typography>
                       </div>
                     </Grow>
                   ))}

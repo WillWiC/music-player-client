@@ -12,6 +12,7 @@ import Account from './pages/Account';
 import Settings from './pages/Settings';
 import About from './pages/About';
 import Artist from './pages/Artist';
+import Profile from './pages/Profile';
 import Recommendations from './pages/Recommendations';
 import MediaView from './components/MediaView';
 import Sidebar from './components/Sidebar';
@@ -96,7 +97,7 @@ const MediaPage: React.FC = () => {
   const type = location.pathname.startsWith('/album/') ? 'album' : 'playlist';
   
   return (
-    <div className="flex min-h-screen bg-black text-white">
+    <div className="flex min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
@@ -107,14 +108,12 @@ const MediaPage: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       
       {/* Main Content */}
-      <div className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="relative max-w-7xl mx-auto py-10 px-2 sm:px-8 lg:px-12">
-          <MediaView 
-            id={id} 
-            type={type} 
-            onBack={() => navigate(-1)} 
-          />
-        </div>
+      <div className="flex-1 lg:ml-72 relative">
+        <MediaView 
+          id={id} 
+          type={type} 
+          onBack={() => navigate(-1)} 
+        />
       </div>
     </div>
   );
@@ -140,6 +139,7 @@ const AppContent: React.FC = () => {
         <Route path="/album/:id" element={<MediaPage />} />
         <Route path="/playlist/:id" element={<MediaPage />} />
         <Route path="/artist/:id" element={<Artist />} />
+        <Route path="/user/:id" element={<Profile />} />
       </Routes>
       {/* Show player only when user is authenticated */}
       {token && <Player />}

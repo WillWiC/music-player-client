@@ -8,16 +8,16 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/toast';
 import { useMusicIntelligence } from '../hooks/useMusicIntelligence';
 import type { PlaylistRecommendation } from '../services/musicIntelligenceService';
-import { formatCount } from '../utils/numberFormat';
+
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { CircularProgress, Tooltip } from '@mui/material';
 
 const PlaylistRecommendations: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { recommendations, insights, isLoading, error, refreshRecommendations, clearError } = useMusicIntelligence();
-  const [lastRefreshTime, setLastRefreshTime] = React.useState<number | null>(null);
+  const [, setLastRefreshTime] = React.useState<number | null>(null);
 
   const handlePlaylistPlay = async (recommendation: PlaylistRecommendation) => {
     try {
@@ -37,21 +37,7 @@ const PlaylistRecommendations: React.FC = () => {
     setLastRefreshTime(Date.now() - startTime);
   };
 
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-gray-400';
-  };
 
-  const getSimilarityIcon = (type: string): string => {
-    switch (type) {
-      case 'genre': return '🎵';
-      case 'artist': return '🎤';
-      case 'popularity': return '⭐';
-      case 'user_pattern': return '🎯';
-      default: return '💡';
-    }
-  };
 
   if (isLoading) {
     return (
@@ -102,152 +88,108 @@ const PlaylistRecommendations: React.FC = () => {
   }
 
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="w-full space-y-5">
+      {/* Header & Insights Row */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-2xl">🤖</span>
-            Smart Recommendation System
-            {lastRefreshTime && (
-              <span className="text-xs text-green-400 font-normal ml-2">
-                ⚡ Loaded in {(lastRefreshTime / 1000).toFixed(1)}s
-              </span>
-            )}
-          </h2>
-          <p className="text-sm text-gray-400 mt-1">
-            AI-curated for you • {recommendations.length} playlists • {insights?.topGenres.length || 0} genres analyzed
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-2xl">✨</span>
+            <h2 className="text-xl font-bold text-white">For You</h2>
+          </div>
+          <p className="text-sm text-gray-400">
+            AI-curated playlists based on your listening history
           </p>
         </div>
-        <Tooltip title="Refresh recommendations">
-          <IconButton
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <RefreshIcon className={isLoading ? 'animate-spin' : ''} />
-          </IconButton>
-        </Tooltip>
-      </div>
 
-      {/* Music Insights Summary */}
-      {insights && (
-        <div className="bg-white/5 rounded-lg p-4 border border-white/5">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Your Music Profile</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="text-center">
-              <div className="text-green-400 font-mono text-lg">{insights.topGenres[0]?.genre || 'Mixed'}</div>
-              <div className="text-gray-400">Top Genre</div>
+        {/* Insights Chips & Actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          {insights && (
+            <div className="flex flex-wrap gap-2">
+              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 flex items-center gap-2">
+                <span className="text-violet-400">●</span> {insights.topGenres.slice(0, 2).map(g => g.genre).join(' + ') || 'Mixed'}
+              </div>
+              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
+                {insights.discoveryRate}% Discovery
+              </div>
+              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 capitalize">
+                {insights.popularityBias}
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-blue-400 font-mono text-lg">{insights.artistDiversity}%</div>
-              <div className="text-gray-400">Diversity</div>
-            </div>
-            <div className="text-center">
-              <div className="text-purple-400 font-mono text-lg">{insights.discoveryRate}%</div>
-              <div className="text-gray-400">Discovery</div>
-            </div>
-            <div className="text-center">
-              <div className="text-yellow-400 font-mono text-lg capitalize">{insights.popularityBias}</div>
-              <div className="text-gray-400">Style</div>
-            </div>
+          )}
+          
+          <div className="h-6 w-px bg-white/10 hidden md:block"></div>
+
+          <div className="flex items-center gap-2">
+            <Tooltip title="Refresh recommendations">
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="p-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <RefreshIcon sx={{ fontSize: 16 }} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+            </Tooltip>
+            
+            <button 
+              onClick={() => navigate('/recommendations')}
+              className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-white transition-colors whitespace-nowrap"
+            >
+              View Full Profile
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Recommendations Grid - OPTIMIZED: Increased to 12 items visible */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {recommendations
-          .filter(rec => rec?.playlist?.id && rec?.playlist?.name)
-          .slice(0, 12) // Increased from 9 to 12
-          .map((recommendation) => (
-          <div
-            key={recommendation.playlist.id}
-            className="bg-white/5 rounded-lg p-4 border border-white/5 hover:border-green-500/30 hover:bg-white/10 transition-all group cursor-pointer"
-            onClick={() => navigate(`/playlist/${recommendation.playlist.id}`)}
-          >
-            {/* Playlist Image and Info */}
-            <div className="flex items-start gap-3 mb-3">
-              <div className="relative">
-                <img
-                  src={recommendation.playlist.images[0]?.url || '/placeholder-playlist.png'}
-                  alt={recommendation.playlist.name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlaylistPlay(recommendation);
-                  }}
-                  className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <PlayArrowIcon className="text-white text-lg" />
-                </button>
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white text-sm truncate">
-                  {recommendation.playlist.name}
-                </h4>
-                <p className="text-xs text-gray-400 truncate">
-                  {recommendation.playlist.followers?.total 
-                    ? formatCount(recommendation.playlist.followers.total) 
-                    : '0'} followers
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs">
-                    {getSimilarityIcon(recommendation.similarityType)}
-                  </span>
-                  <span className={`text-xs font-mono ${getScoreColor(recommendation.score)}`}>
-                    {recommendation.score}% match
-                  </span>
-                </div>
-              </div>
-            </div>
+      {/* Cards Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {recommendations.slice(0, 6).map((rec) => (
+           <div 
+             key={rec.playlist.id}
+             className="group cursor-pointer"
+             onClick={() => navigate(`/playlist/${rec.playlist.id}`)}
+           >
+             <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/5 border border-white/5 hover:border-violet-500/30 transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm">
+               {/* Image Container */}
+               <div className="aspect-square relative">
+                  <img 
+                    src={rec.playlist.images[0]?.url || '/placeholder-playlist.png'} 
+                    alt={rec.playlist.name}
+                    className="w-full h-full object-cover" 
+                  />
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  {/* Play Button */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         handlePlaylistPlay(rec);
+                       }}
+                       className="w-12 h-12 bg-violet-500 hover:bg-violet-400 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all translate-y-4 group-hover:translate-y-0 duration-300"
+                     >
+                       <PlayArrowIcon className="text-white" sx={{ fontSize: 24 }} />
+                     </button>
+                  </div>
+                  
+                  {/* Score Badge */}
+                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-[10px] font-bold text-violet-400 border border-violet-500/30 shadow-lg">
+                     {rec.score}%
+                  </div>
+               </div>
 
-            {/* Recommendation Reasons */}
-            <div className="space-y-1">
-              {recommendation.reasons.slice(0, 2).map((reason, index) => (
-                <div key={index} className="text-xs text-gray-400 bg-white/5 rounded px-2 py-1 truncate">
-                  {reason}
-                </div>
-              ))}
-            </div>
-
-            {/* Matching Genres */}
-            {recommendation.matchingGenres.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {recommendation.matchingGenres.slice(0, 2).map((genre, index) => (
-                  <span
-                    key={index}
-                    className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full"
-                  >
-                    {genre}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+               {/* Text Content */}
+               <div className="p-3">
+                  <h3 className="font-semibold text-white truncate text-sm mb-1" title={rec.playlist.name}>
+                    {rec.playlist.name}
+                  </h3>
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed h-8">
+                     {rec.reasons.join(' • ')}
+                  </p>
+               </div>
+             </div>
+           </div>
         ))}
-      </div>
-
-      {/* Show More Button */}
-      {recommendations.length > 12 && (
-        <div className="text-center">
-          <button
-            onClick={() => navigate('/recommendations')}
-            className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10"
-          >
-            View All {recommendations.length} Recommendations →
-          </button>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="text-center pt-2 border-t border-white/10">
-        <p className="text-xs text-gray-500">
-          Recommendations update automatically every 30 minutes based on your listening activity
-        </p>
       </div>
     </div>
   );

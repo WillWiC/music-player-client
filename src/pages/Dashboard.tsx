@@ -668,9 +668,9 @@ const Dashboard: React.FC = () => {
                                 toast.showToast('Unable to play playlist. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
-                            className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                            className="w-12 h-12 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                               <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
                             </svg>
                           </button>
@@ -819,14 +819,14 @@ const Dashboard: React.FC = () => {
                                 toast.showToast('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
-                            className="w-8 h-8 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+                            className="w-12 h-12 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
                           >
                             {currentTrack?.id === item.track.id && isPlaying ? (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" className="text-white"/>
                               </svg>
                             ) : (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M8 5v14l11-7z" fill="currentColor" className="text-white"/>
                               </svg>
                             )}
@@ -1036,14 +1036,14 @@ const Dashboard: React.FC = () => {
                                 toast.showToast('Unable to play track. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
                               }
                             }}
-                            className="w-10 h-10 bg-yellow-500/20 hover:bg-yellow-500 text-yellow-400 hover:text-black rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 border border-yellow-500/30 hover:border-yellow-500"
+                            className="w-12 h-12 bg-yellow-500/20 hover:bg-yellow-500 text-yellow-400 hover:text-black rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 border border-yellow-500/30 hover:border-yellow-500"
                           >
                             {currentTrack?.id === track.id && isPlaying ? (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"/>
                               </svg>
                             ) : (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M8 5v14l11-7z" fill="currentColor"/>
                               </svg>
                             )}

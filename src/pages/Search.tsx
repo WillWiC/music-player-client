@@ -10,11 +10,6 @@ import {
   Box,
   Typography,
   IconButton,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Chip,
   Fade,
   Grow,
   Skeleton,
@@ -22,11 +17,11 @@ import {
 } from '@mui/material';
 import { 
   Search as SearchIcon,
-  History,
   Clear,
   MusicNote,
   Album as AlbumIcon,
-  Person
+  Person,
+  PlayArrow
 } from '@mui/icons-material';
 import type { Track } from '../types/spotify';
 
@@ -62,8 +57,8 @@ const SearchPage: React.FC = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
-      // Load more when user scrolls to 80% of the page
-      if (scrollPercentage > 0.8) {
+      // Load more when user scrolls to 70% of the page
+      if (scrollPercentage > 0.7) {
         // Determine which type to load based on active tab
         let typeToLoad: 'tracks' | 'albums' | 'artists' | 'playlists' | null = null;
         
@@ -154,55 +149,50 @@ const SearchPage: React.FC = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
       <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-24 pt-20 overflow-y-auto">
-        <div className="relative w-full py-8 px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full py-8 px-6 sm:px-8 lg:px-12">
           
-          {/* Hero Section */}
-          <Fade in timeout={600}>
-            <div className="mb-8">
-              {query ? (
+          {/* Search Header (Only when searching) */}
+          {query && (
+            <Fade in timeout={600}>
+              <div className="flex items-end gap-6 mb-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center">
+                  <SearchIcon sx={{ fontSize: 32, color: 'white' }} />
+                </div>
                 <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg shadow-green-500/20">
-                      <SearchIcon sx={{ fontSize: 28, color: 'white' }} />
-                    </div>
-                    <div>
-                      <Typography variant="h3" sx={{ color: 'white', fontWeight: 800, letterSpacing: '-0.02em' }}>
-                        Search Results
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        for "{query}"
-                      </Typography>
-                    </div>
-                  </div>
+                  <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-2">
+                    {query}
+                  </h2>
+                  <p className="text-gray-400 font-medium">
+                    Search results
+                  </p>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="inline-block p-4 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-2xl mb-4">
-                    <SearchIcon sx={{ fontSize: 64, color: 'primary.main' }} />
-                  </div>
-                  <Typography variant="h3" sx={{ color: 'white', fontWeight: 800, mb: 2 }}>
-                    Find Your Music
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 500, mx: 'auto' }}>
-                    Search for your favorite songs, albums, and artists. Start typing in the search bar above.
-                  </Typography>
-                </div>
-              )}
-            </div>
-          </Fade>
+              </div>
+            </Fade>
+          )}
 
-          {/* Recent searches - only show when no query */}
-          {!query && recentSearches.length > 0 && (
-            <Fade in timeout={800}>
-              <Card sx={{ mb: 6, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3, backdropFilter: 'blur(10px)' }}>
-                <CardContent sx={{ p: 3 }}>
+          {/* Browse View (When not searching) */}
+          {!query && (
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full mb-6">
+                  <SearchIcon sx={{ fontSize: 40, color: '#22c55e' }} />
+                </div>
+                <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
+                  Find Your Music
+                </h1>
+                <p className="text-gray-400 max-w-lg mx-auto">
+                  Search for artists, songs, albums, and playlists.
+                </p>
+              </div>
+
+              {/* Recent Searches */}
+              {recentSearches.length > 0 && (
+                <section>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <History sx={{ color: 'primary.main' }} />
-                      <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
-                        Recent Searches
-                      </Typography>
-                    </div>
+                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                      Recent Searches
+                    </Typography>
                     <IconButton 
                       onClick={clearRecentSearches} 
                       size="small"
@@ -214,39 +204,30 @@ const SearchPage: React.FC = () => {
                       <Clear fontSize="small" />
                     </IconButton>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {recentSearches.map((s, index) => (
                       <Grow in key={s} timeout={300 + index * 50}>
-                        <Chip
-                          label={s}
+                        <div 
+                          className="group flex items-center gap-2 bg-[#181818] hover:bg-[#282828] border border-white/5 rounded-full pl-4 pr-2 py-2 transition-all duration-200 cursor-pointer"
                           onClick={() => handleRunRecent(s)}
-                          onDelete={() => removeRecentSearch(s)}
-                          sx={{
-                            bgcolor: 'rgba(255,255,255,0.05)',
-                            color: 'white',
-                            fontWeight: 500,
-                            fontSize: '0.875rem',
-                            borderRadius: 2,
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              bgcolor: 'rgba(34,197,94,0.15)',
-                              borderColor: 'primary.main',
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(34,197,94,0.2)'
-                            },
-                            '& .MuiChip-deleteIcon': {
-                              color: 'rgba(255,255,255,0.5)',
-                              '&:hover': { color: 'error.main' }
-                            }
-                          }}
-                        />
+                        >
+                          <span className="text-sm font-medium text-white">{s}</span>
+                          <div 
+                            className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeRecentSearch(s);
+                            }}
+                          >
+                            <Clear sx={{ fontSize: 16 }} />
+                          </div>
+                        </div>
                       </Grow>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </Fade>
+                </section>
+              )}
+            </div>
           )}
 
           {/* Loading State */}
@@ -254,17 +235,15 @@ const SearchPage: React.FC = () => {
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Grow in key={i} timeout={300 + i * 100}>
-                  <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3 }}>
-                    <CardContent sx={{ p: 3 }}>
-                      <div className="flex items-center gap-4">
-                        <Skeleton variant="rectangular" width={56} height={56} sx={{ borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
-                          <Skeleton variant="text" width="40%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
-                        </div>
+                  <div className="bg-[#181818] border border-white/5 rounded-xl p-4">
+                    <div className="flex items-center gap-4">
+                      <Skeleton variant="rectangular" width={56} height={56} sx={{ borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+                        <Skeleton variant="text" width="40%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </Grow>
               ))}
             </div>
@@ -273,32 +252,22 @@ const SearchPage: React.FC = () => {
           {/* Results Section */}
           {query && !isSearching && (
             <Box>
-              <Tabs 
-                value={activeTab} 
-                onChange={(_, v) => setActiveTab(v)} 
-                textColor="inherit" 
-                indicatorColor="primary" 
-                sx={{ 
-                  borderBottom: '1px solid rgba(255,255,255,0.1)',
-                  mb: 4,
-                  '& .MuiTab-root': {
-                    color: 'text.secondary',
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    textTransform: 'none',
-                    minHeight: 56,
-                    '&.Mui-selected': {
-                      color: 'primary.main'
-                    }
-                  }
-                }}
-              >
-                <Tab label="All" />
-                <Tab label={`Songs`} />
-                <Tab label={`Artists`} />
-                <Tab label={`Albums`} />
-                <Tab label={`Playlists`} />
-              </Tabs>
+              <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                {['All', 'Songs', 'Artists', 'Albums', 'Playlists'].map((label, index) => (
+                  <button
+                    key={label}
+                    onClick={() => setActiveTab(index)}
+                    className={`
+                      px-6 py-2 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap
+                      ${activeTab === index 
+                        ? 'bg-white text-black scale-105' 
+                        : 'bg-white/10 text-white hover:bg-white/20'}
+                    `}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
               <div className="mt-6">
                 {/* ALL TAB - Spotify-style layout with sections */}
@@ -306,127 +275,143 @@ const SearchPage: React.FC = () => {
                   <div className="space-y-8">
                     {/* Top Result + Top Songs Grid */}
                     {(topResult || results.tracks.length > 0) && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Top Result Card */}
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                        {/* Top Result Card - Takes up 2 columns on large screens */}
                         {topResult && (
-                          <div>
+                          <div className="lg:col-span-2">
                             <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
                               Top result
                             </Typography>
                             <Grow in timeout={400}>
-                              <Card 
-                                sx={{ 
-                                  bgcolor: 'rgba(255,255,255,0.05)', 
-                                  border: '1px solid rgba(255,255,255,0.08)', 
-                                  borderRadius: 3,
-                                  p: 3,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  minHeight: 280,
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  justifyContent: 'space-between',
-                                  '&:hover': {
-                                    bgcolor: 'rgba(255,255,255,0.08)',
-                                    transform: 'scale(1.02)',
-                                  }
-                                }}
+                              <div 
+                                className="group relative bg-transparent hover:bg-[#282828] p-6 rounded-lg transition-all duration-300 cursor-pointer h-[280px] flex flex-col gap-4"
                                 onClick={() => handlePlayClick(topResult)}
                               >
-                                <div>
+                                <div className="relative">
                                   <img 
                                     src={getImageUrl(topResult.album?.images)} 
                                     alt={topResult.name}
-                                    className="w-28 h-28 rounded-lg shadow-2xl mb-6"
+                                    className="w-28 h-28 rounded shadow-xl mb-2"
                                   />
+                                </div>
+                                
+                                <div className="flex-1 flex flex-col justify-end">
                                   <Typography 
                                     variant="h4" 
                                     sx={{ 
                                       color: 'white', 
                                       fontWeight: 700, 
-                                      mb: 2,
+                                      mb: 1,
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
                                       display: '-webkit-box',
                                       WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical'
+                                      WebkitBoxOrient: 'vertical',
+                                      lineHeight: 1.2
                                     }}
                                   >
                                     {topResult.name}
                                   </Typography>
-                                  <div className="flex items-center gap-2">
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                      Song • {topResult.artists.map(a => a.name).join(', ')}
-                                    </Typography>
+                                  <div className="flex items-center gap-2 text-sm text-gray-400 font-medium">
+                                    <span className="text-white">Song</span>
+                                    <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                                    <span className="truncate">
+                                      {topResult.artists.map((artist, i) => (
+                                        <React.Fragment key={artist.id || i}>
+                                          <span 
+                                            className="hover:underline hover:text-white cursor-pointer"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigate(`/artist/${artist.id}`);
+                                            }}
+                                          >
+                                            {artist.name}
+                                          </span>
+                                          {i < topResult.artists.length - 1 && ', '}
+                                        </React.Fragment>
+                                      ))}
+                                    </span>
                                   </div>
                                 </div>
-                                <div className="flex justify-end mt-4">
+
+                                {/* Play Button - Visible on hover */}
+                                <div className="absolute bottom-6 right-6 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl rounded-full">
                                   <IconButton
                                     sx={{
-                                      bgcolor: 'primary.main',
-                                      color: 'black',
-                                      width: 56,
-                                      height: 56,
+                                      bgcolor: '#1ed760',
+                                      color: 'white',
+                                      width: 48,
+                                      height: 48,
                                       '&:hover': {
-                                        bgcolor: 'primary.light',
+                                        bgcolor: '#1fdf64',
                                         transform: 'scale(1.05)'
                                       }
                                     }}
                                   >
-                                    <MusicNote sx={{ fontSize: 28 }} />
+                                    <PlayArrow sx={{ fontSize: 28 }} />
                                   </IconButton>
                                 </div>
-                              </Card>
+                              </div>
                             </Grow>
                           </div>
                         )}
 
-                        {/* Songs Section */}
-                        <div>
-                          <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
-                            Songs
-                          </Typography>
-                          <div className="space-y-2">
-                            {results.tracks.filter(t => t != null).slice(0, 5).map((track, index) => (
+                        {/* Songs Section - Takes up 3 columns on large screens */}
+                        <div className="lg:col-span-3">
+                          <div className="flex items-center justify-between mb-4">
+                            <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                              Songs
+                            </Typography>
+                            <button 
+                              onClick={() => setActiveTab(1)}
+                              className="text-sm font-bold text-gray-400 hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                            >
+                              Show all
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {results.tracks.filter(t => t != null).slice(0, 4).map((track, index) => (
                               <Grow in key={track.id} timeout={300 + index * 50}>
                                 <div
-                                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+                                  className="group flex items-center gap-3 p-2 rounded hover:bg-white/10 transition-colors cursor-pointer"
                                   onClick={() => handlePlayClick(track)}
                                 >
-                                  <img 
-                                    src={getImageUrl(track.album?.images)} 
-                                    alt={track.name}
-                                    className="w-12 h-12 rounded"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <Typography 
-                                      variant="body2" 
-                                      sx={{ 
-                                        color: 'white', 
-                                        fontWeight: 500,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >
-                                      {track.name}
-                                    </Typography>
-                                    <Typography 
-                                      variant="caption" 
-                                      sx={{ 
-                                        color: 'text.secondary',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                        display: 'block'
-                                      }}
-                                    >
-                                      {track.artists.map(a => a.name).join(', ')}
-                                    </Typography>
+                                  <div className="relative w-10 h-10 flex-shrink-0">
+                                    <img 
+                                      src={getImageUrl(track.album?.images)} 
+                                      alt={track.name}
+                                      className="w-full h-full rounded object-cover group-hover:opacity-50 transition-opacity"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <PlayArrow sx={{ color: 'white', fontSize: 24 }} />
+                                    </div>
                                   </div>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1 }}>
+                                  
+                                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <div className={`font-medium truncate text-sm ${currentTrack?.id === track.id ? 'text-green-500' : 'text-white'}`}>
+                                      {track.name}
+                                    </div>
+                                    <div className="text-xs text-gray-400 truncate group-hover:text-white transition-colors">
+                                      {track.artists.map((artist, i) => (
+                                        <React.Fragment key={artist.id || i}>
+                                          <span 
+                                            className="hover:underline cursor-pointer"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigate(`/artist/${artist.id}`);
+                                            }}
+                                          >
+                                            {artist.name}
+                                          </span>
+                                          {i < track.artists.length - 1 && ', '}
+                                        </React.Fragment>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="text-xs text-gray-400 font-medium tabular-nums mr-2">
                                     {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
-                                  </Typography>
+                                  </div>
                                 </div>
                               </Grow>
                             ))}
@@ -438,49 +423,40 @@ const SearchPage: React.FC = () => {
                     {/* Artists Section */}
                     {results.artists.length > 0 && (
                       <div>
-                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
-                          Artists
-                        </Typography>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
-                          {results.artists.filter(a => a != null).slice(0, 8).map((artist, index) => (
+                        <div className="flex items-center justify-between mb-4">
+                          <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                            Artists
+                          </Typography>
+                          <button 
+                            onClick={() => setActiveTab(2)}
+                            className="text-sm font-bold text-gray-400 hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                          >
+                            Show all
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                          {results.artists.filter(a => a != null).slice(0, 7).map((artist, index) => (
                             <Grow in key={artist.id} timeout={300 + index * 50}>
-                              <Card 
-                                sx={{ 
-                                  bgcolor: 'rgba(255,255,255,0.02)', 
-                                  border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 2,
-                                  p: 1.5,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  '&:hover': {
-                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                  }
-                                }}
+                              <div 
+                                className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer flex flex-col items-center text-center"
                                 onClick={() => navigate(`/artist/${artist.id}`)}
                               >
-                                <img 
-                                  src={getImageUrl(artist.images)} 
-                                  alt={artist.name}
-                                  className="w-full aspect-square object-cover rounded-full mb-2 shadow-lg"
-                                />
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    color: 'white', 
-                                    fontWeight: 600,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    fontSize: '0.75rem'
-                                  }}
-                                >
-                                  {artist.name}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                                  Artist
-                                </Typography>
-                              </Card>
+                                <div className="relative w-full aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
+                                  <img 
+                                    src={getImageUrl(artist.images)} 
+                                    alt={artist.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                                <div className="w-full">
+                                  <div className="text-white font-bold truncate mb-1">
+                                    {artist.name}
+                                  </div>
+                                  <div className="text-sm text-gray-400">
+                                    Artist
+                                  </div>
+                                </div>
+                              </div>
                             </Grow>
                           ))}
                         </div>
@@ -490,59 +466,40 @@ const SearchPage: React.FC = () => {
                     {/* Albums Section */}
                     {results.albums.length > 0 && (
                       <div>
-                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
-                          Albums
-                        </Typography>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
-                          {results.albums.filter(a => a != null).slice(0, 8).map((album, index) => (
+                        <div className="flex items-center justify-between mb-4">
+                          <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                            Albums
+                          </Typography>
+                          <button 
+                            onClick={() => setActiveTab(3)}
+                            className="text-sm font-bold text-gray-400 hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                          >
+                            Show all
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                          {results.albums.filter(a => a != null).slice(0, 7).map((album, index) => (
                             <Grow in key={album.id} timeout={300 + index * 50}>
-                              <Card 
-                                sx={{ 
-                                  bgcolor: 'rgba(255,255,255,0.02)', 
-                                  border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 2,
-                                  p: 1.5,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  '&:hover': {
-                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                  }
-                                }}
+                              <div 
+                                className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
                                 onClick={() => navigate(`/album/${album.id}`)}
                               >
-                                <img 
-                                  src={getImageUrl(album.images)} 
-                                  alt={album.name}
-                                  className="w-full aspect-square object-cover rounded-lg mb-2 shadow-lg"
-                                />
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    color: 'white', 
-                                    fontWeight: 600,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    fontSize: '0.75rem'
-                                  }}
-                                >
-                                  {album.name}
-                                </Typography>
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    color: 'text.secondary',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    fontSize: '0.7rem'
-                                  }}
-                                >
-                                  {album.artists.map((a: any) => a.name).join(', ')}
-                                </Typography>
-                              </Card>
+                                <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
+                                  <img 
+                                    src={getImageUrl(album.images)} 
+                                    alt={album.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                                <div className="w-full">
+                                  <div className="text-white font-bold truncate mb-1">
+                                    {album.name}
+                                  </div>
+                                  <div className="text-sm text-gray-400 truncate">
+                                    {album.release_date?.split('-')[0]} • {album.artists.map((a: any) => a.name).join(', ')}
+                                  </div>
+                                </div>
+                              </div>
                             </Grow>
                           ))}
                         </div>
@@ -552,59 +509,40 @@ const SearchPage: React.FC = () => {
                     {/* Playlists Section */}
                     {results.playlists.length > 0 && (
                       <div>
-                        <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
-                          Playlists
-                        </Typography>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
-                          {results.playlists.filter(p => p != null).slice(0, 8).map((playlist: any, index: number) => (
+                        <div className="flex items-center justify-between mb-4">
+                          <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                            Playlists
+                          </Typography>
+                          <button 
+                            onClick={() => setActiveTab(4)}
+                            className="text-sm font-bold text-gray-400 hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                          >
+                            Show all
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                          {results.playlists.filter(p => p != null).slice(0, 7).map((playlist: any, index: number) => (
                             <Grow in key={playlist.id} timeout={300 + index * 50}>
-                              <Card 
-                                sx={{ 
-                                  bgcolor: 'rgba(255,255,255,0.02)', 
-                                  border: '1px solid rgba(255,255,255,0.05)', 
-                                  borderRadius: 2,
-                                  p: 1.5,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  '&:hover': {
-                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                  }
-                                }}
-                                onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
+                              <div 
+                                className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
+                                onClick={() => navigate(`/playlist/${playlist.id}`)}
                               >
-                                <img 
-                                  src={getImageUrl(playlist.images)} 
-                                  alt={playlist.name}
-                                  className="w-full aspect-square object-cover rounded-lg mb-2 shadow-lg"
-                                />
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    color: 'white', 
-                                    fontWeight: 600,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    fontSize: '0.75rem'
-                                  }}
-                                >
-                                  {playlist.name}
-                                </Typography>
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    color: 'text.secondary',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    fontSize: '0.7rem'
-                                  }}
-                                >
-                                  {playlist.owner?.display_name || 'Playlist'}
-                                </Typography>
-                              </Card>
+                                <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
+                                  <img 
+                                    src={getImageUrl(playlist.images)} 
+                                    alt={playlist.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                                <div className="w-full">
+                                  <div className="text-white font-bold truncate mb-1">
+                                    {playlist.name}
+                                  </div>
+                                  <div className="text-sm text-gray-400 truncate">
+                                    By {playlist.owner?.display_name || 'Playlist'}
+                                  </div>
+                                </div>
+                              </div>
                             </Grow>
                           ))}
                         </div>
@@ -629,70 +567,63 @@ const SearchPage: React.FC = () => {
 
                 {/* SONGS TAB - All tracks */}
                 {activeTab === 1 && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {results.tracks.length > 0 ? (
                       results.tracks.filter(t => t != null).map((track, index) => (
                         <Grow in key={track.id} timeout={300 + index * 50}>
-                          <Card 
-                            sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.02)', 
-                              border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 3,
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer',
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: 'primary.main',
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 8px 24px rgba(34,197,94,0.15)'
-                              }
-                            }}
+                          <div 
+                            className="group flex items-center gap-4 p-2 rounded-md hover:bg-[#2a2a2a] transition-colors cursor-pointer"
                             onClick={() => handlePlayClick(track)}
                           >
-                            <CardContent sx={{ p: 3 }}>
-                              <div className="flex items-center gap-4">
-                                <div className="relative group">
-                                  <img 
-                                    src={getImageUrl(track.album?.images)} 
-                                    alt={track.name} 
-                                    className="w-14 h-14 rounded-lg shadow-lg"
-                                  />
-                                  <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <MusicNote sx={{ color: 'primary.main', fontSize: 24 }} />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <Typography 
-                                    variant="body1" 
-                                    sx={{ 
-                                      color: 'white', 
-                                      fontWeight: 600, 
-                                      mb: 0.5,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >
-                                    {track.name}
-                                  </Typography>
-                                  <Typography 
-                                    variant="body2" 
-                                    sx={{ 
-                                      color: 'text.secondary',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >
-                                    {track.artists.map(a => a.name).join(', ')}
-                                  </Typography>
-                                </div>
-                                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                  {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
-                                </Typography>
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                              <img 
+                                src={getImageUrl(track.album?.images)} 
+                                alt={track.name} 
+                                className="w-full h-full object-cover rounded"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                <PlayArrow sx={{ color: 'white', fontSize: 20 }} />
                               </div>
-                            </CardContent>
-                          </Card>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-medium truncate ${currentTrack?.id === track.id ? 'text-green-500' : 'text-white'}`}>
+                                {track.name}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate">
+                                {track.artists.map((artist, i) => (
+                                  <React.Fragment key={artist.id || i}>
+                                    <span 
+                                      className="hover:underline hover:text-white cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/artist/${artist.id}`);
+                                      }}
+                                    >
+                                      {artist.name}
+                                    </span>
+                                    {i < track.artists.length - 1 && ', '}
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Album Column */}
+                            <div className="hidden md:block flex-1 min-w-0 px-4">
+                              <span 
+                                className="text-sm text-gray-400 truncate hover:underline hover:text-white cursor-pointer block"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (track.album?.id) navigate(`/album/${track.album.id}`);
+                                }}
+                              >
+                                {track.album?.name}
+                              </span>
+                            </div>
+
+                            <div className="text-sm text-gray-400 tabular-nums">
+                              {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
+                            </div>
+                          </div>
                         </Grow>
                       ))
                     ) : (
@@ -722,51 +653,30 @@ const SearchPage: React.FC = () => {
 
                 {/* ARTISTS TAB - All artists */}
                 {activeTab === 2 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
                     {results.artists.length > 0 ? (
                       results.artists.filter(a => a != null).map((artist, index) => (
                         <Grow in key={artist.id} timeout={300 + index * 50}>
-                          <Card 
-                            sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.02)', 
-                              border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 2,
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer',
-                              p: 1.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: '#a78bfa',
-                              }
-                            }}
+                          <div 
+                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
                             onClick={() => navigate(`/artist/${artist.id}`)}
                           >
-                            <div className="relative aspect-square mb-2">
+                            <div className="relative w-full aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
                               <img 
                                 src={getImageUrl(artist.images)} 
                                 alt={artist.name} 
-                                className="w-full h-full object-cover rounded-full shadow-lg"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                fontSize: '0.75rem',
-                                mb: 0.25
-                              }}
-                            >
-                              {artist.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                              Artist
-                            </Typography>
-                          </Card>
+                            <div className="w-full text-center">
+                              <div className="text-white font-bold truncate mb-1">
+                                {artist.name}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                Artist
+                              </div>
+                            </div>
+                          </div>
                         </Grow>
                       ))
                     ) : (
@@ -798,61 +708,30 @@ const SearchPage: React.FC = () => {
 
                 {/* ALBUMS TAB - All albums */}
                 {activeTab === 3 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
                     {results.albums.length > 0 ? (
                       results.albums.filter(a => a != null).map((album, index) => (
                         <Grow in key={album.id} timeout={300 + index * 50}>
-                          <Card 
-                            sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.02)', 
-                              border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 2,
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer',
-                              p: 1.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: '#60a5fa',
-                              }
-                            }}
+                          <div 
+                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
                             onClick={() => navigate(`/album/${album.id}`)}
                           >
-                            <div className="relative aspect-square mb-2">
+                            <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
                               <img 
                                 src={getImageUrl(album.images)} 
                                 alt={album.name} 
-                                className="w-full h-full object-cover rounded-lg shadow-lg"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                fontSize: '0.75rem',
-                                mb: 0.25
-                              }}
-                            >
-                              {album.name}
-                            </Typography>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: 'text.secondary',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                fontSize: '0.7rem'
-                              }}
-                            >
-                              {album.artists?.map((a: any) => a.name).join(', ')}
-                            </Typography>
-                          </Card>
+                            <div className="w-full">
+                              <div className="text-white font-bold truncate mb-1">
+                                {album.name}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate">
+                                {album.release_date?.split('-')[0]} • {album.artists?.map((a: any) => a.name).join(', ')}
+                              </div>
+                            </div>
+                          </div>
                         </Grow>
                       ))
                     ) : (
@@ -884,61 +763,30 @@ const SearchPage: React.FC = () => {
 
                 {/* PLAYLISTS TAB - Community playlists */}
                 {activeTab === 4 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
                     {results.playlists.length > 0 ? (
                       results.playlists.filter(p => p != null).map((playlist: any, index: number) => (
                         <Grow in key={playlist.id} timeout={300 + index * 50}>
-                          <Card 
-                            sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.02)', 
-                              border: '1px solid rgba(255,255,255,0.05)', 
-                              borderRadius: 2,
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer',
-                              p: 1.5,
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: '#a855f7',
-                              }
-                            }}
-                            onClick={() => window.open(playlist.external_urls?.spotify, '_blank')}
+                          <div 
+                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
+                            onClick={() => navigate(`/playlist/${playlist.id}`)}
                           >
-                            <div className="relative aspect-square mb-2">
+                            <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
                               <img 
                                 src={getImageUrl(playlist.images)} 
                                 alt={playlist.name} 
-                                className="w-full h-full object-cover rounded-lg shadow-lg"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                fontSize: '0.75rem',
-                                mb: 0.25
-                              }}
-                            >
-                              {playlist.name}
-                            </Typography>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: 'text.secondary',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                                fontSize: '0.7rem'
-                              }}
-                            >
-                              {playlist.owner?.display_name || 'Playlist'}
-                            </Typography>
-                          </Card>
+                            <div className="w-full">
+                              <div className="text-white font-bold truncate mb-1">
+                                {playlist.name}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate">
+                                By {playlist.owner?.display_name || 'Playlist'}
+                              </div>
+                            </div>
+                          </div>
                         </Grow>
                       ))
                     ) : (

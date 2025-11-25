@@ -40,6 +40,7 @@ export interface CustomCategory {
   description?: string;
   priority?: number; // Higher priority categories are matched first
   keywords?: string[]; // Additional search keywords
+  subGenres?: { id: string; name: string; spotifyGenres: string[] }[]; // Sub-genres for finer filtering
 }
 
 /**
@@ -52,35 +53,7 @@ export interface CustomCategory {
  */
 export const CUSTOM_CATEGORIES: CustomCategory[] = [
   // HIGHEST PRIORITY: Specific regional pop genres
-  {
-    id: 'kpop',
-    name: 'K-Pop',
-    color: '#ff6b9d',
-    icon: 'KR',
-    description: 'Korean pop music and K-culture',
-    priority: 10,
-    spotifyGenres: [
-      'k-pop', 'k-rap', 'korean pop', 'kpop', 'trot',
-      'korean r&b', 'korean hip hop', 'korean indie',
-      'korean rock', 'korean ballad', 'korean traditional'
-    ],
-    keywords: ['korean', 'k-', 'korea', 'hangul', '한국', 'bts', 'blackpink']
-  },
-  {
-    id: 'chinese-pop',
-    name: 'Chinese Pop',
-    color: '#ff7675',
-    icon: 'CN',
-    description: 'Popular music from China and Chinese-speaking regions',
-    priority: 9,
-    spotifyGenres: [
-      'mandopop', 'cantopop', 'chinese pop', 'taiwanese pop', 'hong kong pop',
-      'chinese rock', 'cpop', 'mandarin pop', 'cantonese pop'
-    ],
-    keywords: ['chinese', 'mandarin', 'cantonese', 'china', 'taiwan', 'hong kong', 'mandopop', 'cantopop']
-  },
-  // HIGH PRIORITY: Major genres with wide appeal
-  {
+    {
     id: 'pop',
     name: 'Pop',
     color: '#4ecdc4',
@@ -93,8 +66,55 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'europop', 'latin pop', 'pop rock', 'bubblegum pop', 'new wave pop',
       'synthwave', 'retro pop', 'adult standards'
     ],
-    keywords: ['mainstream', 'commercial', 'radio', 'chart', 'billboard']
+    keywords: ['mainstream', 'commercial', 'radio', 'chart', 'billboard'],
+    subGenres: [
+      { id: 'dance-pop', name: 'Dance Pop', spotifyGenres: ['dance pop'] },
+      { id: 'indie-pop', name: 'Indie Pop', spotifyGenres: ['indie pop'] },
+      { id: 'electropop', name: 'Electropop', spotifyGenres: ['electropop'] },
+      { id: 'pop-rock', name: 'Pop Rock', spotifyGenres: ['pop rock'] },
+    ]
   },
+  {
+    id: 'kpop',
+    name: 'K-Pop',
+    color: '#ff6b9d',
+    icon: 'KR',
+    description: 'Korean pop music and K-culture',
+    priority: 10,
+    spotifyGenres: [
+      'k-pop', 'k-rap', 'korean pop', 'kpop', 'trot',
+      'korean r&b', 'korean hip hop', 'korean indie',
+      'korean rock', 'korean ballad', 'korean traditional'
+    ],
+    keywords: ['korean', 'k-', 'korea', 'hangul', '한국', 'bts', 'blackpink'],
+    subGenres: [
+      { id: 'k-pop-boy-group', name: 'Boy Groups', spotifyGenres: ['k-pop boy group'] },
+      { id: 'k-pop-girl-group', name: 'Girl Groups', spotifyGenres: ['k-pop girl group'] },
+      { id: 'k-rap', name: 'K-Rap', spotifyGenres: ['k-rap', 'korean hip hop'] },
+      { id: 'korean-r&b', name: 'K-R&B', spotifyGenres: ['korean r&b'] },
+      { id: 'korean-ost', name: 'OST', spotifyGenres: ['korean ost'] },
+    ]
+  },
+  {
+    id: 'chinese-pop',
+    name: 'Chinese Pop',
+    color: '#ff7675',
+    icon: 'CN',
+    description: 'Popular music from China and Chinese-speaking regions',
+    priority: 9,
+    spotifyGenres: [
+      'mandopop', 'cantopop', 'chinese pop', 'taiwanese pop', 'hong kong pop',
+      'chinese rock', 'cpop', 'mandarin pop', 'cantonese pop'
+    ],
+    keywords: ['chinese', 'mandarin', 'cantonese', 'china', 'taiwan', 'hong kong', 'mandopop', 'cantopop'],
+    subGenres: [
+      { id: 'mandopop', name: 'Mandopop', spotifyGenres: ['mandopop', 'mandarin pop'] },
+      { id: 'cantopop', name: 'Cantopop', spotifyGenres: ['cantopop', 'cantonese pop'] },
+      { id: 'chinese-indie', name: 'Chinese Indie', spotifyGenres: ['chinese indie', 'chinese indie pop'] },
+    ]
+  },
+  // HIGH PRIORITY: Major genres with wide appeal
+
   {
     id: 'hiphop',
     name: 'Hip-Hop',
@@ -109,7 +129,14 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'mumble rap', 'boom bap', 'cloud rap', 'experimental hip hop',
       'hardcore hip hop', 'turntablism', 'crunk', 'dirty south rap'
     ],
-    keywords: ['rap', 'hip-hop', 'urban', 'street', 'freestyle', 'mc']
+    keywords: ['rap', 'hip-hop', 'urban', 'street', 'freestyle', 'mc'],
+    subGenres: [
+      { id: 'trap', name: 'Trap', spotifyGenres: ['trap', 'trap music'] },
+      { id: 'rap', name: 'Rap', spotifyGenres: ['rap', 'gangster rap'] },
+      { id: 'old-school', name: 'Old School', spotifyGenres: ['old school hip hop', 'boom bap'] },
+      { id: 'drill', name: 'Drill', spotifyGenres: ['drill', 'uk drill'] },
+      { id: 'alternative-hip-hop', name: 'Alt Hip-Hop', spotifyGenres: ['alternative hip hop', 'experimental hip hop'] },
+    ]
   },
   {
     id: 'edm',
@@ -125,7 +152,14 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'downtempo', 'chillout', 'future bass', 'trap', 'hardstyle',
       'psytrance', 'minimal techno', 'acid house', 'uk garage'
     ],
-    keywords: ['electronic', 'dance', 'club', 'festival', 'rave', 'dj']
+    keywords: ['electronic', 'dance', 'club', 'festival', 'rave', 'dj'],
+    subGenres: [
+      { id: 'house', name: 'House', spotifyGenres: ['house', 'deep house', 'progressive house'] },
+      { id: 'techno', name: 'Techno', spotifyGenres: ['techno', 'minimal techno'] },
+      { id: 'dubstep', name: 'Dubstep', spotifyGenres: ['dubstep', 'brostep'] },
+      { id: 'trance', name: 'Trance', spotifyGenres: ['trance', 'psytrance'] },
+      { id: 'drum-and-bass', name: 'DnB', spotifyGenres: ['drum and bass', 'dnb'] },
+    ]
   },
   {
     id: 'rock',
@@ -141,7 +175,14 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'folk rock', 'post-rock', 'math rock', 'stoner rock', 'surf rock',
       'southern rock', 'arena rock', 'glam rock', 'new wave'
     ],
-    keywords: ['guitar', 'band', 'live', 'concert', 'album rock']
+    keywords: ['guitar', 'band', 'live', 'concert', 'album rock'],
+    subGenres: [
+      { id: 'alternative-rock', name: 'Alt Rock', spotifyGenres: ['alternative rock'] },
+      { id: 'classic-rock', name: 'Classic Rock', spotifyGenres: ['classic rock'] },
+      { id: 'metal', name: 'Metal', spotifyGenres: ['metal', 'heavy metal'] },
+      { id: 'punk', name: 'Punk', spotifyGenres: ['punk', 'punk rock'] },
+      { id: 'indie-rock', name: 'Indie Rock', spotifyGenres: ['indie rock'] },
+    ]
   },
   {
     id: 'indie',
@@ -156,7 +197,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'indie r&b', 'indie electronic', 'anti-folk', 'freak folk',
       'new weird america', 'chamber pop', 'slowcore', 'sadcore'
     ],
-    keywords: ['independent', 'alternative', 'underground', 'artsy', 'experimental']
+    keywords: ['independent', 'alternative', 'underground', 'artsy', 'experimental'],
+    subGenres: [
+      { id: 'indie-pop', name: 'Indie Pop', spotifyGenres: ['indie pop'] },
+      { id: 'indie-rock', name: 'Indie Rock', spotifyGenres: ['indie rock'] },
+      { id: 'lo-fi', name: 'Lo-Fi', spotifyGenres: ['lo-fi', 'lo-fi beats'] },
+      { id: 'alternative', name: 'Alternative', spotifyGenres: ['alternative', 'alternative rock'] },
+    ]
   },
   {
     id: 'jazz',
@@ -171,7 +218,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'free jazz', 'hard bop', 'post-bop', 'avant-garde jazz',
       'big band', 'ragtime', 'dixieland', 'jazz funk', 'jazz blues'
     ],
-    keywords: ['instrumental', 'improvisation', 'standards', 'saxophone', 'trumpet']
+    keywords: ['instrumental', 'improvisation', 'standards', 'saxophone', 'trumpet'],
+    subGenres: [
+      { id: 'smooth-jazz', name: 'Smooth Jazz', spotifyGenres: ['smooth jazz'] },
+      { id: 'bebop', name: 'Bebop', spotifyGenres: ['bebop', 'hard bop'] },
+      { id: 'swing', name: 'Swing', spotifyGenres: ['swing', 'big band'] },
+      { id: 'fusion', name: 'Fusion', spotifyGenres: ['fusion', 'jazz fusion'] },
+    ]
   },
   {
     id: 'rnb',
@@ -186,7 +239,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'gospel', 'blues', 'southern soul', 'deep soul', 'philly soul',
       'alternative r&b', 'progressive r&b'
     ],
-    keywords: ['rhythm', 'blues', 'soul', 'vocals', 'groove', 'smooth']
+    keywords: ['rhythm', 'blues', 'soul', 'vocals', 'groove', 'smooth'],
+    subGenres: [
+      { id: 'soul', name: 'Soul', spotifyGenres: ['soul', 'classic soul'] },
+      { id: 'neo-soul', name: 'Neo Soul', spotifyGenres: ['neo soul'] },
+      { id: 'contemporary-rnb', name: 'Contemporary R&B', spotifyGenres: ['contemporary r&b'] },
+      { id: 'funk', name: 'Funk', spotifyGenres: ['funk', 'soul funk'] },
+    ]
   },
   {
     id: 'latin',
@@ -201,7 +260,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'banda', 'ranchera', 'vallenato', 'mambo', 'bolero', 'cha cha',
       'latin jazz', 'latin rock', 'latin pop', 'tropical'
     ],
-    keywords: ['spanish', 'portuguese', 'latin america', 'caribbean', 'brazil', 'mexico']
+    keywords: ['spanish', 'portuguese', 'latin america', 'caribbean', 'brazil', 'mexico'],
+    subGenres: [
+      { id: 'reggaeton', name: 'Reggaeton', spotifyGenres: ['reggaeton', 'latin hip hop'] },
+      { id: 'salsa', name: 'Salsa', spotifyGenres: ['salsa'] },
+      { id: 'bachata', name: 'Bachata', spotifyGenres: ['bachata'] },
+      { id: 'latin-pop', name: 'Latin Pop', spotifyGenres: ['latin pop'] },
+    ]
   },
   {
     id: 'country',
@@ -215,7 +280,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'folk', 'western', 'honky tonk', 'outlaw country', 'contemporary country',
       'country pop', 'nashville sound', 'bakersfield sound', 'cowpunk'
     ],
-    keywords: ['folk', 'acoustic', 'americana', 'roots', 'traditional']
+    keywords: ['folk', 'acoustic', 'americana', 'roots', 'traditional'],
+    subGenres: [
+      { id: 'contemporary-country', name: 'Contemporary', spotifyGenres: ['contemporary country', 'country pop'] },
+      { id: 'classic-country', name: 'Classic', spotifyGenres: ['classic country', 'honky tonk'] },
+      { id: 'americana', name: 'Americana', spotifyGenres: ['americana', 'alt-country'] },
+      { id: 'folk', name: 'Folk', spotifyGenres: ['folk', 'folk rock'] },
+    ]
   },
   {
     id: 'classical',
@@ -229,7 +300,13 @@ export const CUSTOM_CATEGORIES: CustomCategory[] = [
       'contemporary classical', 'minimalism', 'chamber music',
       'symphony', 'concerto', 'piano', 'violin', 'cello'
     ],
-    keywords: ['orchestra', 'symphony', 'conductor', 'composer', 'instrumental', 'concert hall']
+    keywords: ['orchestra', 'symphony', 'conductor', 'composer', 'instrumental', 'concert hall'],
+    subGenres: [
+      { id: 'orchestral', name: 'Orchestral', spotifyGenres: ['orchestral', 'symphony'] },
+      { id: 'piano', name: 'Piano', spotifyGenres: ['classical piano'] },
+      { id: 'opera', name: 'Opera', spotifyGenres: ['opera'] },
+      { id: 'baroque', name: 'Baroque', spotifyGenres: ['baroque'] },
+    ]
   }
 ];
 

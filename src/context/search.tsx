@@ -199,7 +199,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoadingMore(false);
     }
-  }, [query, token, hasMore, isLoadingMore, offsets, LIMIT]);
+  }, [query, token, hasMore, isLoadingMore, offsets, results, LIMIT]);
 
   const clearResults = useCallback(() => {
     setResults({ tracks: [], albums: [], artists: [], playlists: [] });

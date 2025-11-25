@@ -6,9 +6,11 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { CircularProgress, IconButton, Tooltip, Fade, Grow, Skeleton } from '@mui/material';
+import { CircularProgress, IconButton, Fade, Grow, Skeleton } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PlayArrow from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import type { Artist as ArtistType, Album, Track } from '../types/spotify';
 import { formatCount } from '../utils/numberFormat';
 
@@ -24,14 +26,12 @@ const Artist: React.FC = () => {
   const [artist, setArtist] = React.useState<ArtistType | null>(null);
   const [topTracks, setTopTracks] = React.useState<Track[]>([]);
   const [albums, setAlbums] = React.useState<Album[]>([]);
-  const [relatedArtists, setRelatedArtists] = React.useState<ArtistType[]>([]);
   const [isFollowing, setIsFollowing] = React.useState(false);
   
   // Loading states
   const [loading, setLoading] = React.useState(true);
   const [loadingTracks, setLoadingTracks] = React.useState(false);
   const [loadingAlbums, setLoadingAlbums] = React.useState(false);
-  const [loadingRelated, setLoadingRelated] = React.useState(false);
   const [loadingFollow, setLoadingFollow] = React.useState(false);
   
   // UI states
@@ -61,49 +61,59 @@ const Artist: React.FC = () => {
         
         setArtist(artistData);
 
-        // Parallel API calls for better performance
-        const [followResult, tracksResult, albumsResult, relatedResult] = await Promise.allSettled([
-          // Check if user is following this artist
-          makeRequest(buildSpotifyUrl('me/following/contains', { 
-            type: 'artist', 
-            ids: id 
-          })),
-          // Fetch top tracks
-          makeRequest(buildSpotifyUrl(`artists/${id}/top-tracks`, { market: 'US' })),
-          // Fetch albums
-          makeRequest(buildSpotifyUrl(`artists/${id}/albums`, {
+        // Helper to fetch all albums
+        const fetchAllAlbums = async () => {
+          let allAlbums: Album[] = [];
+          let nextUrl = buildSpotifyUrl(`artists/${id}/albums`, {
             include_groups: 'album,single',
             market: 'US',
-            limit: 20
-          })),
-          // Fetch related artists
-          makeRequest(buildSpotifyUrl(`artists/${id}/related-artists`))
+            limit: 50
+          });
+
+          while (nextUrl) {
+            const { data, error } = await makeRequest(nextUrl);
+            if (error || !data) break;
+            
+            allAlbums = [...allAlbums, ...(data.items || [])];
+            nextUrl = data.next;
+          }
+          return allAlbums;
+        };
+
+        // Parallel API calls
+        const [followResult, tracksResult] = await Promise.all([
+          makeRequest(buildSpotifyUrl('me/following/contains', { type: 'artist', ids: id })),
+          makeRequest(buildSpotifyUrl(`artists/${id}/top-tracks`, { market: 'US' }))
         ]);
+        
+        const albumsData = await fetchAllAlbums();
 
         // Process follow status
-        if (followResult.status === 'fulfilled' && followResult.value.data && !followResult.value.error) {
-          setIsFollowing(followResult.value.data[0] || false);
+        if (followResult.data && !followResult.error) {
+          setIsFollowing(followResult.data[0] || false);
         }
 
         // Process top tracks
-        if (tracksResult.status === 'fulfilled' && tracksResult.value.data && !tracksResult.value.error) {
-          setTopTracks(tracksResult.value.data.tracks || []);
+        if (tracksResult.data && !tracksResult.error) {
+          setTopTracks(tracksResult.data.tracks || []);
         } else {
           console.warn('Failed to fetch top tracks');
         }
 
         // Process albums
-        if (albumsResult.status === 'fulfilled' && albumsResult.value.data && !albumsResult.value.error) {
-          setAlbums(albumsResult.value.data.items || []);
+        if (albumsData && albumsData.length > 0) {
+          // Filter out duplicates based on name and release date
+          const uniqueAlbums = albumsData.filter((album, index, self) => 
+            index === self.findIndex((t) => (
+              t.name === album.name && t.release_date === album.release_date
+            ))
+          );
+          // Sort by release date (newest first)
+          uniqueAlbums.sort((a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime());
+          
+          setAlbums(uniqueAlbums);
         } else {
           console.warn('Failed to fetch albums');
-        }
-
-        // Process related artists
-        if (relatedResult.status === 'fulfilled' && relatedResult.value.data && !relatedResult.value.error) {
-          setRelatedArtists(relatedResult.value.data.artists || []);
-        } else {
-          console.warn('Failed to fetch related artists');
         }
 
       } catch (error) {
@@ -115,7 +125,6 @@ const Artist: React.FC = () => {
         setLoading(false);
         setLoadingTracks(false);
         setLoadingAlbums(false);
-        setLoadingRelated(false);
       }
     };
 
@@ -204,7 +213,7 @@ const Artist: React.FC = () => {
   const isTopTrackPlaying = !!(topTrack && currentTrack?.id === topTrack.id && isPlaying);
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 text-white">
+    <div className="flex min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -212,17 +221,24 @@ const Artist: React.FC = () => {
       />
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
 
-      <main className="flex-1 lg:ml-72 pb-24 pt-20">
-        <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 lg:ml-72 relative z-0">
+        {/* Dynamic Background Gradient Overlay */}
+        <div 
+          className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+          style={{ 
+            background: `linear-gradient(to bottom, ${artist.images?.[0]?.url ? 'var(--dominant-color, #7c3aed)' : '#7c3aed'}, transparent)` 
+          }}
+        />
+
+        <div className="relative z-10 pb-24 pt-32 px-8 lg:px-12">
           
           {/* Artist Header */}
           <Fade in timeout={600}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/10 backdrop-blur-sm p-8 mb-8">
-            <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-end">
+            <div className="flex flex-col md:flex-row items-end gap-8 mb-10">
               
               {/* Artist Image */}
               <div className="relative flex-shrink-0">
-                <div className="w-48 h-48 lg:w-64 lg:h-64 rounded-full overflow-hidden bg-gray-800 shadow-2xl">
+                <div className="w-52 h-52 lg:w-60 lg:h-60 rounded-full overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)] border-4 border-white/10">
                   {artist.images?.[0] ? (
                     <img
                       src={artist.images[0].url}
@@ -230,7 +246,7 @@ const Artist: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
                       <svg className="w-24 h-24 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -240,98 +256,69 @@ const Artist: React.FC = () => {
               </div>
 
               {/* Artist Info */}
-              <div className="flex-1 text-center lg:text-left">
-                <div className="mb-4">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Back
-                  </button>
-                </div>
-                <div className="mb-2">
-                  <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-sm rounded-full backdrop-blur-sm">
+              <div className="flex-1 text-center md:text-left mb-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                  <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider rounded-full">
                     Artist
                   </span>
+                  {(artist.popularity ?? 0) >= 50 && (
+                    <span className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-500/20">
+                      <VerifiedIcon sx={{ fontSize: 14 }} />
+                      Verified Artist
+                    </span>
+                  )}
                 </div>
-                <h1 className="text-4xl lg:text-6xl font-black mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tight leading-none">
                   {artist.name}
                 </h1>
                 
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-gray-300">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-gray-300 font-medium">
                   {artist.followers && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span>{formatCount(artist.followers.total)} followers</span>
-                    </div>
+                    <span>{formatCount(artist.followers.total)} followers</span>
                   )}
                   {artist.genres && artist.genres.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2M7 4h10M7 4L5.5 6M17 4l1.5 2M9 10v8m6-8v8" />
-                      </svg>
-                      <span className="capitalize">{artist.genres[0]}</span>
-                    </div>
-                  )}
-                  {artist.popularity && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                      <span>{artist.popularity}% popularity</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-center lg:justify-start gap-4 mt-6">
-                  {topTrack && (
-                    <Tooltip title={isTopTrackPlaying ? 'Pause' : 'Play'}>
-                      <IconButton
-                        onClick={() => handleTrackPlay(topTrack)}
-                        aria-pressed={isTopTrackPlaying}
-                        aria-label={isTopTrackPlaying ? 'Pause top track' : 'Play top track'}
-                        size="large"
-                        sx={{
-                          bgcolor: isTopTrackPlaying ? 'rgba(29,185,84,0.12)' : '#1DB954',
-                          color: 'white',
-                          '&:hover': {
-                            bgcolor: isTopTrackPlaying ? 'rgba(29,185,84,0.18)' : '#1ed760'
-                          }
-                        }}
-                      >
-                        {isTopTrackPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  
-                  {token && token !== 'GUEST' && (
-                    <button
-                      onClick={handleFollowToggle}
-                      disabled={loadingFollow}
-                      className={`px-6 py-3 border-2 font-semibold rounded-full transition-all duration-300 hover:scale-105 ${
-                        isFollowing
-                          ? 'border-white text-white hover:border-red-400 hover:text-red-400 hover:bg-red-400/10'
-                          : 'border-white text-white hover:border-green-400 hover:text-green-400 hover:bg-green-400/10'
-                      }`}
-                    >
-                      {loadingFollow ? (
-                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        isFollowing ? 'Following' : 'Follow'
-                      )}
-                    </button>
+                    <>
+                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                      <span className="capitalize">{artist.genres.slice(0, 3).join(', ')}</span>
+                    </>
                   )}
                 </div>
               </div>
             </div>
-          </div>
           </Fade>
+
+          {/* Action Bar */}
+          <div className="flex items-center gap-6 mb-10">
+            {topTrack && (
+              <button
+                onClick={() => handleTrackPlay(topTrack)}
+                className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-whie hover:scale-105 hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
+              >
+                {isTopTrackPlaying ? <PauseIcon sx={{ fontSize: 32 }} /> : <PlayArrowIcon sx={{ fontSize: 32 }} />}
+              </button>
+            )}
+            
+            {token && token !== 'GUEST' && (
+            <button
+              onClick={handleFollowToggle}
+              className={`
+                px-8 py-2 rounded-full text-sm font-bold border transition-all uppercase tracking-wider
+                ${isFollowing 
+                  ? 'bg-transparent border-white/30 text-white hover:border-white' 
+                  : 'bg-transparent border-white/30 text-white hover:border-white'}
+              `}
+            >
+              {loadingFollow ? '...' : isFollowing ? 'Following' : 'Follow'}
+            </button>
+            )}
+            
+            <IconButton className="text-gray-400 hover:text-white">
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+            </IconButton>
+          </div>
 
           {/* Popular Tracks */}
           <section className="mb-8">
@@ -372,16 +359,16 @@ const Artist: React.FC = () => {
                       className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                       onClick={() => handleTrackPlay(track)}
                     >
-                    <div className="flex-shrink-0 w-8 text-gray-400 text-sm font-medium group-hover:hidden">
+                    <div className="flex-shrink-0 w-10 text-gray-400 text-sm font-medium group-hover:hidden text-center">
                       {index + 1}
                     </div>
-                    <div className="flex-shrink-0 w-8 hidden group-hover:flex items-center justify-center">
+                    <div className="flex-shrink-0 w-10 hidden group-hover:flex items-center justify-center">
                       {currentTrack?.id === track.id && isPlaying ? (
-                        <svg className="w-5 h-5 text-[#1DB954] transition-transform duration-200 hover:scale-125" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-8 h-8 text-[#1DB954] transition-transform duration-200 hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M6 4h2v12H6V4zm6 0h2v12h-2V4z" clipRule="evenodd" />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5 text-white transition-transform duration-200 hover:scale-125" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-8 h-8 text-white transition-transform duration-200 hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -470,9 +457,9 @@ const Artist: React.FC = () => {
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                          </svg>
+                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                                <PlayArrow sx={{ fontSize: 28, color: 'white' }} />
+                          </div>  
                         </div>
                       </div>
                     </div>
@@ -495,68 +482,7 @@ const Artist: React.FC = () => {
             )}
           </section>
 
-          {/* Related Artists */}
-          <section>
-            <Fade in timeout={600}>
-              <h2 className="text-2xl font-bold text-white mb-6">Related Artists</h2>
-            </Fade>
-            
-            {loadingRelated ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton 
-                    key={i} 
-                    variant="circular" 
-                    animation="wave"
-                    sx={{ 
-                      bgcolor: 'rgba(255,255,255,0.05)', 
-                      width: '100%',
-                      paddingTop: '100%'
-                    }} 
-                  />
-                ))}
-              </div>
-            ) : relatedArtists.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {relatedArtists.slice(0, 12).map((relatedArtist, index) => (
-                  <Grow key={relatedArtist.id} in timeout={400 + (index * 50)}>
-                    <div
-                      onClick={() => navigate(`/artist/${relatedArtist.id}`)}
-                      className="group cursor-pointer space-y-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-center"
-                    >
-                    <div className="aspect-square relative overflow-hidden rounded-full bg-gray-800 mx-auto">
-                      {relatedArtist.images?.[0] ? (
-                        <img
-                          src={relatedArtist.images[0].url}
-                          alt={relatedArtist.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-12 h-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-white font-medium truncate group-hover:text-green-400 transition-colors">
-                        {relatedArtist.name}
-                      </div>
-                      <div className="text-sm text-gray-400 capitalize truncate">
-                        {relatedArtist.genres?.[0] || 'Artist'}
-                      </div>
-                    </div>
-                  </div>
-                  </Grow>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                <p>No related artists available</p>
-              </div>
-            )}
-          </section>
+
 
         </div>
       </main>

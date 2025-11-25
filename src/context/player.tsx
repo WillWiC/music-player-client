@@ -86,6 +86,21 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const storePlayer = useAppSelector(s => s.player);
     const [availableDevices, setAvailableDevices] = React.useState<Device[]>([]);
 
+    // Persist player state to localStorage
+    useEffect(() => {
+      if (storePlayer.currentTrack) {
+        const stateToSave = {
+          currentTrack: storePlayer.currentTrack,
+          position: storePlayer.position,
+          duration: storePlayer.duration,
+          volume: storePlayer.volume,
+          isShuffled: storePlayer.isShuffled,
+          repeatMode: storePlayer.repeatMode
+        };
+        localStorage.setItem('spotify_player_state', JSON.stringify(stateToSave));
+      }
+    }, [storePlayer.currentTrack, storePlayer.position, storePlayer.duration, storePlayer.volume, storePlayer.isShuffled, storePlayer.repeatMode]);
+
     const playerRef = useRef<SpotifyPlayer | null>(null);
     const positionInterval = useRef<number | null>(null as unknown as number | null);
 

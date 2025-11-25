@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { usePlaylists } from '../context/playlists';
@@ -28,7 +28,10 @@ import {
   PlaylistPlay,
   Close,
   QueueMusic,
-  FilterList
+  FilterList,
+  ArrowBack,
+  ArrowForward,
+  Album
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -42,19 +45,54 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
-  const { isGuest } = useAuth();
+  const { isGuest, token } = useAuth();
   
   // Use global playlists context instead of local state
   const { playlists, isLoadingPlaylists } = usePlaylists();
+  const [albums, setAlbums] = useState<any[]>([]);
+  
+  // Fetch albums
+  useEffect(() => {
+    if (!token || isGuest) {
+      setAlbums([]);
+      return;
+    }
+
+    const fetchAlbums = async () => {
+      try {
+        let allAlbums: any[] = [];
+        let nextUrl = 'https://api.spotify.com/v1/me/albums?limit=50';
+        
+        while (nextUrl) {
+          const res = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) break;
+          const data = await res.json();
+          const items = data.items.map((item: any) => ({ ...item.album, type: 'album' }));
+          allAlbums = [...allAlbums, ...items];
+          nextUrl = data.next;
+        }
+        setAlbums(allAlbums);
+      } catch (e) {
+        console.error('Failed to fetch albums', e);
+      }
+    };
+    
+    fetchAlbums();
+  }, [token, isGuest]);
   
   // Local UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
-  // Filter playlists based on search query
-  const filteredPlaylists = playlists.filter(playlist =>
-    playlist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    playlist.owner?.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Combine and filter items
+  const libraryItems = [
+    ...playlists.map(p => ({ ...p, type: 'playlist' })),
+    ...albums
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredItems = libraryItems.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.owner?.display_name || item.artists?.[0]?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const menuItems = [
@@ -139,6 +177,35 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
         >
           Flowbeats
         </Typography>
+        
+        {/* Desktop Navigation Buttons */}
+        {!isMobile && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton 
+              onClick={() => navigate(-1)}
+              size="small"
+              sx={{ 
+                color: 'rgba(255,255,255,0.7)', 
+                bgcolor: 'rgba(255,255,255,0.05)', 
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: 'white' } 
+              }}
+            >
+              <ArrowBack fontSize="small" />
+            </IconButton>
+            <IconButton 
+              onClick={() => navigate(1)}
+              size="small"
+              sx={{ 
+                color: 'rgba(255,255,255,0.7)', 
+                bgcolor: 'rgba(255,255,255,0.05)', 
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: 'white' } 
+              }}
+            >
+              <ArrowForward fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+
         {/* Close button only on mobile (overlay mode) */}
         {isMobile && onClose && (
           <IconButton
@@ -226,10 +293,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
               letterSpacing: '1px'
             }}
           >
-            My Playlists {playlists.length > 0 && `(${playlists.length})`}
+            Your Library {libraryItems.length > 0 && `(${libraryItems.length})`}
           </Typography>
-          {playlists.length > 5 && (
-            <Tooltip title={showSearch ? 'Hide search' : 'Search playlists'}>
+          {libraryItems.length > 5 && (
+            <Tooltip title={showSearch ? 'Hide search' : 'Search library'}>
               <IconButton
                 onClick={() => setShowSearch(!showSearch)}
                 size="small"
@@ -254,7 +321,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
             <TextField
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search playlists..."
+              placeholder="Search library..."
               size="small"
               fullWidth
               InputProps={{
@@ -322,7 +389,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                     mb: 2
                   }}
                 >
-                  Sign in to access your playlists
+                  Sign in to access your library
                 </Typography>
                 <Chip 
                   label="Login" 
@@ -345,10 +412,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                     fontStyle: 'italic'
                   }}
                 >
-                  Loading your playlists...
+                  Loading your library...
                 </Typography>
               </Box>
-            ) : filteredPlaylists.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <Box sx={{ 
                 textAlign: 'center', 
                 py: 3,
@@ -363,16 +430,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                     fontSize: '0.85rem'
                   }}
                 >
-                  {searchQuery ? 'No playlists match your search' : 'No playlists found'}
+                  {searchQuery ? 'No items match your search' : 'No items found'}
                 </Typography>
               </Box>
             ) : (
-              filteredPlaylists.slice(0, 15).map((playlist: any) => (
-                <ListItem key={playlist.id} disablePadding sx={{ mb: 0.5 }}>
-                  <Tooltip title={`${playlist.name} by ${playlist.owner?.display_name || 'Unknown'}`} placement="right">
+              filteredItems.slice(0, 20).map((item: any) => (
+                <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+                  <Tooltip title={`${item.name} • ${item.type === 'album' ? 'Album' : 'Playlist'}`} placement="right">
                     <ListItemButton
                       onClick={() => {
-                        navigate(`/playlist/${playlist.id}`);
+                        navigate(item.type === 'album' ? `/album/${item.id}` : `/playlist/${item.id}`);
                         if (isMobile && onClose) onClose();
                       }}
                       sx={{
@@ -387,7 +454,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                           color: 'white',
                           border: '1px solid rgba(255, 255, 255, 0.1)',
                           transform: 'translateX(4px)',
-                          '& .playlist-cover': {
+                          '& .cover-image': {
                             transform: 'scale(1.05)',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
                           }
@@ -397,8 +464,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                     >
                       <ListItemIcon sx={{ minWidth: 40 }}>
                         <Avatar
-                          src={playlist.images?.[0]?.url}
-                          className="playlist-cover"
+                          src={item.images?.[0]?.url}
+                          className="cover-image"
                           sx={{
                             width: 32,
                             height: 32,
@@ -410,12 +477,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                             }
                           }}
                         >
-                          <PlaylistPlay sx={{ fontSize: '1rem' }} />
+                          {item.type === 'album' ? <Album sx={{ fontSize: '1rem' }} /> : <PlaylistPlay sx={{ fontSize: '1rem' }} />}
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText 
-                        primary={playlist.name} 
-                        secondary={`Playlist • ${playlist.owner?.display_name || 'Unknown'}`}
+                        primary={item.name} 
+                        secondary={`${item.type === 'album' ? 'Album' : 'Playlist'} • ${item.type === 'album' ? item.artists?.[0]?.name : item.owner?.display_name || 'Unknown'}`}
                         primaryTypographyProps={{ 
                           fontWeight: 500,
                           fontSize: '0.875rem',
@@ -434,12 +501,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
               ))
             )}
             
-            {/* View All Playlists Link */}
-            {!isGuest && !isLoadingPlaylists && filteredPlaylists.length > 15 && (
+            {/* View All Link */}
+            {!isGuest && !isLoadingPlaylists && filteredItems.length > 20 && (
               <ListItem disablePadding sx={{ mt: 2 }}>
                 <ListItemButton
                   onClick={() => {
-                    navigate('/library', { state: { initialTab: 'playlists' } });
+                    navigate('/library');
                     if (isMobile && onClose) onClose();
                   }}
                   sx={{
@@ -458,7 +525,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
                   }}
                 >
                   <ListItemText 
-                    primary={`View all ${playlists.length} playlists`}
+                    primary={`View all items`}
                     primaryTypographyProps={{ 
                       fontSize: '0.8rem',
                       fontWeight: 500,

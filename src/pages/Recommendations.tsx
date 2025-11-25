@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
 import { useMusicIntelligence } from '../hooks/useMusicIntelligence';
-import type { PlaylistRecommendation, ArtistRecommendation } from '../services/musicIntelligenceService';
+import type { PlaylistRecommendation} from '../services/musicIntelligenceService';
 import { formatCount } from '../utils/numberFormat';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -22,7 +22,7 @@ const Recommendations: React.FC = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const toast = useToast();
-  const { recommendations, artistRecommendations, insights, isLoading, error, refreshRecommendations, clearError } = useMusicIntelligence();
+  const { recommendations, insights, isLoading, error, refreshRecommendations, clearError } = useMusicIntelligence();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showAllGenres, setShowAllGenres] = React.useState(false);
 
@@ -49,7 +49,7 @@ const Recommendations: React.FC = () => {
   };
 
   const getScoreGradient = (score: number): string => {
-    if (score >= 80) return 'from-green-500 to-emerald-500';
+    if (score >= 80) return 'from-violet-500 to-purple-500';
     if (score >= 60) return 'from-yellow-500 to-orange-500';
     return 'from-orange-500 to-red-500';
   };
@@ -131,7 +131,7 @@ const Recommendations: React.FC = () => {
                 {/* Profile Overview */}
                 <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-3xl border border-white/20 backdrop-blur-lg p-6 sm:p-8">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center">
                       <span className="text-2xl">🎵</span>
                     </div>
                     <div>
@@ -142,16 +142,16 @@ const Recommendations: React.FC = () => {
                   
                   {/* Key Metrics Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white/5 rounded-2xl p-4 border border-green-500/20">
-                      <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-3">
+                    <div className="bg-white/5 rounded-2xl p-4 border border-violet-500/20">
+                      <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-3">
                         <span className="text-2xl">🎵</span>
                       </div>
-                      <div className="text-green-400 font-mono text-2xl font-bold mb-1">
+                      <div className="text-violet-400 font-mono text-2xl font-bold mb-1">
                         {insights.topGenres[0]?.genre || 'Mixed'}
                       </div>
                       <div className="text-gray-400 text-xs">Top Genre</div>
                       {insights.topGenres[0] && (
-                        <div className="mt-2 text-xs text-green-300">
+                        <div className="mt-2 text-xs text-violet-300">
                           {insights.topGenres[0].percentage}% of your music
                         </div>
                       )}
@@ -235,7 +235,7 @@ const Recommendations: React.FC = () => {
                 <div className="bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center">
                         <span className="text-xl">🎼</span>
                       </div>
                       <div>
@@ -272,21 +272,21 @@ const Recommendations: React.FC = () => {
                       <div key={index} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                               {index + 1}
                             </div>
                             <span className="text-white font-medium capitalize">{genreData.genre}</span>
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-gray-400 text-sm">{Math.round(genreData.count)} tracks</span>
-                            <span className="text-green-400 font-mono font-bold text-sm min-w-[3rem] text-right">
+                            <span className="text-violet-400 font-mono text-sm min-w-[3rem] text-right">
                               {genreData.percentage}%
                             </span>
                           </div>
                         </div>
                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
                             style={{ width: `${genreData.percentage}%` }}
                           />
                         </div>
@@ -334,7 +334,7 @@ const Recommendations: React.FC = () => {
               <div className="text-red-400 text-lg mb-4">{error}</div>
               <button
                 onClick={handleRefresh}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black rounded-lg font-medium transition-colors"
+                className="px-6 py-3 bg-violet-500 hover:bg-violet-400 text-white rounded-lg font-medium transition-colors"
               >
                 Try Again
               </button>
@@ -405,7 +405,7 @@ const Recommendations: React.FC = () => {
                         <h4 className="text-gray-300 font-medium text-xs">Why you'll love this:</h4>
                         {recommendation.reasons.slice(0, 2).map((reason, idx) => (
                           <div key={idx} className="text-xs text-gray-300 bg-white/5 rounded-lg px-3 py-2 flex items-start gap-2">
-                            <span className="text-green-400">•</span>
+                            <span className="text-violet-400">•</span>
                             <span className="flex-1">{reason}</span>
                           </div>
                         ))}
@@ -439,79 +439,7 @@ const Recommendations: React.FC = () => {
             </div>
           )}
 
-          {/* Artist Recommendations Section */}
-          {!isLoading && !error && artistRecommendations.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">🎤</span>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Discover New Artists</h2>
-                  <p className="text-gray-400 text-sm">{artistRecommendations.length} artists you might love</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {artistRecommendations.map((recommendation: ArtistRecommendation, index: number) => (
-                  <Grow key={recommendation.artist.id} in timeout={300 + (index * 30)}>
-                    <div
-                      className="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl p-4 border border-white/10 hover:border-blue-500/40 hover:from-white/15 hover:to-white/10 transition-all group cursor-pointer"
-                      onClick={() => navigate(`/artist/${recommendation.artist.id}`)}
-                    >
-                      {/* Artist Image */}
-                      <div className="relative mb-3">
-                        <div className="aspect-square rounded-full overflow-hidden bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                          <img
-                            src={recommendation.artist.images?.[0]?.url || '/vite.svg'}
-                            alt={recommendation.artist.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        {/* Match Score Badge */}
-                        <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gradient-to-r ${getScoreGradient(recommendation.score)} rounded-full text-white font-bold text-xs shadow-lg`}>
-                          {recommendation.score}%
-                        </div>
-                      </div>
-
-                      {/* Artist Info */}
-                      <div className="text-center">
-                        <h3 className="font-bold text-white text-sm truncate mb-1 group-hover:text-blue-300 transition-colors">
-                          {recommendation.artist.name}
-                        </h3>
-                        <p className="text-gray-400 text-xs mb-2">
-                          {formatCount(recommendation.artist.followers?.total ?? 0)} followers
-                        </p>
-
-                        {/* Similarity Type */}
-                        <div className="flex items-center justify-center gap-1 mb-2">
-                          <span className="text-xs text-gray-400 bg-white/10 px-2 py-1 rounded-full">
-                            {recommendation.similarityType === 'genre' ? '🎵 Genre' : 
-                             recommendation.similarityType === 'similar_artists' ? '🎯 Similar' : 
-                             recommendation.similarityType === 'popularity' ? '⭐ Popular' : '💡 For You'}
-                          </span>
-                        </div>
-
-                        {/* Matching Genres */}
-                        {recommendation.matchingGenres.length > 0 && (
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {recommendation.matchingGenres.slice(0, 2).map((genre, idx) => (
-                              <span
-                                key={idx}
-                                className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full"
-                              >
-                                {genre}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Grow>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Empty State */}
           {!isLoading && !error && recommendations.length === 0 && (
@@ -523,7 +451,7 @@ const Recommendations: React.FC = () => {
               </p>
               <button
                 onClick={handleRefresh}
-                className="px-6 py-3 bg-green-500 hover:bg-green-400 text-black rounded-lg font-medium transition-colors"
+                className="px-6 py-3 bg-violet-500 hover:bg-violet-400 text-white rounded-lg font-medium transition-colors"
               >
                 Generate Recommendations
               </button>
