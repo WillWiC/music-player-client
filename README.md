@@ -92,16 +92,10 @@ music-player-client/
 ├── server/                  # Backend auth server
 │   └── index.ts             # Token refresh endpoint
 │
-├── docker/                  # Docker configuration
-│   ├── Dockerfile           # Production build
-│   ├── docker-compose.yml   # Production compose
-│   └── docker-compose.dev.yml  # Development compose
-│
 ├── additional_readme/       # Extended documentation
 │   ├── AUTHENTICATION.md    # Auth flow details
 │   ├── SEARCH.md            # Search implementation
 │   ├── CATEGORIES.md        # Category system
-│   ├── DOCKER.md            # Docker setup
 │   └── ANIMATIONS.md        # Animation system
 │
 └── package.json             # Dependencies & scripts
@@ -119,7 +113,6 @@ music-player-client/
 | **Routing** | React Router v7 |
 | **API Integration** | Spotify Web API, Web Playback SDK |
 | **Authentication** | OAuth 2.0 PKCE Flow |
-| **Deployment** | Docker, Nginx |
 
 ---
 
@@ -163,21 +156,6 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 
 ---
 
-## 🐳 Docker Deployment
-
-### Development
-```bash
-npm run docker:compose:dev
-```
-
-### Production
-```bash
-npm run docker:build:prod
-npm run docker:compose:prod
-```
-
----
-
 ---
 
 ## 🔑 Spotify API Scopes
@@ -214,7 +192,6 @@ npm run docker:compose:prod
 | [AUTHENTICATION.md](./additional_readme/AUTHENTICATION.md) | OAuth 2.0 PKCE flow & token management |
 | [SEARCH.md](./additional_readme/SEARCH.md) | Search implementation details |
 | [CATEGORIES.md](./additional_readme/CATEGORIES.md) | Music categorization system |
-| [DOCKER.md](./additional_readme/DOCKER.md) | Docker deployment guide |
 | [ANIMATIONS.md](./additional_readme/ANIMATIONS.md) | UI animation system |
 
 ---

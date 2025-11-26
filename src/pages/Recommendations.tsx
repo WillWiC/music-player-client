@@ -96,19 +96,21 @@ const Recommendations: React.FC = () => {
         <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12 space-y-8">
           {/* Header */}
           <Fade in timeout={600}>
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-6">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-violet-500/30 transition-all"
               >
                 <ArrowBackIcon className="text-white" />
               </button>
               <div className="flex-1">
-                <h1 className="text-3xl sm:text-4xl font-bold text-white flex items-center gap-3">
-                  <span className="text-4xl">🎯</span>
-                  Smart Music Recommendations
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+                  <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-xl">🎯</span>
+                  </div>
+                  Smart Recommendations
                 </h1>
-                <p className="text-gray-400 mt-2">
+                <p className="text-gray-400 text-sm mt-1">
                   AI-powered analysis and personalized playlist suggestions
                 </p>
               </div>
@@ -116,9 +118,15 @@ const Recommendations: React.FC = () => {
                 <IconButton
                   onClick={handleRefresh}
                   disabled={isLoading}
-                  sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: 'white' } }}
+                  className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/30"
+                  sx={{ 
+                    color: 'rgba(255,255,255,0.6)', 
+                    '&:hover': { color: 'white' },
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: '0.75rem',
+                  }}
                 >
-                  <RefreshIcon />
+                  <RefreshIcon className={isLoading ? 'animate-spin' : ''} />
                 </IconButton>
               </Tooltip>
             </div>
@@ -129,79 +137,79 @@ const Recommendations: React.FC = () => {
             <Fade in timeout={800}>
               <div className="space-y-6">
                 {/* Profile Overview */}
-                <div className="bg-gradient-to-br from-white/10 to-white/5 rounded-3xl border border-white/20 backdrop-blur-lg p-6 sm:p-8">
+                <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">🎵</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">🎵</span>
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Your Music DNA</h2>
-                      <p className="text-gray-400 text-sm">Comprehensive analysis of your listening patterns</p>
+                      <h2 className="text-xl font-bold text-white">Your Music DNA</h2>
+                      <p className="text-gray-400 text-sm">Analysis of your listening patterns</p>
                     </div>
                   </div>
                   
                   {/* Key Metrics Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white/5 rounded-2xl p-4 border border-violet-500/20">
-                      <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-3">
-                        <span className="text-2xl">🎵</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div className="bg-white/5 rounded-xl p-4 border border-violet-500/20 hover:border-violet-500/40 transition-colors">
+                      <div className="w-10 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <span className="text-lg">🎵</span>
                       </div>
-                      <div className="text-violet-400 font-mono text-2xl font-bold mb-1">
+                      <div className="text-violet-400 font-semibold text-lg mb-0.5 truncate">
                         {insights.topGenres[0]?.genre || 'Mixed'}
                       </div>
-                      <div className="text-gray-400 text-xs">Top Genre</div>
+                      <div className="text-gray-500 text-xs">Top Genre</div>
                       {insights.topGenres[0] && (
-                        <div className="mt-2 text-xs text-violet-300">
+                        <div className="mt-2 text-xs text-violet-300/80">
                           {insights.topGenres[0].percentage}% of your music
                         </div>
                       )}
                     </div>
 
-                    <div className="bg-white/5 rounded-2xl p-4 border border-blue-500/20">
-                      <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-3">
-                        <span className="text-2xl">🎨</span>
+                    <div className="bg-white/5 rounded-xl p-4 border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <span className="text-lg">🎨</span>
                       </div>
-                      <div className="text-blue-400 font-mono text-2xl font-bold mb-1">
+                      <div className="text-blue-400 font-semibold text-lg mb-0.5">
                         {insights.artistDiversity}%
                       </div>
-                      <div className="text-gray-400 text-xs">Artist Diversity</div>
-                      <div className="mt-2 text-xs text-blue-300">
+                      <div className="text-gray-500 text-xs">Artist Diversity</div>
+                      <div className="mt-2 text-xs text-blue-300/80">
                         {insights.artistDiversity > 70 ? 'Very diverse' : insights.artistDiversity > 40 ? 'Moderate' : 'Focused'}
                       </div>
                     </div>
 
-                    <div className="bg-white/5 rounded-2xl p-4 border border-purple-500/20">
-                      <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3">
-                        <span className="text-2xl">🔍</span>
+                    <div className="bg-white/5 rounded-xl p-4 border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                      <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <span className="text-lg">🔍</span>
                       </div>
-                      <div className="text-purple-400 font-mono text-2xl font-bold mb-1">
+                      <div className="text-purple-400 font-semibold text-lg mb-0.5">
                         {insights.discoveryRate}%
                       </div>
-                      <div className="text-gray-400 text-xs">Discovery Rate</div>
-                      <div className="mt-2 text-xs text-purple-300">
+                      <div className="text-gray-500 text-xs">Discovery Rate</div>
+                      <div className="mt-2 text-xs text-purple-300/80">
                         {insights.discoveryRate > 70 ? 'Explorer' : insights.discoveryRate > 40 ? 'Balanced' : 'Loyalist'}
                       </div>
                     </div>
 
-                    <div className="bg-white/5 rounded-2xl p-4 border border-yellow-500/20">
-                      <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center mb-3">
-                        <span className="text-2xl">⭐</span>
+                    <div className="bg-white/5 rounded-xl p-4 border border-amber-500/20 hover:border-amber-500/40 transition-colors">
+                      <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <span className="text-lg">⭐</span>
                       </div>
-                      <div className="text-yellow-400 font-mono text-2xl font-bold mb-1 capitalize">
+                      <div className="text-amber-400 font-semibold text-lg mb-0.5 capitalize">
                         {insights.popularityBias}
                       </div>
-                      <div className="text-gray-400 text-xs">Music Style</div>
-                      <div className="mt-2 text-xs text-yellow-300">
+                      <div className="text-gray-500 text-xs">Music Style</div>
+                      <div className="mt-2 text-xs text-amber-300/80">
                         {insights.popularityBias === 'mainstream' ? 'Chart hits' : insights.popularityBias === 'underground' ? 'Hidden gems' : 'Best of both'}
                       </div>
                     </div>
                   </div>
 
                   {/* Listening Patterns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <div className="text-gray-400 text-xs mb-2">Avg Track Length</div>
-                      <div className="text-white font-mono text-lg font-bold">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                      <div className="text-gray-500 text-xs mb-1">Avg Track Length</div>
+                      <div className="text-white font-semibold text-base">
                         {formatDuration(insights.listeningPatterns.averageTrackLength)}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
@@ -209,9 +217,9 @@ const Recommendations: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <div className="text-gray-400 text-xs mb-2">Explicit Content</div>
-                      <div className="text-white font-mono text-lg font-bold">
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                      <div className="text-gray-500 text-xs mb-1">Explicit Content</div>
+                      <div className="text-white font-semibold text-base">
                         {insights.listeningPatterns.explicitContentRatio}%
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
@@ -219,9 +227,9 @@ const Recommendations: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <div className="text-gray-400 text-xs mb-2">Era Preference</div>
-                      <div className="text-white font-mono text-lg font-bold capitalize">
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors">
+                      <div className="text-gray-500 text-xs mb-1">Era Preference</div>
+                      <div className="text-white font-semibold text-base capitalize">
                         {insights.listeningPatterns.recentVsOld}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
@@ -232,33 +240,33 @@ const Recommendations: React.FC = () => {
                 </div>
 
                 {/* Genre Breakdown */}
-                <div className="bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm p-6">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6">
+                  <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center">
-                        <span className="text-xl">🎼</span>
+                        <span className="text-lg">🎼</span>
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">Genre Distribution</h3>
-                        <p className="text-gray-400 text-sm">Your top {showAllGenres ? insights.topGenres.length : 5} music genres</p>
+                        <h3 className="text-lg font-bold text-white">Genre Distribution</h3>
+                        <p className="text-gray-500 text-xs">Your top {showAllGenres ? insights.topGenres.length : 5} music genres</p>
                       </div>
                     </div>
                     {insights.topGenres.length > 5 && (
                       <button
                         onClick={() => setShowAllGenres(!showAllGenres)}
-                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors border border-white/10 flex items-center gap-2"
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg transition-colors border border-white/10 hover:border-violet-500/30 flex items-center gap-2"
                       >
                         {showAllGenres ? (
                           <>
                             <span>Show Less</span>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                             </svg>
                           </>
                         ) : (
                           <>
                             <span>View All ({insights.topGenres.length})</span>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </>
@@ -269,22 +277,22 @@ const Recommendations: React.FC = () => {
                   
                   <div className="space-y-3">
                     {insights.topGenres.slice(0, showAllGenres ? insights.topGenres.length : 5).map((genreData, index) => (
-                      <div key={index} className="space-y-2">
+                      <div key={index} className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-gradient-to-br from-violet-400 to-purple-500 rounded-md flex items-center justify-center text-white font-medium text-xs">
                               {index + 1}
                             </div>
-                            <span className="text-white font-medium capitalize">{genreData.genre}</span>
+                            <span className="text-white font-medium text-sm capitalize">{genreData.genre}</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-gray-400 text-sm">{Math.round(genreData.count)} tracks</span>
-                            <span className="text-violet-400 font-mono text-sm min-w-[3rem] text-right">
+                            <span className="text-gray-500 text-xs">{Math.round(genreData.count)} tracks</span>
+                            <span className="text-violet-400 font-mono text-xs min-w-[2.5rem] text-right">
                               {genreData.percentage}%
                             </span>
                           </div>
                         </div>
-                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
                             style={{ width: `${genreData.percentage}%` }}
@@ -306,11 +314,11 @@ const Recommendations: React.FC = () => {
                 animation="wave"
                 sx={{ 
                   bgcolor: 'rgba(255,255,255,0.05)', 
-                  borderRadius: '1.5rem',
-                  height: '400px'
+                  borderRadius: '1rem',
+                  height: '320px'
                 }} 
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton 
                     key={i} 
@@ -318,8 +326,8 @@ const Recommendations: React.FC = () => {
                     animation="wave"
                     sx={{ 
                       bgcolor: 'rgba(255,255,255,0.05)', 
-                      borderRadius: '1rem',
-                      height: '320px'
+                      borderRadius: '0.75rem',
+                      height: '280px'
                     }} 
                   />
                 ))}
@@ -331,10 +339,10 @@ const Recommendations: React.FC = () => {
           {error && (
             <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-8 text-center backdrop-blur-sm">
               <div className="text-4xl mb-4">⚠️</div>
-              <div className="text-red-400 text-lg mb-4">{error}</div>
+              <div className="text-red-400 text-base mb-4">{error}</div>
               <button
                 onClick={handleRefresh}
-                className="px-6 py-3 bg-violet-500 hover:bg-violet-400 text-white rounded-lg font-medium transition-colors"
+                className="px-5 py-2.5 bg-violet-500 hover:bg-violet-400 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Try Again
               </button>
@@ -343,57 +351,57 @@ const Recommendations: React.FC = () => {
 
           {/* Recommendations Section */}
           {!isLoading && !error && recommendations.length > 0 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">🎯</span>
+                  <span className="text-lg">🎯</span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Personalized Playlists</h2>
-                  <p className="text-gray-400 text-sm">{recommendations.length} playlists matched to your taste</p>
+                  <h2 className="text-xl font-bold text-white">Personalized Playlists</h2>
+                  <p className="text-gray-500 text-xs">{recommendations.length} playlists matched to your taste</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {recommendations.map((recommendation, index) => (
                   <Grow key={recommendation.playlist.id} in timeout={400 + (index * 50)}>
                     <div
-                      className="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl p-5 border border-white/10 hover:border-purple-500/40 hover:from-white/15 hover:to-white/10 transition-all group cursor-pointer"
+                      className="group bg-white/5 rounded-xl p-4 border border-white/10 hover:border-violet-500/30 hover:bg-white/8 transition-all cursor-pointer"
                       onClick={() => navigate(`/playlist/${recommendation.playlist.id}`)}
                     >
                       {/* Playlist Header */}
-                      <div className="flex items-start gap-4 mb-4">
+                      <div className="flex items-start gap-3 mb-3">
                         <div className="relative flex-shrink-0">
                           <img
                             src={recommendation.playlist.images[0]?.url || '/vite.svg'}
                             alt={recommendation.playlist.name}
-                            className="w-20 h-20 rounded-xl object-cover shadow-lg"
+                            className="w-16 h-16 rounded-lg object-cover shadow-md"
                           />
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handlePlaylistPlay(recommendation);
                             }}
-                            className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <PlayArrowIcon sx={{ color: 'white', fontSize: 32 }} />
+                            <PlayArrowIcon sx={{ color: 'white', fontSize: 28 }} />
                           </button>
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-white text-base truncate mb-1 group-hover:text-purple-300 transition-colors">
+                          <h3 className="font-semibold text-white text-sm truncate mb-0.5 group-hover:text-violet-300 transition-colors">
                             {recommendation.playlist.name}
                           </h3>
-                          <p className="text-gray-400 text-xs mb-2">
+                          <p className="text-gray-500 text-xs mb-2">
                             {formatCount(recommendation.playlist.followers?.total ?? 0)} followers
                           </p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-lg">{getSimilarityIcon(recommendation.similarityType)}</span>
-                            <span className="text-xs text-gray-400 bg-white/10 px-2 py-1 rounded-full">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm">{getSimilarityIcon(recommendation.similarityType)}</span>
+                            <span className="text-xs text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">
                               {getSimilarityTypeLabel(recommendation.similarityType)}
                             </span>
-                            {/* Match Score Badge beside type label */}
-                            <span className={`text-xs font-mono font-bold px-2 py-1 rounded-full bg-gradient-to-r ${getScoreGradient(recommendation.score)} text-white shadow-md`}>
+                            {/* Match Score Badge */}
+                            <span className={`text-xs font-mono px-2 py-0.5 rounded-full bg-gradient-to-r ${getScoreGradient(recommendation.score)} text-white`}>
                               {recommendation.score}%
                             </span>
                           </div>
@@ -401,32 +409,31 @@ const Recommendations: React.FC = () => {
                       </div>
 
                       {/* Recommendation Reasons */}
-                      <div className="space-y-2 mb-4">
-                        <h4 className="text-gray-300 font-medium text-xs">Why you'll love this:</h4>
+                      <div className="space-y-1.5 mb-3">
+                        <h4 className="text-gray-400 font-medium text-xs">Why you'll love this:</h4>
                         {recommendation.reasons.slice(0, 2).map((reason, idx) => (
-                          <div key={idx} className="text-xs text-gray-300 bg-white/5 rounded-lg px-3 py-2 flex items-start gap-2">
+                          <div key={idx} className="text-xs text-gray-400 bg-white/5 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
                             <span className="text-violet-400">•</span>
-                            <span className="flex-1">{reason}</span>
+                            <span className="flex-1 leading-relaxed">{reason}</span>
                           </div>
                         ))}
                       </div>
 
                       {/* Matching Genres */}
-                      {/* Matching Genres */}
                       {recommendation.matchingGenres.length > 0 && (
-                        <div className="pt-3 border-t border-white/10">
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="pt-3 border-t border-white/5">
+                          <div className="flex flex-wrap gap-1">
                             {recommendation.matchingGenres.slice(0, 4).map((genre, idx) => (
                               <span
                                 key={idx}
-                                className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full border border-purple-500/30"
+                                className="text-xs bg-violet-500/15 text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20"
                               >
                                 {genre}
                               </span>
                             ))}
                             {recommendation.matchingGenres.length > 4 && (
-                              <span className="text-xs text-gray-400 px-2 py-1">
-                                +{recommendation.matchingGenres.length - 4} more
+                              <span className="text-xs text-gray-500 px-1">
+                                +{recommendation.matchingGenres.length - 4}
                               </span>
                             )}
                           </div>
@@ -443,15 +450,17 @@ const Recommendations: React.FC = () => {
 
           {/* Empty State */}
           {!isLoading && !error && recommendations.length === 0 && (
-            <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-12 text-center">
-              <div className="text-6xl mb-4">🎵</div>
-              <h2 className="text-2xl font-bold text-white mb-2">No Recommendations Yet</h2>
-              <p className="text-gray-400 mb-6">
+            <div className="bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-10 text-center">
+              <div className="w-16 h-16 bg-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🎵</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">No Recommendations Yet</h2>
+              <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">
                 Listen to more music on Spotify to get personalized playlist recommendations
               </p>
               <button
                 onClick={handleRefresh}
-                className="px-6 py-3 bg-violet-500 hover:bg-violet-400 text-white rounded-lg font-medium transition-colors"
+                className="px-5 py-2.5 bg-violet-500 hover:bg-violet-400 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Generate Recommendations
               </button>
