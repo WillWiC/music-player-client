@@ -70,6 +70,9 @@ const Header: React.FC<HeaderProps> = ({
   React.useEffect(() => {
     if (location.pathname === '/search') {
       setSearchQuery(globalQuery);
+      // Close dropdown when on search page
+      setShowSearchDropdown(false);
+      setSearchResults([]);
     }
   }, [location.pathname, globalQuery]);
 
@@ -83,6 +86,13 @@ const Header: React.FC<HeaderProps> = ({
 
   const searchTracks = React.useCallback(
     async (query: string) => {
+      // Don't show dropdown on search page - let the page handle the search
+      if (location.pathname === '/search') {
+        setSearchResults([]);
+        setShowSearchDropdown(false);
+        return;
+      }
+
       if (!token || !query.trim()) {
         setSearchResults([]);
         setShowSearchDropdown(false);
@@ -92,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({
       setIsSearching(true);
       try {
         const res = await fetch(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=8`,
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=5`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -114,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({
         setIsSearching(false);
       }
     },
-    [token]
+    [token, location.pathname]
   );
 
   // debounce search
@@ -136,17 +146,11 @@ const Header: React.FC<HeaderProps> = ({
     const value = e.target.value;
     setSearchQuery(value);
     
-    // Auto-navigate to search page when user starts typing
-    if (value.trim() && location.pathname !== '/search') {
-      navigate('/search');
-      // Set global query for search page
-      setGlobalQuery(value);
-    }
-    
-    // Update global query if on search page
+    // Update global query if on search page (for live search on that page)
     if (location.pathname === '/search') {
       setGlobalQuery(value);
     }
+    // Don't auto-navigate - let user see dropdown results first
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -320,7 +324,7 @@ const Header: React.FC<HeaderProps> = ({
 
             {showSearchDropdown && (
               <Paper
-                sx={{ position: 'absolute', top: '100%', left: 0, right: 0, mt: 1, bgcolor: '#000000', borderRadius: 2, zIndex: 50, border: '1px solid rgba(255,255,255,0.06)', maxHeight: 420, overflow: 'auto' }}
+                sx={{ position: 'absolute', top: '100%', left: 0, right: 0, mt: 1, bgcolor: '#0a0a0a', borderRadius: 2, zIndex: 50, border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 <List id="search-results" role="listbox" sx={{ p: 0 }}>
                   {searchResults.length === 0 && !isSearching && (
@@ -337,14 +341,14 @@ const Header: React.FC<HeaderProps> = ({
                       aria-selected={activeIndex === idx}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onClick={() => void handlePlay(track)}
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, cursor: 'pointer', bgcolor: activeIndex === idx ? 'rgba(34,197,94,0.06)' : 'transparent' }}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, cursor: 'pointer', bgcolor: activeIndex === idx ? 'rgba(139,92,246,0.08)' : 'transparent', '&:hover': { bgcolor: 'rgba(139,92,246,0.08)' } }}
                     >
-                      <ListItemAvatar>
-                        <Avatar src={track.album?.images?.[0]?.url || '/vite.svg'} alt={track.name} variant="rounded" sx={{ width: 44, height: 44 }} />
+                      <ListItemAvatar sx={{ minWidth: 44 }}>
+                        <Avatar src={track.album?.images?.[0]?.url || '/vite.svg'} alt={track.name} variant="rounded" sx={{ width: 40, height: 40 }} />
                       </ListItemAvatar>
                       <ListItemText
-                        primary={<Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 600 }}>{track.name}</Typography>}
-                        secondary={<Typography variant="caption" sx={{ color: 'text.secondary' }}>{track.artists?.map(a => a.name).join(', ')} • {track.album?.name}</Typography>}
+                        primary={<Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.875rem', lineHeight: 1.3 }} noWrap>{track.name}</Typography>}
+                        secondary={<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', lineHeight: 1.2 }} noWrap>{track.artists?.map(a => a.name).join(', ')}</Typography>}
                       />
                       <IconButton
                         size="small"
@@ -371,8 +375,8 @@ const Header: React.FC<HeaderProps> = ({
                     </ListItem>
                   ))}
 
-                  {/* See all results */}
-                  {searchQuery.trim() && (
+                  {/* View More Results */}
+                  {searchQuery.trim() && searchResults.length > 0 && (
                     <ListItem
                       component="div"
                       onClick={() => { 
@@ -380,9 +384,22 @@ const Header: React.FC<HeaderProps> = ({
                         navigate(`/search?q=${encodeURIComponent(searchQuery)}`); 
                         setShowSearchDropdown(false); 
                       }}
-                      sx={{ cursor: 'pointer', px: 2, py: 1.5, borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                      sx={{ 
+                        cursor: 'pointer', 
+                        px: 1.5, 
+                        py: 1, 
+                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                        justifyContent: 'center',
+                        '&:hover': { bgcolor: 'rgba(139,92,246,0.08)' }
+                      }}
                     >
-                      <ListItemText primary={<Typography sx={{ color: 'primary.main', fontWeight: 600 }}>See all results for "{searchQuery}"</Typography>} />
+                      <ListItemText 
+                        primary={
+                          <Typography sx={{ color: 'rgb(139,92,246)', fontWeight: 500, textAlign: 'center', fontSize: '0.8125rem' }}>
+                            View all results for "{searchQuery}"
+                          </Typography>
+                        } 
+                      />
                     </ListItem>
                   )}
                 </List>
