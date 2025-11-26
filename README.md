@@ -185,17 +185,6 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 
 ---
 
-## 📚 Additional Documentation
-
-| Document | Description |
-|----------|-------------|
-| [AUTHENTICATION.md](./additional_readme/AUTHENTICATION.md) | OAuth 2.0 PKCE flow & token management |
-| [SEARCH.md](./additional_readme/SEARCH.md) | Search implementation details |
-| [CATEGORIES.md](./additional_readme/CATEGORIES.md) | Music categorization system |
-| [ANIMATIONS.md](./additional_readme/ANIMATIONS.md) | UI animation system |
-
----
-
 ## 🤝 Contributing
 
 1. Fork the repository
