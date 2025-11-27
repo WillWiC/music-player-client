@@ -937,7 +937,6 @@ const Player: React.FC = () => {
             </Typography>
           </Stack>
         </Stack>
-        </Stack>
       </Box>
 
       {/* Track Menu for 3-dot button */}
