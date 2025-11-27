@@ -39,6 +39,7 @@ interface PlayerState {
   isRemotePlaying: boolean
   isShuffled: boolean
   repeatMode: 'off' | 'context' | 'track'
+  contextUri: string | null // The playlist/album URI the current track is playing from
 }
 
 /** Initial player state - all reset to default/empty */
@@ -46,7 +47,13 @@ const loadPersistedState = (): Partial<PlayerState> => {
   try {
     const saved = localStorage.getItem('spotify_player_state');
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // Only restore settings, not track state - track state should sync from Spotify server
+      return {
+        volume: parsed.volume,
+        isShuffled: parsed.isShuffled,
+        repeatMode: parsed.repeatMode
+      };
     }
   } catch (e) {
     console.warn('Failed to load player state', e);
@@ -58,9 +65,9 @@ const persisted = loadPersistedState();
 
 const initialState: PlayerState = {
   playing: false,
-  currentTrack: persisted.currentTrack || null,
-  position: persisted.position || 0,
-  duration: persisted.duration || 0,
+  currentTrack: null, // Always null on init - will be fetched from Spotify server
+  position: 0,
+  duration: 0,
   volume: persisted.volume || 0.5,
   deviceId: null,
   activeDeviceId: null,
@@ -68,6 +75,7 @@ const initialState: PlayerState = {
   isRemotePlaying: false,
   isShuffled: persisted.isShuffled || false,
   repeatMode: persisted.repeatMode || 'off',
+  contextUri: null, // The playlist/album context - will be fetched from Spotify server
 }
 
 /**
@@ -118,6 +126,10 @@ const playerSlice = createSlice({
     setRepeat(state, action: PayloadAction<'off' | 'context' | 'track'>) {
       state.repeatMode = action.payload
     },
+    /** Set the context URI (playlist/album) for current playback */
+    setContextUri(state, action: PayloadAction<string | null>) {
+      state.contextUri = action.payload
+    },
     /** Reset all player state to initial values */
     reset(state) {
       Object.assign(state, initialState)
@@ -137,6 +149,7 @@ export const {
   setRemotePlaying,
   setShuffled,
   setRepeat,
+  setContextUri,
   reset,
 } = playerSlice.actions
 

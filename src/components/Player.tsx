@@ -166,13 +166,14 @@ const Player: React.FC = () => {
         bottom: 0,
         left: 0,
         right: 0,
-  background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.72) 0%, rgba(18, 18, 18, 0.78) 100%)',
-  backdropFilter: 'blur(32px) saturate(180%)',
+        background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.72) 0%, rgba(18, 18, 18, 0.78) 100%)',
+        backdropFilter: 'blur(32px) saturate(180%)',
         borderTop: isRemotePlaying 
           ? '2px solid rgba(251, 146, 60, 0.35)' 
           : '1px solid rgba(255, 255, 255, 0.06)',
-  p: { xs: 1.5, md: 2 },
-  zIndex: (theme) => theme.zIndex.drawer + 10,
+        p: { xs: 1, sm: 1.5, md: 2 },
+        pb: { xs: 'calc(8px + env(safe-area-inset-bottom))', sm: 1.5, md: 2 },
+        zIndex: (theme) => theme.zIndex.drawer + 10,
         isolation: 'isolate',
         transform: 'translateZ(0)',
         boxShadow: isRemotePlaying
@@ -202,14 +203,144 @@ const Player: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
-        <Stack direction="row" alignItems="center" spacing={{ xs: 1.5, md: 2 }}>
+        {/* Mobile Layout (xs and sm) */}
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          {/* Mobile Progress Bar - Top */}
+          <Box sx={{ px: 0.5, mb: 1 }}>
+            <Slider
+              value={duration > 0 ? position : 0}
+              max={duration}
+              onChange={handleProgressChange}
+              disabled={!isTrackLoaded}
+              sx={{
+                height: 3,
+                p: 0,
+                '& .MuiSlider-thumb': {
+                  width: 0,
+                  height: 0,
+                  '&:hover, &.Mui-focusVisible, &.Mui-active': {
+                    width: 12,
+                    height: 12,
+                    boxShadow: isRemotePlaying
+                      ? '0px 0px 0px 6px rgba(251, 146, 60, 0.12)'
+                      : '0px 0px 0px 6px rgba(29, 185, 84, 0.12)',
+                  },
+                  backgroundColor: isRemotePlaying ? '#fb923c' : '#1db954',
+                },
+                '& .MuiSlider-rail': {
+                  opacity: 0.3,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                },
+                '& .MuiSlider-track': {
+                  background: isRemotePlaying
+                    ? 'linear-gradient(90deg, #fb923c 0%, #f97316 100%)'
+                    : 'linear-gradient(90deg, #1db954 0%, #1ed760 100%)',
+                  border: 'none',
+                },
+              }}
+            />
+          </Box>
+          
+          {/* Mobile Main Controls Row */}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {/* Track Info - Mobile */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+              {isTrackLoaded ? (
+                <CardMedia
+                  component="img"
+                  image={albumImage || '/vite.svg'}
+                  alt={`${trackName} cover`}
+                  onClick={handleTrackClick}
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 1,
+                    flexShrink: 0,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                  }}
+                />
+              ) : (
+                <Avatar sx={{ width: 48, height: 48, borderRadius: 1, bgcolor: 'rgba(255, 255, 255, 0.05)' }}>
+                  <MusicNote />
+                </Avatar>
+              )}
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography 
+                  variant="body2" 
+                  onClick={isTrackLoaded ? handleTrackClick : undefined}
+                  sx={{ 
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: isTrackLoaded ? 'pointer' : 'default',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {trackName}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: '#b3b3b3',
+                    fontSize: '0.75rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                  }}
+                >
+                  {artistNames}
+                </Typography>
+              </Box>
+            </Stack>
+            
+            {/* Mobile Controls */}
+            <Stack direction="row" alignItems="center" spacing={0}>
+              <IconButton 
+                onClick={previousTrack}
+                disabled={!isTrackLoaded}
+                sx={{ color: 'text.secondary', p: 1 }}
+              >
+                <SkipPrevious sx={{ fontSize: 24 }} />
+              </IconButton>
+              <IconButton 
+                onClick={isTrackLoaded ? togglePlay : undefined}
+                disabled={!isTrackLoaded}
+                sx={{
+                  background: isTrackLoaded 
+                    ? (isRemotePlaying ? '#fb923c' : '#1db954')
+                    : 'rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff',
+                  width: 44,
+                  height: 44,
+                  '&:hover': { background: isRemotePlaying ? '#f97316' : '#1ed760' },
+                }}
+              >
+                {isPlaying ? <Pause sx={{ fontSize: 26 }} /> : <PlayArrow sx={{ fontSize: 26 }} />}
+              </IconButton>
+              <IconButton 
+                onClick={nextTrack}
+                disabled={!isTrackLoaded}
+                sx={{ color: 'text.secondary', p: 1 }}
+              >
+                <SkipNext sx={{ fontSize: 24 }} />
+              </IconButton>
+            </Stack>
+          </Stack>
+        </Box>
+        
+        {/* Desktop Layout (md and up) */}
+        <Stack direction="row" alignItems="center" spacing={{ md: 2 }} sx={{ display: { xs: 'none', md: 'flex' } }}>
           {/* Track Info */}
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ 
             minWidth: 0, 
-            width: { xs: 180, md: 240, lg: 260 },
+            width: { md: 240, lg: 260 },
             background: 'rgba(255, 255, 255, 0.04)',
             borderRadius: 2,
-            p: { xs: 1, md: 1.5 },
+            p: { md: 1.5 },
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3)',
@@ -221,8 +352,8 @@ const Player: React.FC = () => {
                 image={albumImage || '/vite.svg'}
                 alt={`${trackName} cover`}
                 sx={{
-                  width: { xs: 40, md: 48 },
-                  height: { xs: 40, md: 48 },
+                  width: 48,
+                  height: 48,
                   borderRadius: 1.5,
                   boxShadow: isRemotePlaying 
                     ? '0 6px 24px rgba(251, 146, 60, 0.25), 0 3px 12px rgba(0, 0, 0, 0.5)'
@@ -275,8 +406,8 @@ const Player: React.FC = () => {
               />
             ) : (
               <Avatar sx={{ 
-                width: { xs: 40, md: 48 },
-                height: { xs: 40, md: 48 },
+                width: 48,
+                height: 48,
                 borderRadius: 1.5,
                 bgcolor: 'rgba(255, 255, 255, 0.05)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -293,7 +424,7 @@ const Player: React.FC = () => {
                   color: '#ffffff',
                   fontWeight: 700,
                   cursor: isTrackLoaded ? 'pointer' : 'default',
-                  fontSize: { xs: '0.8rem', md: '0.85rem' },
+                  fontSize: '0.85rem',
                   lineHeight: 1.2,
                   letterSpacing: '-0.01em',
                   '&:hover': isTrackLoaded ? { 
@@ -321,7 +452,7 @@ const Player: React.FC = () => {
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   display: 'block',
-                  fontSize: { xs: '0.7rem', md: '0.75rem' },
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   cursor: isTrackLoaded ? 'pointer' : 'default',
                   transition: 'color 0.3s ease',
@@ -396,7 +527,7 @@ const Player: React.FC = () => {
             sx={{
               background: 'rgba(255, 255, 255, 0.06)',
               borderRadius: 2.5,
-              p: { xs: 1, md: 1.5 },
+              p: 1.5,
               backdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.25)'
@@ -473,8 +604,8 @@ const Player: React.FC = () => {
                       ? 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)'
                       : 'linear-gradient(135deg, #1db954 0%, #1ed760 50%, #169c46 100%)'),
                 color: !isTrackLoaded ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
-                width: { xs: 38, md: 42 },
-                height: { xs: 38, md: 42 },
+                width: 42,
+                height: 42,
                 '&:hover': !isTrackLoaded ? {} : {
                   background: isRemotePlaying 
                     ? 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)'
@@ -503,7 +634,7 @@ const Player: React.FC = () => {
                 : `${isPlaying ? 'Pause' : 'Play'}`
               }
             >
-              {isPlaying ? <Pause sx={{ fontSize: { xs: 20, md: 22 } }} /> : <PlayArrow sx={{ fontSize: { xs: 20, md: 22 } }} />}
+              {isPlaying ? <Pause sx={{ fontSize: 22 }} /> : <PlayArrow sx={{ fontSize: 22 }} />}
             </IconButton>
 
             <IconButton 
@@ -570,10 +701,10 @@ const Player: React.FC = () => {
           {/* Progress Section */}
           <Box sx={{ 
             flex: 1, 
-            mx: { xs: 1.5, md: 2 },
+            mx: 2,
             background: 'rgba(255, 255, 255, 0.04)',
             borderRadius: 2,
-            p: { xs: 1, md: 1.5 },
+            p: 1.5,
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.2)'
@@ -582,8 +713,8 @@ const Player: React.FC = () => {
               <Typography variant="body2" sx={{ 
                 color: '#b3b3b3', 
                 fontFamily: 'monospace', 
-                minWidth: { xs: 32, md: 36 },
-                fontSize: { xs: '0.7rem', md: '0.75rem' },
+                minWidth: 36,
+                fontSize: '0.75rem',
                 fontWeight: 700,
                 letterSpacing: '0.5px'
               }}>
@@ -640,8 +771,8 @@ const Player: React.FC = () => {
               <Typography variant="body2" sx={{ 
                 color: '#b3b3b3', 
                 fontFamily: 'monospace', 
-                minWidth: { xs: 32, md: 36 },
-                fontSize: { xs: '0.7rem', md: '0.75rem' },
+                minWidth: 36,
+                fontSize: '0.75rem',
                 fontWeight: 700,
                 letterSpacing: '0.5px'
               }}>
@@ -660,7 +791,7 @@ const Player: React.FC = () => {
               minWidth: { md: 140, lg: 160 },
               background: 'rgba(255, 255, 255, 0.04)',
               borderRadius: 2,
-              p: { xs: 1, md: 1.5 },
+              p: 1.5,
               backdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.2)'
@@ -805,6 +936,7 @@ const Player: React.FC = () => {
               {Math.round(volume * 100)}%
             </Typography>
           </Stack>
+        </Stack>
         </Stack>
       </Box>
 

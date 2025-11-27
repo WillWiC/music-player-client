@@ -24,6 +24,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #000000;
   color: #ffffff;
   /* Reserve vertical scrollbar space to avoid layout shift when modals/menus toggle page scroll */
@@ -33,6 +34,13 @@ body {
   scrollbar-width: none;
   /* Prevent MUI from causing layout shifts when managing scroll */
   scrollbar-gutter: stable;
+  /* Mobile viewport fix */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for mobile viewport height */
+html {
+  height: -webkit-fill-available;
 }
 
 /* NOTE: Previously we forced body[style*="overflow: hidden"] to keep scrollbars visible
@@ -311,4 +319,72 @@ body {
   background-size: 24px 24px, 100% 100%;
   background-position: 0 0, 0 0;
   background-attachment: fixed;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Touch-friendly tap targets */
+  button, 
+  [role="button"],
+  .MuiIconButton-root {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Prevent text selection on mobile for better touch experience */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Smooth scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on mobile */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Grid adjustments for mobile */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .grid-auto-fill {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+/* Safe area padding for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Player bottom spacing for content */
+.player-visible {
+  padding-bottom: 90px;
+}
+
+@media (min-width: 768px) {
+  .player-visible {
+    padding-bottom: 100px;
+  }
 }
