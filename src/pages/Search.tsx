@@ -2,6 +2,10 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import TrackMenu from '../components/TrackMenu';
+import PlaylistMenu from '../components/PlaylistMenu';
+import AlbumMenu from '../components/AlbumMenu';
+import ArtistMenu from '../components/ArtistMenu';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useToast } from '../context/toast';
@@ -21,9 +25,10 @@ import {
   MusicNote,
   Album as AlbumIcon,
   Person,
-  PlayArrow
+  PlayArrow,
+  MoreVert
 } from '@mui/icons-material';
-import type { Track } from '../types/spotify';
+import type { Track, Playlist, Album, Artist } from '../types/spotify';
 
 const SearchPage: React.FC = () => {
   const { token } = useAuth();
@@ -47,6 +52,66 @@ const SearchPage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState(0); // 0: All, 1: Songs, 2: Artists, 3: Albums, 4: Playlists
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Track menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<Track | null>(null);
+  
+  // Playlist menu state
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = React.useState<Playlist | null>(null);
+
+  // Album menu state
+  const [albumMenuAnchor, setAlbumMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = React.useState<Album | null>(null);
+
+  // Artist menu state
+  const [artistMenuAnchor, setArtistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedArtist, setSelectedArtist] = React.useState<Artist | null>(null);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
+
+  const handlePlaylistMenuOpen = (event: React.MouseEvent<HTMLElement>, playlist: Playlist) => {
+    event.stopPropagation();
+    setPlaylistMenuAnchor(event.currentTarget);
+    setSelectedPlaylist(playlist);
+  };
+
+  const handlePlaylistMenuClose = () => {
+    setPlaylistMenuAnchor(null);
+    setSelectedPlaylist(null);
+  };
+
+  const handleAlbumMenuOpen = (event: React.MouseEvent<HTMLElement>, album: Album) => {
+    event.stopPropagation();
+    setAlbumMenuAnchor(event.currentTarget);
+    setSelectedAlbum(album);
+  };
+
+  const handleAlbumMenuClose = () => {
+    setAlbumMenuAnchor(null);
+    setSelectedAlbum(null);
+  };
+
+  const handleArtistMenuOpen = (event: React.MouseEvent<HTMLElement>, artist: Artist) => {
+    event.stopPropagation();
+    setArtistMenuAnchor(event.currentTarget);
+    setSelectedArtist(artist);
+  };
+
+  const handleArtistMenuClose = () => {
+    setArtistMenuAnchor(null);
+    setSelectedArtist(null);
+  };
 
   // Infinite scroll handler
   React.useEffect(() => {
@@ -412,6 +477,14 @@ const SearchPage: React.FC = () => {
                                   <div className="text-xs text-gray-400 font-medium tabular-nums mr-2">
                                     {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                                   </div>
+                                  
+                                  {/* More Options Button */}
+                                  <button
+                                    onClick={(e) => handleTrackMenuOpen(e, track)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all"
+                                  >
+                                    <MoreVert sx={{ fontSize: 20 }} />
+                                  </button>
                                 </div>
                               </Grow>
                             ))}
@@ -449,8 +522,16 @@ const SearchPage: React.FC = () => {
                                   />
                                 </div>
                                 <div className="w-full">
-                                  <div className="text-white font-bold truncate mb-1">
-                                    {artist.name}
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className="text-white font-bold truncate mb-1">
+                                      {artist.name}
+                                    </div>
+                                    <button
+                                      onClick={(e) => handleArtistMenuOpen(e, artist)}
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                    >
+                                      <MoreVert sx={{ fontSize: 18 }} />
+                                    </button>
                                   </div>
                                   <div className="text-sm text-gray-400">
                                     Artist
@@ -492,8 +573,16 @@ const SearchPage: React.FC = () => {
                                   />
                                 </div>
                                 <div className="w-full">
-                                  <div className="text-white font-bold truncate mb-1">
-                                    {album.name}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="text-white font-bold truncate mb-1 flex-1">
+                                      {album.name}
+                                    </div>
+                                    <button
+                                      onClick={(e) => handleAlbumMenuOpen(e, album)}
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                    >
+                                      <MoreVert sx={{ fontSize: 18 }} />
+                                    </button>
                                   </div>
                                   <div className="text-sm text-gray-400 truncate">
                                     {album.release_date?.split('-')[0]} • {album.artists.map((a: any) => a.name).join(', ')}
@@ -524,7 +613,7 @@ const SearchPage: React.FC = () => {
                           {results.playlists.filter(p => p != null).slice(0, 7).map((playlist: any, index: number) => (
                             <Grow in key={playlist.id} timeout={300 + index * 50}>
                               <div 
-                                className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
+                                className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer relative"
                                 onClick={() => navigate(`/playlist/${playlist.id}`)}
                               >
                                 <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
@@ -535,8 +624,16 @@ const SearchPage: React.FC = () => {
                                   />
                                 </div>
                                 <div className="w-full">
-                                  <div className="text-white font-bold truncate mb-1">
-                                    {playlist.name}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="text-white font-bold truncate mb-1 flex-1">
+                                      {playlist.name}
+                                    </div>
+                                    <button
+                                      onClick={(e) => handlePlaylistMenuOpen(e, playlist)}
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                    >
+                                      <MoreVert sx={{ fontSize: 20 }} />
+                                    </button>
                                   </div>
                                   <div className="text-sm text-gray-400 truncate">
                                     By {playlist.owner?.display_name || 'Playlist'}
@@ -623,6 +720,14 @@ const SearchPage: React.FC = () => {
                             <div className="text-sm text-gray-400 tabular-nums">
                               {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                             </div>
+                            
+                            {/* More Options Button */}
+                            <button
+                              onClick={(e) => handleTrackMenuOpen(e, track)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all ml-2"
+                            >
+                              <MoreVert sx={{ fontSize: 20 }} />
+                            </button>
                           </div>
                         </Grow>
                       ))
@@ -669,8 +774,16 @@ const SearchPage: React.FC = () => {
                               />
                             </div>
                             <div className="w-full text-center">
-                              <div className="text-white font-bold truncate mb-1">
-                                {artist.name}
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="text-white font-bold truncate mb-1">
+                                  {artist.name}
+                                </div>
+                                <button
+                                  onClick={(e) => handleArtistMenuOpen(e, artist)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                >
+                                  <MoreVert sx={{ fontSize: 18 }} />
+                                </button>
                               </div>
                               <div className="text-sm text-gray-400">
                                 Artist
@@ -724,8 +837,16 @@ const SearchPage: React.FC = () => {
                               />
                             </div>
                             <div className="w-full">
-                              <div className="text-white font-bold truncate mb-1">
-                                {album.name}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-white font-bold truncate mb-1 flex-1">
+                                  {album.name}
+                                </div>
+                                <button
+                                  onClick={(e) => handleAlbumMenuOpen(e, album)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                >
+                                  <MoreVert sx={{ fontSize: 18 }} />
+                                </button>
                               </div>
                               <div className="text-sm text-gray-400 truncate">
                                 {album.release_date?.split('-')[0]} • {album.artists?.map((a: any) => a.name).join(', ')}
@@ -768,7 +889,7 @@ const SearchPage: React.FC = () => {
                       results.playlists.filter(p => p != null).map((playlist: any, index: number) => (
                         <Grow in key={playlist.id} timeout={300 + index * 50}>
                           <div 
-                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
+                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer relative"
                             onClick={() => navigate(`/playlist/${playlist.id}`)}
                           >
                             <div className="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
@@ -779,8 +900,16 @@ const SearchPage: React.FC = () => {
                               />
                             </div>
                             <div className="w-full">
-                              <div className="text-white font-bold truncate mb-1">
-                                {playlist.name}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-white font-bold truncate mb-1 flex-1">
+                                  {playlist.name}
+                                </div>
+                                <button
+                                  onClick={(e) => handlePlaylistMenuOpen(e, playlist)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                                >
+                                  <MoreVert sx={{ fontSize: 20 }} />
+                                </button>
                               </div>
                               <div className="text-sm text-gray-400 truncate">
                                 By {playlist.owner?.display_name || 'Playlist'}
@@ -820,6 +949,38 @@ const SearchPage: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Track Menu */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={Boolean(trackMenuAnchor)}
+        onClose={handleTrackMenuClose}
+        track={selectedTrack}
+      />
+
+      {/* Playlist Menu */}
+      <PlaylistMenu
+        anchorEl={playlistMenuAnchor}
+        open={Boolean(playlistMenuAnchor)}
+        onClose={handlePlaylistMenuClose}
+        playlist={selectedPlaylist}
+      />
+
+      {/* Album Menu */}
+      <AlbumMenu
+        anchorEl={albumMenuAnchor}
+        open={Boolean(albumMenuAnchor)}
+        onClose={handleAlbumMenuClose}
+        album={selectedAlbum}
+      />
+
+      {/* Artist Menu */}
+      <ArtistMenu
+        anchorEl={artistMenuAnchor}
+        open={Boolean(artistMenuAnchor)}
+        onClose={handleArtistMenuClose}
+        artist={selectedArtist}
+      />
     </div>
   );
 };

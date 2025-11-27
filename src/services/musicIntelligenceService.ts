@@ -6,7 +6,6 @@
  * The algorithm heavily considers follower counts as a quality indicator:
  * - Genre playlists: Up to 40 points from follower quality score + bonuses
  * - Artist playlists: Up to 35 points from follower quality score + bonuses  
- * - Mood playlists: Up to 30 points from follower quality score + bonuses
  * - ML ranking: Additional multipliers based on user preference (mainstream/underground)
  * - Final sort: Uses follower count as tiebreaker for similar scores
  * - Quality scoring: Logarithmic scale from 0-100 based on follower count
@@ -163,17 +162,24 @@ export class MusicIntelligenceService {
       console.log('Generating fresh music profile...');
       const startTime = Date.now();
 
-      // Gather user data in parallel
-      const [topTracks, recentlyPlayed, savedTracks, _userPlaylists, followedArtists] = await Promise.all([
+      // Gather user data in parallel - Phase 1: Get basic data + playlist/album lists
+      const [topTracks, recentlyPlayed, savedTracks, userPlaylists, savedAlbums, followedArtists] = await Promise.all([
         this.getUserTopTracks(),
         this.getRecentlyPlayed(),
         this.getSavedTracks(),
         this.getUserPlaylists(),
+        this.getSavedAlbums(),
         this.getFollowedArtists()
       ]);
 
-      // Generate insights from user data
-      const insights = this.analyzeUserMusic(topTracks, recentlyPlayed, savedTracks);
+      // Phase 2: Fetch tracks from all playlists and albums
+      const [playlistTracks, albumTracks] = await Promise.all([
+        this.getTracksFromPlaylists(userPlaylists),
+        this.getTracksFromAlbums(savedAlbums)
+      ]);
+
+      // Generate insights from ALL user data sources
+      const insights = this.analyzeUserMusic(topTracks, recentlyPlayed, savedTracks, playlistTracks, albumTracks);
       
       // Generate playlist recommendations
       const recommendations = await this.generatePlaylistRecommendations(
@@ -231,23 +237,173 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Get user's saved tracks
+   * Get ALL user's saved tracks with pagination
+   * Fetches all liked songs, not just the first 50
    */
   private async getSavedTracks(): Promise<Track[]> {
-    const { data, error } = await this.makeSpotifyRequest('me/tracks', { limit: 50 });
-    
-    if (error) return [];
-    return data?.items?.map((item: any) => item.track) || [];
+    const allTracks: Track[] = [];
+    let offset = 0;
+    const limit = 50;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await this.makeSpotifyRequest('me/tracks', { limit, offset });
+      
+      if (error || !data?.items) {
+        hasMore = false;
+        break;
+      }
+
+      const tracks = data.items.map((item: any) => item.track).filter(Boolean);
+      allTracks.push(...tracks);
+      
+      hasMore = data.items.length === limit && allTracks.length < 1000; // Cap at 1000 tracks
+      offset += limit;
+    }
+
+    console.log(`📚 Fetched ${allTracks.length} total saved tracks`);
+    return allTracks;
   }
 
   /**
-   * Get user's playlists
+   * Get ALL user's playlists with pagination
    */
   private async getUserPlaylists(): Promise<Playlist[]> {
-    const { data, error } = await this.makeSpotifyRequest('me/playlists', { limit: 50 });
+    const allPlaylists: Playlist[] = [];
+    let offset = 0;
+    const limit = 50;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await this.makeSpotifyRequest('me/playlists', { limit, offset });
+      
+      if (error || !data?.items) {
+        hasMore = false;
+        break;
+      }
+
+      allPlaylists.push(...data.items);
+      hasMore = data.items.length === limit;
+      offset += limit;
+    }
+
+    console.log(`📋 Fetched ${allPlaylists.length} user playlists`);
+    return allPlaylists;
+  }
+
+  /**
+   * Get ALL user's saved albums with pagination
+   */
+  private async getSavedAlbums(): Promise<any[]> {
+    const allAlbums: any[] = [];
+    let offset = 0;
+    const limit = 50;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await this.makeSpotifyRequest('me/albums', { limit, offset });
+      
+      if (error || !data?.items) {
+        hasMore = false;
+        break;
+      }
+
+      const albums = data.items.map((item: any) => item.album).filter(Boolean);
+      allAlbums.push(...albums);
+      hasMore = data.items.length === limit;
+      offset += limit;
+    }
+
+    console.log(`💿 Fetched ${allAlbums.length} saved albums`);
+    return allAlbums;
+  }
+
+  /**
+   * Get tracks from all user playlists with pagination
+   * OPTIMIZED: Simple offset-based pagination, capped at 500 tracks per playlist
+   */
+  private async getTracksFromPlaylists(playlists: Playlist[]): Promise<Track[]> {
+    const allTracks: Track[] = [];
     
-    if (error) return [];
-    return data?.items || [];
+    // Process playlists in batches to avoid rate limiting
+    const batchSize = 5;
+    const maxTracksPerPlaylist = 500; // Cap to avoid huge playlists slowing things down
+    
+    for (let i = 0; i < playlists.length; i += batchSize) {
+      const batch = playlists.slice(i, i + batchSize);
+      
+      const batchResults = await Promise.all(
+        batch.map(async (playlist) => {
+          const tracks: Track[] = [];
+          let offset = 0;
+          const limit = 100;
+          
+          // Simple offset-based pagination
+          while (offset < maxTracksPerPlaylist) {
+            const { data, error } = await this.makeSpotifyRequest(
+              `playlists/${playlist.id}/tracks`, 
+              { limit, offset, fields: 'items(track(id,name,artists,album,duration_ms,explicit,popularity)),next' }
+            );
+            
+            if (error || !data?.items || data.items.length === 0) break;
+            
+            const validTracks = data.items
+              .map((item: any) => item.track)
+              .filter((track: any) => track && track.id);
+            
+            tracks.push(...validTracks);
+            
+            // Stop if no more pages or we've hit the cap
+            if (!data.next || data.items.length < limit) break;
+            
+            offset += limit;
+          }
+          
+          return tracks;
+        })
+      );
+      
+      batchResults.forEach(tracks => allTracks.push(...tracks));
+    }
+
+    console.log(`🎵 Fetched ${allTracks.length} tracks from ${playlists.length} playlists`);
+    return allTracks;
+  }
+
+  /**
+   * Get tracks from all saved albums
+   */
+  private async getTracksFromAlbums(albums: any[]): Promise<Track[]> {
+    const allTracks: Track[] = [];
+    
+    // Process albums in batches
+    const batchSize = 5;
+    for (let i = 0; i < albums.length; i += batchSize) {
+      const batch = albums.slice(i, i + batchSize);
+      
+      const batchResults = await Promise.all(
+        batch.map(async (album) => {
+          const { data, error } = await this.makeSpotifyRequest(`albums/${album.id}/tracks`, { limit: 50 });
+          
+          if (error || !data?.items) return [];
+          
+          // Album tracks don't have full track info, so we need to enrich them
+          return data.items.map((track: any) => ({
+            ...track,
+            album: {
+              id: album.id,
+              name: album.name,
+              images: album.images
+            }
+          })).filter((track: any) => track && track.id);
+        })
+      );
+      
+      batchResults.forEach(tracks => allTracks.push(...tracks));
+    }
+
+    console.log(`💿 Fetched ${allTracks.length} tracks from ${albums.length} albums`);
+    return allTracks;
   }
 
   /**
@@ -261,10 +417,31 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Analyze user's music to generate insights
+   * Analyze user's music to generate insights from ALL sources
    */
-  private analyzeUserMusic(topTracks: Track[], recentlyPlayed: Track[], savedTracks: Track[]): MusicInsights {
-    const allTracks = [...topTracks, ...recentlyPlayed, ...savedTracks];
+  private analyzeUserMusic(
+    topTracks: Track[], 
+    recentlyPlayed: Track[], 
+    savedTracks: Track[],
+    playlistTracks: Track[] = [],
+    albumTracks: Track[] = []
+  ): MusicInsights {
+    // IMPORTANT: Deduplicate tracks by ID to avoid counting the same track multiple times
+    // A track can appear in multiple sources (liked songs, playlists, albums, etc.)
+    const trackMap = new Map<string, Track>();
+    
+    // Add all tracks from all sources to map
+    [...topTracks, ...recentlyPlayed, ...savedTracks, ...playlistTracks, ...albumTracks].forEach(track => {
+      if (track && track.id) {
+        trackMap.set(track.id, track);
+      }
+    });
+    
+    const allTracks = Array.from(trackMap.values());
+    
+    const totalBeforeDedup = topTracks.length + recentlyPlayed.length + savedTracks.length + playlistTracks.length + albumTracks.length;
+    console.log(`🎵 Track sources: ${topTracks.length} top + ${recentlyPlayed.length} recent + ${savedTracks.length} saved + ${playlistTracks.length} playlist + ${albumTracks.length} album = ${totalBeforeDedup} total`);
+    console.log(`✨ After deduplication: ${allTracks.length} unique tracks for genre analysis`);
     
     // Handle case when no tracks are available
     if (allTracks.length === 0) {
@@ -282,11 +459,12 @@ export class MusicIntelligenceService {
       };
     }
     
-    // Extract genres from artists
-    const genreCounts = this.extractGenres(allTracks);
+    // Extract genres from artists (count once per track, not per genre appearance)
+    const genreCounts = this.extractGenresPerTrack(allTracks);
     const totalTracks = allTracks.length;
     
-    // Calculate top genres with percentages
+    // Calculate top genres with percentages based on track count
+    // Percentage = what % of tracks have this genre
     const topGenres = Object.entries(genreCounts)
       .map(([genre, count]) => ({
         genre,
@@ -295,6 +473,8 @@ export class MusicIntelligenceService {
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+    
+    console.log(`📊 Genre distribution from ${totalTracks} tracks`);
 
     // Calculate artist diversity
     const uniqueArtists = new Set(allTracks.flatMap(track => track.artists.map(artist => artist.id)));
@@ -337,39 +517,60 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Extract genres from tracks using advanced classification
+   * Extract genres from tracks - counts only the PRIMARY genre per track
+   * Each track contributes exactly 1 genre to the distribution (most relevant one)
    */
-  private extractGenres(tracks: Track[]): Record<string, number> {
+  private extractGenresPerTrack(tracks: Track[]): Record<string, number> {
     const genreCounts: Record<string, number> = {};
     
+    // Genre priority order (higher = more specific/reliable)
+    const genrePriority: Record<string, number> = {
+      'k-pop': 100,      // Very specific
+      'j-pop': 100,
+      'latin': 90,
+      'hip-hop': 85,
+      'classical': 85,
+      'jazz': 85,
+      'country': 80,
+      'r&b': 80,
+      'gospel': 75,
+      'electronic': 70,
+      'rock': 65,
+      'pop': 50,         // Very generic, lower priority
+      'acoustic': 40,
+      'live': 30,
+      'instrumental': 30,
+      'cover': 20,
+      'ambient': 60,
+      'vintage': 20,
+      'retro': 20,
+      'contemporary': 10
+    };
+    
     tracks.forEach(track => {
-      // Enhanced genre detection combining multiple methods
+      // Collect genres from all detection methods
       const artistGenres = this.inferGenresFromArtistNames(track.artists);
       const trackGenres = this.inferGenresFromTrackName(track.name);
-      const audioGenres = this.inferGenresFromAudioFeatures(track);
       const contextualGenres = this.inferGenresFromContext(track);
       
-      // Combine all genre sources with weights
-      const allGenres = [
-        ...artistGenres.map(g => ({ genre: g, weight: 0.4 })),
-        ...trackGenres.map(g => ({ genre: g, weight: 0.2 })),
-        ...audioGenres.map(g => ({ genre: g, weight: 0.3 })),
-        ...contextualGenres.map(g => ({ genre: g, weight: 0.1 }))
-      ];
+      // Combine all detected genres (skip audio features as they're unreliable without real data)
+      const allGenres = [...new Set([
+        ...artistGenres,
+        ...trackGenres,
+        ...contextualGenres
+      ])];
       
-      // Aggregate weighted genre scores
-      allGenres.forEach(({ genre, weight }) => {
-        genreCounts[genre] = (genreCounts[genre] || 0) + weight;
-      });
+      // Pick the TOP genre based on priority (most specific/reliable wins)
+      if (allGenres.length > 0) {
+        const topGenre = allGenres.reduce((best, current) => {
+          const bestPriority = genrePriority[best] ?? 50;
+          const currentPriority = genrePriority[current] ?? 50;
+          return currentPriority > bestPriority ? current : best;
+        }, allGenres[0]);
+        
+        genreCounts[topGenre] = (genreCounts[topGenre] || 0) + 1;
+      }
     });
-
-    // Manual preference: Boost K-pop to be the top genre
-    if (genreCounts['k-pop']) {
-      genreCounts['k-pop'] *= 3; // Triple the K-pop score to make it dominant
-    } else {
-      // If no K-pop detected but user prefers it, add it as top genre
-      genreCounts['k-pop'] = Math.max(...Object.values(genreCounts)) * 1.5 || 10;
-    }
 
     return genreCounts;
   }
@@ -424,63 +625,6 @@ export class MusicIntelligenceService {
     });
 
     return [...new Set(genres)]; // Remove duplicates
-  }
-
-  /**
-   * Infer genres from audio features using ML-inspired classification
-   */
-  private inferGenresFromAudioFeatures(track: Track): string[] {
-    const genres: string[] = [];
-    
-    // Mock audio features analysis (in real implementation, you'd use actual features from Spotify API)
-    // For now, we'll use track characteristics to estimate features
-    const trackName = track.name.toLowerCase();
-    const features = {
-      energy: trackName.includes('energy') || trackName.includes('power') ? 0.8 : Math.random(),
-      danceability: trackName.includes('dance') || trackName.includes('party') ? 0.8 : Math.random(),
-      acousticness: trackName.includes('acoustic') || trackName.includes('unplugged') ? 0.9 : Math.random(),
-      valence: trackName.includes('happy') || trackName.includes('joy') ? 0.8 : Math.random(),
-      tempo: track.duration_ms > 240000 ? 90 : 120 + Math.random() * 60, // Longer tracks tend to be slower
-      instrumentalness: trackName.includes('instrumental') ? 0.9 : Math.random(),
-      speechiness: trackName.includes('rap') || trackName.includes('spoken') ? 0.8 : Math.random()
-    };
-    
-    // Electronic/EDM classification
-    if (features.energy > 0.7 && features.danceability > 0.6 && features.acousticness < 0.3) {
-      genres.push('electronic');
-    }
-    
-    // Classical classification
-    if (features.acousticness > 0.8 && features.instrumentalness > 0.7 && features.speechiness < 0.1) {
-      genres.push('classical');
-    }
-    
-    // Hip-hop classification
-    if (features.speechiness > 0.4 && features.danceability > 0.5) {
-      genres.push('hip-hop');
-    }
-    
-    // Jazz classification
-    if (features.acousticness > 0.5 && features.instrumentalness > 0.3 && features.tempo > 80 && features.tempo < 140) {
-      genres.push('jazz');
-    }
-    
-    // Pop classification
-    if (features.danceability > 0.5 && features.valence > 0.5 && features.energy > 0.4 && features.energy < 0.8) {
-      genres.push('pop');
-    }
-    
-    // Rock classification
-    if (features.energy > 0.6 && features.acousticness < 0.5 && features.valence > 0.3) {
-      genres.push('rock');
-    }
-    
-    // Ambient/Chill classification
-    if (features.energy < 0.4 && features.valence < 0.6 && features.acousticness > 0.4) {
-      genres.push('ambient');
-    }
-    
-    return genres;
   }
 
   /**
@@ -554,23 +698,19 @@ export class MusicIntelligenceService {
   ): Promise<PlaylistRecommendation[]> {
     const startTime = Date.now();
     
-    // If no genres found, add some popular/default genres to search
-    let genresToSearch = insights.topGenres.slice(0, 3); // Reduced from 4 to 3 for performance
-    if (genresToSearch.length === 0) {
-      console.log('No user genres found, using default genres for recommendations');
-      genresToSearch = [
-        { genre: 'pop', count: 1, percentage: 33 },
-        { genre: 'rock', count: 1, percentage: 33 },
-        { genre: 'hip-hop', count: 1, percentage: 34 }
-      ];
+    // Use ONLY the TOP 1 genre for focused recommendations
+    const topGenre = insights.topGenres[0];
+    if (!topGenre) {
+      console.log('No user genres found, using default genre for recommendations');
     }
+    const genreToSearch = topGenre?.genre || 'pop';
     
-    // OPTIMIZATION 1: Parallel execution of all recommendation types (3-5x faster!)
-    const [genreRecs, artistRecs, moodRecs] = await Promise.all([
-      // Genre-based recommendations (parallel)
-      Promise.all(genresToSearch.map(genreData => 
-        this.searchPlaylistsByGenre(genreData.genre, insights)
-      )).then(results => results.flat()),
+    console.log(`🎯 Focusing recommendations on TOP genre: "${genreToSearch}"`);
+    
+    // OPTIMIZATION 1: Parallel execution of recommendation types
+    const [genreRecs, artistRecs] = await Promise.all([
+      // Genre-based recommendations - ONLY TOP 1 GENRE
+      this.searchPlaylistsByGenre(genreToSearch, insights),
       
       // Artist-based recommendations (parallel)
       Promise.all(
@@ -581,16 +721,13 @@ export class MusicIntelligenceService {
               { name: 'The Weeknd', id: 'example2' }
             ]
         ).map(artist => this.searchPlaylistsByArtist(artist.name, insights))
-      ).then(results => results.flat()),
-      
-      // Mood-based recommendations (async)
-      this.getMoodBasedRecommendations(insights)
+      ).then(results => results.flat())
     ]);
 
     // OPTIMIZATION 2: Combine all recommendations
-    const allRecommendations = [...genreRecs, ...artistRecs, ...moodRecs];
+    const allRecommendations = [...genreRecs, ...artistRecs];
     
-    console.log(`Raw recommendations: ${allRecommendations.length} (Genre: ${genreRecs.length}, Artist: ${artistRecs.length}, Mood: ${moodRecs.length})`);
+    console.log(`Raw recommendations: ${allRecommendations.length} (Genre: ${genreRecs.length}, Artist: ${artistRecs.length})`)
 
     // OPTIMIZATION 3: Fast deduplication using Map (O(n) instead of O(n²))
     const uniqueRecs = this.deduplicateRecommendations(allRecommendations);
@@ -634,7 +771,7 @@ export class MusicIntelligenceService {
    * ALGORITHM:
    * 1. Extract user's top artists from their most-played tracks
    * 2. Search artists by top genres using multiple query strategies
-   * 3. Get related artists from user's top 5 artists
+   * 3. Search for similar artists using name/genre Search API queries
    * 4. Run smart search combining genre + popularity terms
    * 5. Combine all sources and deduplicate
    * 6. Filter out already-followed artists and user's top artists
@@ -676,27 +813,27 @@ export class MusicIntelligenceService {
 
       console.log(`User's top ${userTopArtists.length} artists identified`);
 
-      // Get genres from user's top genres (expanded for better coverage)
-      const topGenres = insights.topGenres.slice(0, 5).map(g => g.genre);
+      // Use ONLY the TOP 1 genre for focused recommendations
+      const topGenre = insights.topGenres[0]?.genre || 'pop';
       
-      console.log(`Searching across ${topGenres.length} genres: ${topGenres.join(', ')}`);
+      console.log(`🎯 Focusing artist recommendations on TOP genre: "${topGenre}"`);
 
-      // OPTIMIZED: Multiple parallel search strategies for better results
-      const [genreArtists, relatedArtists, searchArtists] = await Promise.all([
-        // Strategy 1: Search artists by user's top genres (broader search)
-        this.searchArtistsByMultipleGenres(topGenres, insights),
+      // OPTIMIZED: Multiple parallel search strategies for better results (NO DEPRECATED APIs)
+      const [genreArtists, similarArtists, searchArtists] = await Promise.all([
+        // Strategy 1: Search artists by user's TOP genre only
+        this.searchArtistsByGenre(topGenre, insights),
         
-        // Strategy 2: Get related artists from user's top artists
-        this.getRelatedArtistsParallel(userTopArtists.slice(0, 5), insights),
+        // Strategy 2: Search for artists similar to user's favorites (using Search API, NOT deprecated related-artists)
+        this.searchSimilarArtistsParallel(userTopArtists.slice(0, 3), insights),
         
-        // Strategy 3: Smart search combining genre + popularity
-        this.smartArtistSearch(topGenres, insights)
+        // Strategy 3: Smart search using TOP genre only
+        this.smartArtistSearch([topGenre], insights)
       ]);
 
-      console.log(`Found: ${genreArtists.length} genre artists, ${relatedArtists.length} related artists, ${searchArtists.length} smart search artists`);
+      console.log(`Found: ${genreArtists.length} genre artists, ${similarArtists.length} similar artists, ${searchArtists.length} smart search artists`);
 
       // Combine all artist recommendations
-      const allArtistRecs = [...genreArtists, ...relatedArtists, ...searchArtists];
+      const allArtistRecs = [...genreArtists, ...similarArtists, ...searchArtists];
 
       if (allArtistRecs.length === 0) {
         console.log('No artist recommendations found, using fallback');
@@ -745,35 +882,23 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Search artists across multiple genres in parallel
-   * OPTIMIZATION: Uses Promise.all to fetch multiple genres simultaneously
-   * This multiplies search coverage without increasing latency
+   * Search for similar artists sequentially using Search API
+   * Uses delays between requests to avoid rate limiting
    */
-  private async searchArtistsByMultipleGenres(genres: string[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+  private async searchSimilarArtistsParallel(seedArtists: Artist[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
     try {
-      const results = await Promise.all(
-        genres.map(genre => this.searchArtistsByGenre(genre, userInsights))
-      );
-      return results.flat();
+      const allResults: ArtistRecommendation[] = [];
+      
+      // Process only top 2 seed artists to reduce API calls
+      for (const artist of seedArtists.slice(0, 2)) {
+        const results = await this.searchSimilarArtistsByName(artist, userInsights);
+        allResults.push(...results);
+        await new Promise(resolve => setTimeout(resolve, 150)); // Delay between requests
+      }
+      
+      return allResults;
     } catch (error) {
-      console.error('Error in multi-genre artist search:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get related artists for multiple seed artists in parallel
-   * OPTIMIZATION: Fetches from multiple seed artists at once
-   * Increases diversity by sourcing recommendations from different corners of user's taste
-   */
-  private async getRelatedArtistsParallel(seedArtists: Artist[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
-    try {
-      const results = await Promise.all(
-        seedArtists.map(artist => this.getRelatedArtists(artist.id, userInsights))
-      );
-      return results.flat();
-    } catch (error) {
-      console.error('Error getting related artists:', error);
+      console.error('Error searching similar artists:', error);
       return [];
     }
   }
@@ -797,36 +922,34 @@ export class MusicIntelligenceService {
    */
   private async smartArtistSearch(genres: string[], userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
     try {
-      // Generate multiple search query variations per genre
-      const searchQueries = genres.flatMap(genre => [
-        `${genre} artist`,
-        `popular ${genre}`,
-        `best ${genre} music`
-      ]).slice(0, 10); // Limit to 10 queries to avoid rate limiting
+      // Use simpler genre-only queries (1 per genre, max 5)
+      // Avoid "popular", "best" prefixes which don't work well with Spotify Search
+      const searchQueries = genres.slice(0, 5).map(genre => `genre:"${genre}"`);
 
-      // Execute all searches in parallel for performance
-      const results = await Promise.all(
-        searchQueries.map(query => 
-          this.makeSpotifyRequest('search', {
-            q: query,
-            type: 'artist',
-            limit: 10
-          })
-        )
-      );
-
-      // Aggregate results from all queries
+      // Execute searches sequentially with delay to avoid rate limiting
       const allArtists: any[] = [];
-      results.forEach(result => {
+      for (const query of searchQueries) {
+        const result = await this.makeSpotifyRequest('search', {
+          q: query,
+          type: 'artist',
+          limit: 15
+        });
+        
         if (result.data?.artists?.items) {
           allArtists.push(...result.data.artists.items);
         }
-      });
+        
+        // Small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
-      // Quality filter: Only include artists with minimum follower threshold
-      // This ensures recommendations are established artists with decent fanbase
+      // Quality filter: Only include POPULAR artists (100K+ followers, 50+ popularity)\n      // This ensures recommendations are well-known artists people actually listen to
       const filtered = allArtists.filter((artist: any) =>
-        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+        artist && 
+        artist.id && 
+        artist.name && 
+        (artist.followers?.total ?? 0) >= 100000 &&
+        (artist.popularity ?? 0) >= 50
       );
 
       // Map to recommendation objects with scoring
@@ -945,34 +1068,23 @@ export class MusicIntelligenceService {
    */
   private async searchArtistsByGenre(genre: string, userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
     try {
-      // Execute multiple search strategies in parallel
-      const searchStrategies = [
-        `${genre}`,           // Simple genre name (broad)
-        `genre:${genre}`,     // Genre tag without quotes (less restrictive)
-        `${genre} music`      // Natural language search
-      ];
-
-      const results = await Promise.all(
-        searchStrategies.map(query =>
-          this.makeSpotifyRequest('search', {
-            q: query,
-            type: 'artist',
-            limit: 10 // 10 per strategy = 30 total max
-          })
-        )
-      );
-
-      // Aggregate results from all strategies
-      const allArtists: any[] = [];
-      results.forEach(result => {
-        if (result.data?.artists?.items) {
-          allArtists.push(...result.data.artists.items);
-        }
+      // Single query per genre to reduce API calls
+      const result = await this.makeSpotifyRequest('search', {
+        q: `genre:"${genre}"`,
+        type: 'artist',
+        limit: 20
       });
 
-      // Quality filter: 5000+ followers ensures established artists
+      const allArtists = result.data?.artists?.items || [];
+
+      // Quality filter: 100K+ followers ensures POPULAR, well-known artists
+      // Also require minimum popularity score of 50
       const artists = allArtists.filter((artist: any) =>
-        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+        artist && 
+        artist.id && 
+        artist.name && 
+        (artist.followers?.total ?? 0) >= 100000 &&
+        (artist.popularity ?? 0) >= 50
       );
 
       // Map to recommendation objects with smart genre matching
@@ -1003,38 +1115,57 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Get related artists using Spotify's related-artists endpoint
-   * OPTIMIZATION: Increased to 20 results (was 10) for better diversity
+   * Search for similar artists using Spotify Search API (NOT deprecated related-artists)
    * 
    * ALGORITHM:
-   * 1. Call Spotify's /artists/{id}/related-artists endpoint
-   *    - Returns up to 20 artists similar to the input artist
-   *    - Includes Spotify's own algorithm-based recommendations
-   * 2. Filter for quality (5000+ followers)
-   * 3. Use smart genre matching to find relevant matches
-   * 4. Score each artist
-   * 5. Return top results
+   * 1. Build search queries using artist name + genres
+   * 2. Search for artists matching those queries
+   * 3. Filter for quality (5000+ followers)
+   * 4. Score and return top matches
    * 
-   * This is different from genre search - it finds artists similar to a specific artist
-   * Based on collaborative filtering: "If you like Artist A, you might like these artists"
+   * Uses Search API which is fully supported (unlike deprecated related-artists endpoint)
    */
-  private async getRelatedArtists(artistId: string, userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
+  private async searchSimilarArtistsByName(seedArtist: Artist, userInsights?: MusicInsights): Promise<ArtistRecommendation[]> {
     try {
-      // Call Spotify's related artists API
-      const { data, error } = await this.makeSpotifyRequest(`artists/${artistId}/related-artists`, {});
-
-      if (error || !data?.artists) {
+      // Use only genre-based search (1-2 queries max) to reduce API calls
+      const artistGenres = (seedArtist as any).genres || [];
+      let searchQuery: string;
+      
+      if (artistGenres.length > 0) {
+        // Search by artist's primary genre
+        searchQuery = `genre:"${artistGenres[0]}"`;
+      } else if (userInsights?.topGenres?.length) {
+        // Fallback to user's top genre
+        searchQuery = `genre:"${userInsights.topGenres[0].genre}"`;
+      } else {
         return [];
       }
 
-      // Get up to 20 related artists (increased from 10 for better diversity)
-      // Filter by minimum follower count for quality assurance
-      const artists = data.artists.filter((artist: any) =>
-        artist && artist.id && artist.name && (artist.followers?.total ?? 0) >= 5000
+      // Single request per seed artist
+      const result = await this.makeSpotifyRequest('search', {
+        q: searchQuery,
+        type: 'artist',
+        limit: 20
+      });
+
+      const allArtists = result.data?.artists?.items || [];
+
+      // Filter: exclude seed artist, require POPULAR artists (100K+ followers, 50+ popularity)
+      const filteredArtists = allArtists.filter((artist: any) =>
+        artist &&
+        artist.id &&
+        artist.id !== seedArtist.id &&
+        artist.name !== seedArtist.name &&
+        (artist.followers?.total ?? 0) >= 100000 &&
+        (artist.popularity ?? 0) >= 50
+      );
+
+      // Deduplicate by ID
+      const uniqueArtists = Array.from(
+        new Map(filteredArtists.map((a: any) => [a.id, a])).values()
       ).slice(0, 20);
 
-      return artists.map((artist: any) => {
-        // FIXED: Smarter genre matching to avoid false positives
+      return uniqueArtists.map((artist: any) => {
         const matchingGenres = artist.genres?.filter((artistGenre: string) =>
           this.isGenreMatch(artistGenre, userInsights?.topGenres || [])
         ) || [];
@@ -1045,40 +1176,45 @@ export class MusicIntelligenceService {
           artist,
           score,
           reasons: [
-            'Similar to artists you listen to',
+            `Similar to ${seedArtist.name}`,
             `${artist.followers?.total ? `${(artist.followers.total / 1000).toFixed(0)}K` : '0'} followers`,
-            matchingGenres.length > 0 ? `Matches: ${matchingGenres.slice(0, 2).join(', ')}` : 'Related artist'
+            matchingGenres.length > 0 ? `Matches: ${matchingGenres.slice(0, 2).join(', ')}` : 'Recommended for you'
           ],
           matchingGenres,
           similarityType: 'similar_artists' as const
         };
       });
     } catch (error) {
-      console.error(`Error getting related artists for ${artistId}:`, error);
+      console.error(`Error searching similar artists for ${seedArtist.name}:`, error);
       return [];
     }
   }
 
   /**
-   * Calculate artist recommendation score
+   * Calculate artist recommendation score - HEAVILY WEIGHTED BY POPULARITY
    */
   private calculateArtistRecommendationScore(artist: any, matchingGenres: string[], userInsights?: MusicInsights): number {
-    let score = 50; // Base score
+    let score = 30; // Base score
 
-    // Genre match bonus (up to 30 points)
+    // Genre match bonus (up to 20 points)
     if (matchingGenres.length > 0) {
-      score += Math.min(matchingGenres.length * 10, 30);
+      score += Math.min(matchingGenres.length * 10, 20);
     }
 
-    // Popularity/followers bonus (up to 20 points)
-    const followers = artist.followers?.total ?? 0;
-    if (followers > 1000000) score += 20;
-    else if (followers > 100000) score += 15;
-    else if (followers > 10000) score += 10;
-    else if (followers > 1000) score += 5;
+    // POPULARITY SCORE - Most important factor (up to 30 points)
+    // Spotify popularity is 0-100, we use it directly
+    const popularity = artist.popularity ?? 0;
+    score += Math.round(popularity * 0.3); // 0-30 points based on popularity
 
-    // Popularity bias adjustment
-    const popularity = artist.popularity ?? 50;
+    // Follower bonus (up to 20 points) - rewards well-known artists
+    const followers = artist.followers?.total ?? 0;
+    if (followers > 10000000) score += 20;      // 10M+ (superstar)
+    else if (followers > 5000000) score += 18;  // 5M+
+    else if (followers > 1000000) score += 15;  // 1M+
+    else if (followers > 500000) score += 12;   // 500K+
+    else if (followers > 100000) score += 8;    // 100K+
+
+    // Popularity bias adjustment based on user preference
     if (userInsights) {
       if (userInsights.popularityBias === 'mainstream' && popularity > 70) {
         score += 10;
@@ -1154,113 +1290,43 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Smart genre matching to avoid false positives
-   * PROBLEM SOLVED: Prevents matching "indonesian pop" when user likes "k-pop"
+   * STRICT genre matching - only exact or near-exact matches
    * 
-   * ALGORITHM:
-   * 1. Language filter - blocks small-audience language genres for restricted types (hip hop/rap)
-   * 2. Exact match - "k-pop" === "k-pop"
-   * 3. Prefix match - "k-pop boy group" starts with "k-pop"
-   * 4. Broader match - "k-pop" starts with "pop"  (user's compound genre contains artist's simpler genre)
-   * 5. Word boundary matching - splits compound genres by spaces/hyphens to avoid substrings
-   * 6. Compound word analysis - ensures all words match for multi-word genres
-   * 7. Fuzzy matching - allows 1-2 character differences for typos
+   * STRICT RULES:
+   * 1. Exact match only: "k-pop" === "k-pop"
+   * 2. Allow minor variations: "kpop" ≈ "k-pop" (hyphen difference)
    * 
-   * Example matches:
-   * ✓ "k-pop" matches "k-pop"
-   * ✓ "k-pop boy group" matches "k-pop"
-   * ✓ "k-pop" matches "pop" (k-pop contains pop as compound)
-   * ✗ "indonesian pop" does NOT match "k-pop" (different primary word)
-   * ✗ "tamil hip hop" BLOCKED (language filter)
+   * DOES NOT MATCH:
+   * ✗ "k-pop boy group" - sub-genre, too specific
+   * ✗ "korean pop" - different name
+   * ✗ "pop" - too generic
    */
   private isGenreMatch(artistGenre: string, userTopGenres: { genre: string; percentage: number; count: number }[]): boolean {
-    const artistGenreLower = artistGenre.toLowerCase();
+    const artistGenreLower = artistGenre.toLowerCase().trim();
     
     // LANGUAGE FILTER: For certain genres, only allow major languages
     if (this.shouldFilterByLanguage(artistGenreLower, userTopGenres)) {
-      console.log(`✗ Language filtered: "${artistGenre}" (small-audience language not in major languages)`);
       return false;
     }
     
     for (const userGenre of userTopGenres) {
-      const userGenreLower = userGenre.genre.toLowerCase();
+      const userGenreLower = userGenre.genre.toLowerCase().trim();
       
-      // Exact match (highest priority) - identical genres
+      // STRICT: Exact match only
       if (artistGenreLower === userGenreLower) {
-        console.log(`✓ Exact match: "${artistGenre}" === "${userGenre.genre}"`);
         return true;
       }
       
-      // Prefix match - artist has more specific version of user's genre
-      // e.g., "k-pop boy group" matches "k-pop"
-      if (artistGenreLower.startsWith(userGenreLower + ' ') || 
-          artistGenreLower.startsWith(userGenreLower + '-')) {
-        console.log(`✓ Specific match: "${artistGenre}" starts with "${userGenre.genre}"`);
+      // STRICT: Allow hyphen/space variations (e.g., "k-pop" ≈ "kpop" ≈ "k pop")
+      const normalizedArtist = artistGenreLower.replace(/[-\s]/g, '');
+      const normalizedUser = userGenreLower.replace(/[-\s]/g, '');
+      
+      if (normalizedArtist === normalizedUser) {
         return true;
-      }
-      
-      // Broader match - user's compound genre contains artist's simpler genre
-      // e.g., user likes "k-pop" (compound) and artist is tagged "pop" (simple)
-      if (userGenreLower.startsWith(artistGenreLower + ' ') || 
-          userGenreLower.startsWith(artistGenreLower + '-')) {
-        console.log(`✓ Broader match: "${userGenre.genre}" starts with "${artistGenre}"`);
-        return true;
-      }
-      
-      // WORD-BOUNDARY MATCHING: Prevents substring false positives
-      // Split compound genres by spaces/hyphens into individual words (min 3 chars)
-      // Example: "k-pop" → ["k", "pop"] (k filtered out as too short) → ["pop"]
-      const artistWords = artistGenreLower.split(/[\s-]+/).filter(w => w.length > 2);
-      const userWords = userGenreLower.split(/[\s-]+/).filter(w => w.length > 2);
-      
-      // Compound genre check 1: User has multi-word genre, check if artist has same words
-      // Prevents "indonesian pop" from matching "k-pop"
-      // "indonesian pop" → ["indonesian", "pop"]
-      // "k-pop" → ["pop"]
-      // NO MATCH: "indonesian" not in "pop"
-      if (userWords.length > 1) {
-        const allUserWordsInArtist = userWords.every(word => 
-          artistWords.some(aw => aw === word || aw.includes(word) || word.includes(aw))
-        );
-        if (allUserWordsInArtist && userWords.length === artistWords.filter(aw => 
-          userWords.some(uw => aw === uw || aw.includes(uw) || uw.includes(aw))
-        ).length) {
-          console.log(`✓ Compound match: "${artistGenre}" has all words from "${userGenre.genre}"`);
-          return true;
-        }
-      }
-      
-      // Compound genre check 2: Artist has multi-word genre, check if user has same words
-      if (artistWords.length > 1) {
-        const allArtistWordsInUser = artistWords.every(word =>
-          userWords.some(uw => uw === word || uw.includes(word) || word.includes(uw))
-        );
-        if (allArtistWordsInUser && artistWords.length === userWords.filter(uw =>
-          artistWords.some(aw => uw === aw || uw.includes(aw) || aw.includes(uw))
-        ).length) {
-          console.log(`✓ Compound match: "${userGenre.genre}" has all words from "${artistGenre}"`);
-          return true;
-        }
-      }
-      
-      // FUZZY MATCHING: Allows for typos or minor spelling variations
-      // Max distance: 2 character differences
-      // Example: "kpop" ≈ "k-pop" (1 char diff)
-      if (Math.abs(artistGenreLower.length - userGenreLower.length) <= 2) {
-        const maxLen = Math.max(artistGenreLower.length, userGenreLower.length);
-        let differences = 0;
-        for (let i = 0; i < maxLen; i++) {
-          if (artistGenreLower[i] !== userGenreLower[i]) differences++;
-        }
-        if (differences <= 2) {
-          console.log(`✓ Fuzzy match: "${artistGenre}" ≈ "${userGenre.genre}" (${differences} char diff)`);
-          return true;
-        }
       }
     }
     
-    // Log rejections for debugging
-    console.log(`✗ No match: "${artistGenre}" vs user genres [${userTopGenres.map(g => g.genre).join(', ')}]`);
+    // No match - reject all sub-genres and variations
     return false;
   }
 
@@ -1281,616 +1347,282 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Enhanced search for playlists by genre with user context
-   * OPTIMIZED: Parallel search queries + caching + smart filtering
+   * Fetch full playlist details including follower count
+   * The Search API doesn't return follower counts, so we need to fetch each playlist individually
    */
-  private async searchPlaylistsByGenre(genre: string, userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
-    try {
-      // OPTIMIZATION 1: Smarter search queries optimized for relevance
-      const searchQueries = [
-        `"${genre}" top charts 2024`,    // Current popular charts
-        `best ${genre} playlist`,         // Best curated playlists
-        `"${genre}" hits mainstream`,     // Mainstream hits
-        `popular ${genre} music`,         // Popular collections
-      ];
-      
-      // OPTIMIZATION 2: Parallel search execution (4x faster!)
-      const searchResults = await Promise.allSettled(
-        searchQueries.map(query => 
-          this.makeSpotifyRequest('search', {
-            q: query,
-            type: 'playlist',
-            limit: 30 // Optimized limit
-          })
-        )
-      );
-      
-      // OPTIMIZATION 3: Collect and merge all successful results
-      const allPlaylists: any[] = [];
-      searchResults.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value.data?.playlists?.items) {
-          const items = result.value.data.playlists.items;
-          console.log(`Query "${searchQueries[index]}" found ${items.length} playlists`);
-          allPlaylists.push(...items);
+  private async enrichPlaylistsWithFollowers(playlists: Playlist[]): Promise<Playlist[]> {
+    if (playlists.length === 0) return playlists;
+
+    // Fetch playlist details in parallel (max 10 to avoid rate limits)
+    const toFetch = playlists.slice(0, 10);
+    const enriched = await Promise.all(
+      toFetch.map(async (playlist) => {
+        try {
+          const { data, error } = await this.makeSpotifyRequest(`playlists/${playlist.id}`, {
+            fields: 'id,name,description,followers,images,owner,tracks(total),uri,external_urls'
+          });
+          
+          if (error || !data) return playlist;
+          
+          return {
+            ...playlist,
+            followers: data.followers ?? playlist.followers,
+            description: data.description ?? playlist.description
+          };
+        } catch {
+          return playlist;
         }
+      })
+    );
+
+    return enriched;
+  }
+
+  /**
+   * SIMPLIFIED PLAYLIST SEARCH - Score-based ranking without complex rules
+   * 
+   * Algorithm: Simple weighted scoring
+   * - 40% Text relevance (how well playlist matches search term)
+   * - 35% Quality signal (log-scaled follower count)
+   * - 25% Content depth (track count in optimal range)
+   */
+  private async searchPlaylistsByGenre(genre: string, _userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
+    try {
+      // Simple search queries - let Spotify's algorithm do the heavy lifting
+      const { data, error } = await this.makeSpotifyRequest('search', {
+        q: `${genre} playlist`,
+        type: 'playlist',
+        limit: 50
       });
       
-      if (allPlaylists.length === 0) {
+      if (error || !data?.playlists?.items) {
         console.log(`No playlists found for genre: ${genre}`);
         return [];
       }
-      
-      // OPTIMIZATION 4: Smart filtering with quality thresholds
-      const qualityPlaylists = allPlaylists
-        .filter(p => {
-          if (!p || !p.id || !p.name) return false;
-          
-          const followerCount = p.followers?.total ?? 0;
-          const trackCount = p.tracks?.total ?? 0;
-          
-          // Multi-criteria quality filter
-          return (
-            followerCount >= 500 ||        // Has followers OR
-            trackCount >= 20 ||             // Has substantial tracks OR
-            p.name.toLowerCase().includes(genre.toLowerCase()) // Exact genre match
-          );
-        })
-        .slice(0, 50); // Limit for deduplication
-      
-      // OPTIMIZATION 5: Deduplication before scoring (faster)
-      const uniquePlaylists = Array.from(
-        new Map(qualityPlaylists.map(p => [p.id, p])).values()
-      );
-      
-      // OPTIMIZATION 6: Sort by follower count first (O(n log n) once)
-      uniquePlaylists.sort((a, b) => {
-        const aFollowers = a.followers?.total ?? 0;
-        const bFollowers = b.followers?.total ?? 0;
-        return bFollowers - aFollowers;
-      });
-      
-      console.log(`Processing ${uniquePlaylists.length} unique quality playlists for ${genre}`);
-      
-      // OPTIMIZATION 7: Parallel score calculation with early termination
-      const scoredPlaylists = await Promise.all(
-        uniquePlaylists.slice(0, 15).map(async (playlist) => {
-          const normalizedPlaylist = this.normalizePlaylistData(playlist);
-          
-          // Smart follower estimation if needed
-          if ((normalizedPlaylist.followers?.total ?? 0) === 0) {
-            const estimatedFollowers = this.estimateFollowerCount(normalizedPlaylist);
-            if (estimatedFollowers > 0) {
-              normalizedPlaylist.followers = { href: null, total: estimatedFollowers };
-            }
-          }
-          
-          const score = this.calculateGenreScore(normalizedPlaylist, genre, userInsights);
-          
+
+      // Pre-filter candidates and normalize
+      const candidates = data.playlists.items
+        .filter((p: any) => p && p.id && p.name)
+        .map((p: any) => this.normalizePlaylistData(p))
+        .slice(0, 20); // Top 20 candidates for enrichment
+
+      // Fetch actual follower counts (Search API doesn't return them)
+      const enrichedPlaylists = await this.enrichPlaylistsWithFollowers(candidates);
+
+      // Score with real follower data
+      const scored = enrichedPlaylists
+        .map((playlist) => {
+          const score = this.calculatePlaylistScore(playlist, genre);
           return {
-            playlist: normalizedPlaylist,
+            playlist,
             score,
-            reasons: [
-              `Matches your ${genre} music taste`,
-              ...(score > 80 ? ['Highly recommended for you'] : []),
-              ...(normalizedPlaylist.followers?.total! > 100000 ? ['Popular choice'] : [])
-            ],
+            reasons: this.generateReasons(playlist, genre, score),
             matchingGenres: [genre],
             similarityType: 'genre' as const
           };
         })
-      );
-      
-      // OPTIMIZATION 8: Filter low scores only after calculation
-      const validRecommendations = scoredPlaylists
-        .filter(rec => rec.score >= 40) // Minimum quality threshold
-        .sort((a, b) => b.score - a.score); // Final sort by score
-      
-      console.log(`Generated ${validRecommendations.length} genre recommendations for ${genre} (avg score: ${validRecommendations.reduce((sum, r) => sum + r.score, 0) / validRecommendations.length || 0})`);
-      
-      return validRecommendations.slice(0, 8); // Return top 8
+        .filter((rec: PlaylistRecommendation) => rec.score >= 30 && (rec.playlist.followers?.total ?? 0) >= 100)
+        .sort((a: PlaylistRecommendation, b: PlaylistRecommendation) => b.score - a.score);
+
+      console.log(`Found ${scored.length} playlists for "${genre}"`);
+      return scored.slice(0, 10);
       
     } catch (err) {
-      console.error(`Exception searching for genre ${genre}:`, err);
+      console.error(`Error searching for genre ${genre}:`, err);
       return [];
     }
   }
 
   /**
-   * Enhanced search for playlists by artist with user context
-   * OPTIMIZED: Better query + reduced results
+   * SIMPLIFIED ARTIST-BASED SEARCH
    */
-  private async searchPlaylistsByArtist(artistName: string, userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
+  private async searchPlaylistsByArtist(artistName: string, _userInsights?: MusicInsights): Promise<PlaylistRecommendation[]> {
     try {
-      const { data, error} = await this.makeSpotifyRequest('search', {
-        q: `"${artistName}" best playlist`, // More specific query
+      const { data, error } = await this.makeSpotifyRequest('search', {
+        q: `${artistName}`,
         type: 'playlist',
-        limit: 8 // Reduced from 10
+        limit: 20
       });
       
       if (error || !data?.playlists?.items) return [];
 
-      return data.playlists.items
-        .filter((playlist: any) => playlist && playlist.id && playlist.name)
-        .slice(0, 4) // Top 4 only
-        .map((playlist: any) => ({
-          playlist: this.normalizePlaylistData(playlist),
-          score: this.calculateArtistScore(playlist, artistName, userInsights),
-          reasons: [`Similar to ${artistName}`],
-          matchingGenres: [],
-          similarityType: 'artist' as const
-        }));
+      // Pre-filter and normalize
+      const candidates = data.playlists.items
+        .filter((p: any) => p && p.id && p.name)
+        .map((p: any) => this.normalizePlaylistData(p))
+        .slice(0, 10);
+
+      // Fetch actual follower counts
+      const enrichedPlaylists = await this.enrichPlaylistsWithFollowers(candidates);
+
+      return enrichedPlaylists
+        .map((playlist) => {
+          const score = this.calculatePlaylistScore(playlist, artistName);
+          return {
+            playlist,
+            score,
+            reasons: [`Features ${artistName}`, ...this.generateReasons(playlist, artistName, score).slice(1)],
+            matchingGenres: [],
+            similarityType: 'artist' as const
+          };
+        })
+        .filter((rec: PlaylistRecommendation) => rec.score >= 30 && (rec.playlist.followers?.total ?? 0) >= 100)
+        .sort((a: PlaylistRecommendation, b: PlaylistRecommendation) => b.score - a.score)
+        .slice(0, 5);
     } catch {
       return [];
     }
   }
 
   /**
-   * Get serendipity recommendations to introduce musical diversity
-   * OPTIMIZED: Reduced to 1 genre + faster execution
+   * UNIFIED PLAYLIST SCORING - Simple weighted formula
+   * No complex rules, just math
+   */
+  private calculatePlaylistScore(playlist: Playlist, searchTerm: string): number {
+    const text = `${playlist.name} ${playlist.description || ''}`.toLowerCase();
+    const term = searchTerm.toLowerCase();
+    
+    // 1. Text relevance (0-100) - 40% weight
+    let textScore = 0;
+    if (playlist.name.toLowerCase().includes(term)) textScore = 100;
+    else if (text.includes(term)) textScore = 70;
+    else {
+      // Partial word matching
+      const words = term.split(/[\s-]+/);
+      const matches = words.filter(w => w.length > 2 && text.includes(w)).length;
+      textScore = (matches / words.length) * 50;
+    }
+    
+    // 2. Quality signal (0-100) - 35% weight
+    // Logarithmic scaling: log10(followers + 1) / log10(10M) * 100
+    const followers = playlist.followers?.total ?? 0;
+    const qualityScore = followers > 0 
+      ? Math.min(100, (Math.log10(followers + 1) / 7) * 100)
+      : 0;
+    
+    // 3. Content depth (0-100) - 25% weight
+    // Optimal range: 20-100 tracks
+    const tracks = playlist.tracks?.total ?? 0;
+    let contentScore = 0;
+    if (tracks >= 20 && tracks <= 100) contentScore = 100;
+    else if (tracks >= 10 && tracks <= 150) contentScore = 70;
+    else if (tracks >= 5) contentScore = 40;
+    
+    // Weighted sum
+    const finalScore = (textScore * 0.40) + (qualityScore * 0.35) + (contentScore * 0.25);
+    
+    return Math.round(finalScore);
+  }
+
+  /**
+   * Generate human-readable reasons based on score components
+   */
+  private generateReasons(playlist: Playlist, term: string, score: number): string[] {
+    const reasons: string[] = [];
+    const followers = playlist.followers?.total ?? 0;
+    const tracks = playlist.tracks?.total ?? 0;
+    
+    // Primary reason
+    if (playlist.name.toLowerCase().includes(term.toLowerCase())) {
+      reasons.push(`Matches "${term}"`);
+    } else {
+      reasons.push(`Related to ${term}`);
+    }
+    
+    // Quality indicator
+    if (followers >= 1000000) reasons.push(`${(followers/1000000).toFixed(1)}M followers`);
+    else if (followers >= 1000) reasons.push(`${(followers/1000).toFixed(0)}K followers`);
+    else if (followers > 0) reasons.push(`${followers} followers`);
+    
+    // Score indicator
+    if (score >= 70) reasons.push('Highly recommended');
+    else if (score >= 50) reasons.push('Good match');
+    
+    // Track count
+    if (tracks > 0) reasons.push(`${tracks} tracks`);
+    
+    return reasons.slice(0, 3);
+  }
+
+  /**
+   * SIMPLIFIED SERENDIPITY - Discover new genres
    */
   private async getSerendipityRecommendations(
     insights: MusicInsights, 
     existingRecommendations: PlaylistRecommendation[]
   ): Promise<PlaylistRecommendation[]> {
-    // Get genres the user hasn't explored much
-    const allGenres = ['jazz', 'classical', 'world', 'folk', 'reggae', 'blues', 'ambient'];
-    const userGenres = insights.topGenres.map(g => g.genre.toLowerCase());
-    const existingGenres = existingRecommendations.flatMap(r => r.matchingGenres.map(g => g.toLowerCase()));
-    const unexploredGenres = allGenres.filter(genre => 
-      !userGenres.includes(genre) && !existingGenres.includes(genre)
-    );
+    const explorationGenres = ['jazz', 'classical', 'world', 'folk', 'reggae', 'blues', 'ambient', 'electronic'];
+    const userGenres = new Set(insights.topGenres.map(g => g.genre.toLowerCase()));
+    const existingGenres = new Set(existingRecommendations.flatMap(r => r.matchingGenres.map(g => g.toLowerCase())));
     
-    // OPTIMIZATION: Only add 1 unexplored genre (was 2)
-    if (unexploredGenres.length === 0) return [];
+    // Find unexplored genres
+    const newGenres = explorationGenres.filter(g => !userGenres.has(g) && !existingGenres.has(g));
+    if (newGenres.length === 0) return [];
     
     try {
-      const genre = unexploredGenres[0];
+      const genre = newGenres[0];
       const { data, error } = await this.makeSpotifyRequest('search', {
-        q: `${genre} discover`,
+        q: `${genre} playlist`,
         type: 'playlist',
-        limit: 5 // Reduced from 3
+        limit: 15
       });
       
       if (error || !data?.playlists?.items) return [];
 
-      return data.playlists.items
-        .filter((playlist: any) => playlist && playlist.id && playlist.name)
-        .slice(0, 2) // Top 2 only
-        .map((playlist: any) => ({
-          playlist: this.normalizePlaylistData(playlist),
-          score: this.calculateGenreScore(playlist, genre) * 0.7, // Lower score for discovery
-          reasons: [`Discover ${genre} music`],
-          matchingGenres: [genre],
-          similarityType: 'user_pattern' as const
-        }));
+      // Pre-filter and normalize
+      const candidates = data.playlists.items
+        .filter((p: any) => p && p.id && p.name)
+        .map((p: any) => this.normalizePlaylistData(p))
+        .slice(0, 8);
+
+      // Fetch actual follower counts
+      const enrichedPlaylists = await this.enrichPlaylistsWithFollowers(candidates);
+
+      return enrichedPlaylists
+        .map((playlist) => {
+          const score = this.calculatePlaylistScore(playlist, genre) * 0.8; // Slight discount for discovery
+          return {
+            playlist,
+            score,
+            reasons: [`Discover ${genre} music`, ...this.generateReasons(playlist, genre, score).slice(1)],
+            matchingGenres: [genre],
+            similarityType: 'user_pattern' as const
+          };
+        })
+        .filter((rec: PlaylistRecommendation) => rec.score >= 25 && (rec.playlist.followers?.total ?? 0) >= 100)
+        .sort((a: PlaylistRecommendation, b: PlaylistRecommendation) => b.score - a.score)
+        .slice(0, 3);
     } catch {
       return [];
     }
   }
 
   /**
-   * Rank recommendations using ML-inspired scoring
+   * SIMPLIFIED ML Ranking - Just apply diversity penalty
    */
   private rankRecommendationsWithML(
     recommendations: PlaylistRecommendation[], 
-    insights: MusicInsights
+    _insights: MusicInsights
   ): PlaylistRecommendation[] {
+    // Count recommendations per genre for diversity
+    const genreCounts = new Map<string, number>();
+    
     return recommendations
       .map(rec => {
-        // Apply additional ML-inspired ranking factors
         let adjustedScore = rec.score;
         
-        // Diversity bonus (avoid too many similar recommendations)
-        const similarRecommendations = recommendations.filter(r => 
-          r.similarityType === rec.similarityType && 
-          r.matchingGenres.some(g => rec.matchingGenres.includes(g))
-        );
-        
-        if (similarRecommendations.length > 3) {
-          adjustedScore *= 0.85; // Penalty for over-representation
-        }
-        
-        // Enhanced popularity alignment with more granular follower consideration
-        const followerCount = rec.playlist.followers?.total ?? 0;
-        
-        // Universal quality boost for highly followed playlists (indicates good curation)
-        if (followerCount >= 1000000) {
-          adjustedScore *= 1.25; // Major playlists get significant boost
-        } else if (followerCount >= 500000) {
-          adjustedScore *= 1.20; // Very popular playlists
-        } else if (followerCount >= 100000) {
-          adjustedScore *= 1.15; // Popular playlists
-        } else if (followerCount >= 50000) {
-          adjustedScore *= 1.10; // Well-established playlists
-        }
-        
-        // User preference alignment
-        if (insights.popularityBias === 'mainstream') {
-          if (followerCount > 100000) {
-            adjustedScore *= 1.2; // Strong boost for mainstream users
-          } else if (followerCount > 50000) {
-            adjustedScore *= 1.15;
-          } else if (followerCount > 10000) {
-            adjustedScore *= 1.1;
-          } else if (followerCount < 5000) {
-            adjustedScore *= 0.9; // Slight penalty for very small playlists
+        // Apply diversity penalty if too many from same genre
+        for (const genre of rec.matchingGenres) {
+          const count = genreCounts.get(genre) || 0;
+          if (count >= 3) {
+            adjustedScore *= 0.9; // 10% penalty for over-representation
           }
-        } else if (insights.popularityBias === 'underground') {
-          if (followerCount < 10000) {
-            adjustedScore *= 1.15; // Boost for underground users preferring smaller playlists
-          } else if (followerCount < 50000) {
-            adjustedScore *= 1.1;
-          } else if (followerCount > 500000) {
-            adjustedScore *= 0.9; // Slight penalty for very mainstream playlists
-          }
-        } else { // mixed preference
-          // Balanced approach - moderate boost for quality indicators
-          if (followerCount > 250000) {
-            adjustedScore *= 1.1; // Moderate boost for very popular playlists
-          } else if (followerCount > 50000) {
-            adjustedScore *= 1.05; // Small boost for popular playlists
-          }
+          genreCounts.set(genre, count + 1);
         }
         
-        // Discovery rate alignment
-        if (insights.discoveryRate > 70 && rec.similarityType === 'user_pattern') {
-          adjustedScore *= 1.15; // Boost discovery for explorers
-        }
-        
-        return { ...rec, score: adjustedScore };
+        return { ...rec, score: Math.round(adjustedScore) };
       })
       .sort((a, b) => b.score - a.score);
-  }
-
-  /**
-   * Get mood-based recommendations
-   * OPTIMIZED: Reduced queries + parallel execution
-   */
-  private async getMoodBasedRecommendations(insights: MusicInsights): Promise<PlaylistRecommendation[]> {
-    // Determine mood keywords based on user preferences (reduced from 4 to 2)
-    const moodKeywords = this.getMoodKeywords(insights).slice(0, 2);
-    
-    // OPTIMIZATION: Parallel mood searches
-    const moodResults = await Promise.all(
-      moodKeywords.map(async (mood) => {
-        try {
-          const { data, error } = await this.makeSpotifyRequest('search', {
-            q: `${mood} mood playlist`,
-            type: 'playlist',
-            limit: 10 // Reduced from 5 to avoid too many results
-          });
-          
-          if (error || !data?.playlists?.items) return [];
-
-          return data.playlists.items
-            .filter((playlist: any) => playlist && playlist.id && playlist.name)
-            .slice(0, 3) // Top 3 per mood
-            .map((playlist: any) => ({
-              playlist: this.normalizePlaylistData(playlist),
-              score: this.calculateMoodScore(playlist, mood, insights),
-              reasons: [`Perfect for your ${mood} mood`],
-              matchingGenres: [],
-              similarityType: 'user_pattern' as const
-            }));
-        } catch {
-          return [];
-        }
-      })
-    );
-
-    return moodResults.flat();
-  }
-
-  /**
-   * Get mood keywords based on user insights
-   */
-  private getMoodKeywords(insights: MusicInsights): string[] {
-    const moods: string[] = [];
-    
-    // Base moods on user preferences
-    if (insights.popularityBias === 'mainstream') {
-      moods.push('popular', 'hits', 'trending');
-    } else if (insights.popularityBias === 'underground') {
-      moods.push('indie', 'alternative', 'underground');
-    }
-    
-    if (insights.discoveryRate > 70) {
-      moods.push('discovery', 'new music', 'fresh');
-    }
-    
-    if (insights.artistDiversity > 80) {
-      moods.push('eclectic', 'diverse', 'variety');
-    }
-    
-    // Default moods
-    moods.push('chill', 'focus', 'workout', 'study');
-    
-    return moods.slice(0, 4);
-  }
-
-  /**
-   * Calculate a quality score based on follower count using logarithmic scaling
-   * Returns a score between 0-100 where higher followers = higher quality indication
-   */
-  private calculateFollowerQualityScore(followerCount: number): number {
-    if (followerCount <= 0) return 0;
-    
-    // Logarithmic scaling to prevent extremely popular playlists from dominating
-    // but still give significant weight to follower count
-    if (followerCount >= 10000000) return 100; // 10M+ followers = perfect score
-    if (followerCount >= 5000000) return 95;   // 5M+ followers
-    if (followerCount >= 1000000) return 90;   // 1M+ followers
-    if (followerCount >= 500000) return 85;    // 500K+ followers
-    if (followerCount >= 250000) return 80;    // 250K+ followers
-    if (followerCount >= 100000) return 75;    // 100K+ followers
-    if (followerCount >= 50000) return 70;     // 50K+ followers
-    if (followerCount >= 25000) return 65;     // 25K+ followers
-    if (followerCount >= 10000) return 60;     // 10K+ followers
-    if (followerCount >= 5000) return 55;      // 5K+ followers
-    if (followerCount >= 2500) return 50;      // 2.5K+ followers
-    if (followerCount >= 1000) return 45;      // 1K+ followers
-    if (followerCount >= 500) return 40;       // 500+ followers
-    if (followerCount >= 250) return 35;       // 250+ followers
-    if (followerCount >= 100) return 30;       // 100+ followers
-    if (followerCount >= 50) return 25;        // 50+ followers
-    if (followerCount >= 25) return 20;        // 25+ followers
-    if (followerCount >= 10) return 15;        // 10+ followers
-    if (followerCount >= 5) return 10;         // 5+ followers
-    return 5; // Less than 5 followers = minimal score
-  }
-
-  /**
-   * Enhanced scoring for genre-based recommendations with ML-inspired approach
-   */
-  private calculateGenreScore(playlist: Playlist, genre: string, userInsights?: MusicInsights): number {
-    let score = 30; // Reduced base score to give more weight to other factors
-    
-    // Use the enhanced follower quality scoring system
-    const followerCount = playlist.followers?.total ?? 0;
-    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
-    
-    // Add follower quality score with appropriate weight (up to 40 points from followers)
-    score += (followerQualityScore * 0.4);
-    
-    // Quality assurance: Very high follower count suggests exceptional curation
-    if (followerCount > 1000000) {
-      score += 15; // Extra bonus for exceptional popularity
-    } else if (followerCount > 250000) {
-      score += 10; // Bonus for very high popularity
-    }
-    
-    // Text relevance with weighted matching
-    const text = (playlist.name + ' ' + (playlist.description || '')).toLowerCase();
-    const genreLower = genre.toLowerCase();
-    
-    // Exact genre match in title gets highest boost
-    if (playlist.name.toLowerCase().includes(genreLower)) score += 30;
-    else if (text.includes(genreLower)) score += 20;
-    
-    // Keyword variations and synonyms
-    const genreSynonyms = this.getGenreSynonyms(genre);
-    for (const synonym of genreSynonyms) {
-      if (text.includes(synonym.toLowerCase())) {
-        score += 15;
-        break;
-      }
-    }
-    
-    // Track count optimization (sweet spot algorithm)
-    const trackCount = playlist.tracks?.total ?? 0;
-    if (trackCount >= 30 && trackCount <= 80) score += 20; // Optimal range
-    else if (trackCount >= 15 && trackCount < 30) score += 15;
-    else if (trackCount > 80 && trackCount <= 150) score += 15;
-    else if (trackCount > 150) score += 5; // Too long
-    else if (trackCount < 15) score -= 10; // Too short
-    
-    // User preference alignment
-    if (userInsights) {
-      const userGenrePreference = userInsights.topGenres.find(g => g.genre === genre);
-      if (userGenrePreference) {
-        // Boost based on user's affinity for this genre
-        score += Math.min(userGenrePreference.percentage / 2, 15);
-      }
-      
-      // Adjust based on user's discovery rate
-      if (userInsights.discoveryRate > 70 && followerCount < 10000) {
-        score += 10; // Boost underground playlists for explorers
-      } else if (userInsights.discoveryRate < 30 && followerCount > 50000) {
-        score += 10; // Boost popular playlists for mainstream listeners
-      }
-    }
-    
-    // Recency and activity indicators
-    if (playlist.description && playlist.description.includes('updated')) score += 5;
-    if (playlist.description && playlist.description.includes('curated')) score += 8;
-    
-    // Penalty for potentially low-quality indicators
-    if (playlist.name.match(/^\d+/) || playlist.name.includes('test')) score -= 15;
-    if (playlist.description && playlist.description.length < 20) score -= 5;
-    
-    return Math.max(0, Math.min(100, score));
-  }
-
-  /**
-   * Get genre synonyms and related terms
-   */
-  private getGenreSynonyms(genre: string): string[] {
-    const synonymMap: Record<string, string[]> = {
-      'electronic': ['edm', 'dance', 'techno', 'house', 'trance', 'dubstep', 'electro'],
-      'hip-hop': ['rap', 'hiphop', 'urban', 'trap', 'drill'],
-      'rock': ['alternative', 'indie rock', 'classic rock', 'hard rock', 'metal'],
-      'pop': ['mainstream', 'top 40', 'popular', 'chart'],
-      'jazz': ['smooth jazz', 'bebop', 'fusion', 'swing'],
-      'classical': ['orchestral', 'symphony', 'baroque', 'romantic'],
-      'country': ['folk', 'americana', 'bluegrass', 'western'],
-      'r&b': ['soul', 'rnb', 'rhythm and blues', 'neo-soul'],
-      'latin': ['latino', 'hispanic', 'spanish', 'reggaeton'],
-      'ambient': ['chill', 'downtempo', 'atmospheric', 'meditation']
-    };
-    
-    return synonymMap[genre.toLowerCase()] || [];
-  }
-
-  /**
-   * Enhanced scoring for artist-based recommendations
-   */
-  private calculateArtistScore(playlist: Playlist, artistName: string, userInsights?: MusicInsights): number {
-    let score = 35; // Base score
-    
-    const text = (playlist.name + ' ' + (playlist.description || '')).toLowerCase();
-    const artistLower = artistName.toLowerCase();
-    
-    // Artist name matching with fuzzy logic
-    if (playlist.name.toLowerCase().includes(artistLower)) score += 35;
-    else if (text.includes(artistLower)) score += 25;
-    
-    // Similar artist detection (simplified)
-    const artistTokens = artistLower.split(' ');
-    for (const token of artistTokens) {
-      if (token.length > 3 && text.includes(token)) {
-        score += 10;
-        break;
-      }
-    }
-    
-    // Enhanced follower count influence using quality scoring
-    const followerCount = playlist.followers?.total ?? 0;
-    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
-    
-    // Artist playlists benefit significantly from high follower counts (indicates good curation)
-    // Weight follower quality more heavily for artist playlists (up to 35 points)
-    score += (followerQualityScore * 0.35);
-    
-    // Extra bonus for exceptionally popular artist playlists
-    if (followerCount >= 500000) {
-      score += 15; // Major artist compilations/official playlists
-    } else if (followerCount >= 100000) {
-      score += 10; // Very popular artist playlists
-    }
-    
-    // Track count preference for artist playlists
-    const trackCount = playlist.tracks?.total ?? 0;
-    if (trackCount >= 20 && trackCount <= 60) score += 15;
-    else if (trackCount > 60) score += 5;
-    
-    // User preference alignment
-    if (userInsights) {
-      // Boost if user has diverse taste (more likely to enjoy artist-focused playlists)
-      if (userInsights.artistDiversity > 70) score += 8;
-      
-      // Adjust based on popularity bias
-      if (userInsights.popularityBias === 'mainstream' && followerCount > 10000) score += 8;
-      else if (userInsights.popularityBias === 'underground' && followerCount < 5000) score += 8;
-    }
-    
-    return Math.max(0, Math.min(100, score));
-  }
-
-  /**
-   * Enhanced scoring for mood-based recommendations with emotion analysis
-   */
-  private calculateMoodScore(playlist: Playlist, mood: string, userInsights?: MusicInsights): number {
-    let score = 30; // Base score
-    
-    const text = (playlist.name + ' ' + (playlist.description || '')).toLowerCase();
-    const moodLower = mood.toLowerCase();
-    
-    // Direct mood matching
-    if (text.includes(moodLower)) score += 25;
-    
-    // Mood synonym matching
-    const moodSynonyms = this.getMoodSynonyms(mood);
-    for (const synonym of moodSynonyms) {
-      if (text.includes(synonym.toLowerCase())) {
-        score += 15;
-        break;
-      }
-    }
-    
-    // Quality indicators for mood playlists
-    if (playlist.description && playlist.description.length > 50) score += 12;
-    if (playlist.description && playlist.description.includes('carefully')) score += 8;
-    if (playlist.description && playlist.description.includes('perfect for')) score += 6;
-    
-    // Enhanced follower count using quality scoring system
-    const followerCount = playlist.followers?.total ?? 0;
-    const followerQualityScore = this.calculateFollowerQualityScore(followerCount);
-    
-    // Mood playlists with high followers indicate excellent mood curation
-    // Weight follower quality moderately for mood playlists (up to 30 points)
-    score += (followerQualityScore * 0.3);
-    
-    // Extra bonus for exceptionally popular mood playlists
-    if (followerCount >= 250000) {
-      score += 12; // Major mood playlists (e.g., Spotify's official mood playlists)
-    } else if (followerCount >= 100000) {
-      score += 8; // Very popular mood playlists
-    }
-    
-    // Track count optimization for mood playlists
-    const trackCount = playlist.tracks?.total ?? 0;
-    if (trackCount >= 25 && trackCount <= 100) score += 12;
-    else if (trackCount > 100) score += 6;
-    
-    // User mood preference alignment
-    if (userInsights) {
-      // Adjust based on user's typical listening patterns
-      const avgValence = this.estimateUserValence(userInsights);
-      
-      if (mood === 'happy' || mood === 'energetic') {
-        if (avgValence > 0.6) score += 10;
-      } else if (mood === 'sad' || mood === 'melancholy') {
-        if (avgValence < 0.4) score += 10;
-      } else if (mood === 'chill' || mood === 'relaxed') {
-        if (avgValence >= 0.4 && avgValence <= 0.7) score += 10;
-      }
-    }
-    
-    return Math.max(0, Math.min(100, score));
-  }
-
-  /**
-   * Get mood synonyms and related emotional terms
-   */
-  private getMoodSynonyms(mood: string): string[] {
-    const moodMap: Record<string, string[]> = {
-      'happy': ['upbeat', 'cheerful', 'joyful', 'positive', 'uplifting', 'feel good'],
-      'sad': ['melancholy', 'emotional', 'heartbreak', 'blues', 'sorrow', 'tears'],
-      'energetic': ['workout', 'pump up', 'high energy', 'motivation', 'intense', 'power'],
-      'chill': ['relaxed', 'laid back', 'mellow', 'easy', 'calm', 'peaceful'],
-      'romantic': ['love', 'intimate', 'date night', 'romance', 'heart', 'passion'],
-      'party': ['celebration', 'dance', 'nightlife', 'club', 'party time', 'festivities'],
-      'focus': ['concentration', 'study', 'work', 'productivity', 'instrumental', 'background'],
-      'nostalgic': ['throwback', 'memories', 'vintage', 'classic', 'retro', 'old school']
-    };
-    
-    return moodMap[mood.toLowerCase()] || [];
-  }
-
-  /**
-   * Estimate user's average valence from insights
-   */
-  private estimateUserValence(insights: MusicInsights): number {
-    // This is a simplified estimation - in a real implementation,
-    // you'd analyze actual audio features from user's listening history
-    let valenceEstimate = 0.5; // Neutral baseline
-    
-    // Adjust based on genre preferences
-    const highValenceGenres = ['pop', 'dance', 'electronic', 'funk'];
-    const lowValenceGenres = ['blues', 'classical', 'ambient', 'folk'];
-    
-    let totalWeight = 0;
-    insights.topGenres.forEach(genre => {
-      if (highValenceGenres.includes(genre.genre)) {
-        valenceEstimate += 0.3 * (genre.percentage / 100);
-        totalWeight += genre.percentage / 100;
-      } else if (lowValenceGenres.includes(genre.genre)) {
-        valenceEstimate -= 0.2 * (genre.percentage / 100);
-        totalWeight += genre.percentage / 100;
-      }
-    });
-    
-    return Math.max(0, Math.min(1, valenceEstimate));
   }
 
   /**
@@ -1906,73 +1638,10 @@ export class MusicIntelligenceService {
   }
 
   /**
-   * Estimate follower count based on playlist characteristics when actual data is unavailable
-   * Focused on identifying popular/mainstream playlists
-   */
-  private estimateFollowerCount(playlist: Playlist): number {
-    let estimatedFollowers = 0;
-    
-    // Track count influences estimated popularity (popular playlists tend to be longer)
-    const trackCount = playlist.tracks?.total ?? 0;
-    if (trackCount > 200) estimatedFollowers += 15000;  // Very comprehensive playlists
-    else if (trackCount > 100) estimatedFollowers += 10000;
-    else if (trackCount > 50) estimatedFollowers += 5000;
-    else if (trackCount > 25) estimatedFollowers += 2000;
-    else if (trackCount > 10) estimatedFollowers += 1000;
-    
-    // Playlist name patterns that strongly suggest popularity
-    const name = playlist.name.toLowerCase();
-    
-    // Chart/Popular indicators (high confidence)
-    if (name.includes('chart') || name.includes('billboard')) {
-      estimatedFollowers += 25000;
-    }
-    if (name.includes('hits') || name.includes('best') || name.includes('top')) {
-      estimatedFollowers += 15000;
-    }
-    if (name.includes('popular') || name.includes('greatest')) {
-      estimatedFollowers += 10000;
-    }
-    if (name.includes('official')) {
-      estimatedFollowers += 8000;  // Reduced from 50k since not Spotify-specific
-    }
-    
-    // Radio/Mainstream indicators
-    if (name.includes('radio') || name.includes('mainstream')) {
-      estimatedFollowers += 8000;
-    }
-    
-    // Year indicators (recent compilations tend to be popular)
-    if (name.includes('2024') || name.includes('2023')) {
-      estimatedFollowers += 5000;
-    }
-    
-    // Numbers suggesting rankings/charts
-    if (name.match(/\btop\s*\d+\b/) || name.match(/\bbest\s*\d+\b/)) {
-      estimatedFollowers += 8000;
-    }
-    
-    // Description quality indicates professional curation
-    if (playlist.description && playlist.description.length > 100) {
-      estimatedFollowers += 3000;
-    }
-    
-    // Owner patterns (check for verified/community curators)
-    const ownerName = playlist.owner?.display_name?.toLowerCase() ?? '';
-    if (ownerName.includes('official') || ownerName.includes('music') || ownerName.includes('records')) {
-      estimatedFollowers += 15000;  // Reduced from 20k, removed Spotify-specific check
-    }
-    
-    return Math.min(estimatedFollowers, 100000); // Cap at reasonable estimate
-  }
-
-  /**
-   * Enhanced playlist normalization with follower data fetching
+   * Normalize playlist data structure
    */
   private normalizePlaylistData(playlist: any): Playlist {
-    // Ensure playlist is an object
     if (!playlist || typeof playlist !== 'object') {
-      console.warn('Invalid playlist data received:', playlist);
       playlist = {};
     }
 

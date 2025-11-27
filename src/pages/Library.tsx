@@ -2,17 +2,21 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import TrackMenu from '../components/TrackMenu';
+import PlaylistMenu from '../components/PlaylistMenu';
+import AlbumMenu from '../components/AlbumMenu';
+import ArtistMenu from '../components/ArtistMenu';
 import { formatCount } from '../utils/numberFormat';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import {
-  IconButton,
   Fade,
   Grow,
   Typography
 } from '@mui/material';
-import { PlayArrow, Pause } from '@mui/icons-material';
+import { PlayArrow, Pause, MoreVert } from '@mui/icons-material';
 import { useToast } from '../context/toast';
+import type { Track, Playlist, Album, Artist } from '../types/spotify';
 
 const Library: React.FC = () => {
   const { token } = useAuth();
@@ -67,6 +71,66 @@ const Library: React.FC = () => {
   const [artists, setArtists] = React.useState<any[]>([]);
 
   const [loading, setLoading] = React.useState(true);
+
+  // Track menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<Track | null>(null);
+  
+  // Playlist menu state
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = React.useState<Playlist | null>(null);
+
+  // Album menu state
+  const [albumMenuAnchor, setAlbumMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = React.useState<Album | null>(null);
+
+  // Artist menu state
+  const [artistMenuAnchor, setArtistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedArtist, setSelectedArtist] = React.useState<Artist | null>(null);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
+
+  const handlePlaylistMenuOpen = (event: React.MouseEvent<HTMLElement>, playlist: Playlist) => {
+    event.stopPropagation();
+    setPlaylistMenuAnchor(event.currentTarget);
+    setSelectedPlaylist(playlist);
+  };
+
+  const handlePlaylistMenuClose = () => {
+    setPlaylistMenuAnchor(null);
+    setSelectedPlaylist(null);
+  };
+
+  const handleAlbumMenuOpen = (event: React.MouseEvent<HTMLElement>, album: Album) => {
+    event.stopPropagation();
+    setAlbumMenuAnchor(event.currentTarget);
+    setSelectedAlbum(album);
+  };
+
+  const handleAlbumMenuClose = () => {
+    setAlbumMenuAnchor(null);
+    setSelectedAlbum(null);
+  };
+
+  const handleArtistMenuOpen = (event: React.MouseEvent<HTMLElement>, artist: Artist) => {
+    event.stopPropagation();
+    setArtistMenuAnchor(event.currentTarget);
+    setSelectedArtist(artist);
+  };
+
+  const handleArtistMenuClose = () => {
+    setArtistMenuAnchor(null);
+    setSelectedArtist(null);
+  };
   React.useEffect(() => {
     // If no token, show guest prompt and skip loading library data
     if (!token) {
@@ -254,9 +318,17 @@ const Library: React.FC = () => {
                             <PlayArrow sx={{ fontSize: 32, color: 'white' }} />
                           </div>
                         </div>
-                        <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem' }}>
-                          {pl.name}
-                        </Typography>
+                        <div className="flex items-center justify-between gap-1">
+                          <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem', flex: 1 }}>
+                            {pl.name}
+                          </Typography>
+                          <button
+                            onClick={(e) => handlePlaylistMenuOpen(e, pl)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                          >
+                            <MoreVert sx={{ fontSize: 18 }} />
+                          </button>
+                        </div>
                         <Typography variant="caption" display="block" color="gray" noWrap sx={{ fontSize: '0.75rem' }}>
                           By {pl.owner?.display_name}
                         </Typography>
@@ -269,28 +341,35 @@ const Library: React.FC = () => {
               {/* Liked Songs Tab */}
               {tab === 1 && (
                 <div className="bg-white/5 rounded-xl overflow-hidden">
-                  <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-white/10 text-sm text-gray-400 uppercase tracking-wider">
+                  <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 border-b border-white/10 text-sm text-gray-400 uppercase tracking-wider">
                     <div className="w-8 text-center">#</div>
                     <div>Title</div>
                     <div className="hidden md:block">Album</div>
                     <div className="text-right">Duration</div>
+                    <div className="w-8"></div>
                   </div>
                   
                   {tracks.map((track, index) => (
                     <div 
                       key={track.id}
-                      className="group grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer"
+                      className="group grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer"
                       onClick={() => handlePlay(track)}
                     >
-                      <div className="w-8 text-center text-gray-400 group-hover:text-white">
-                        <span className="group-hover:hidden">{index + 1}</span>
-                        <IconButton 
-                          size="small"
-                          className="hidden group-hover:inline-flex"
-                          sx={{ color: '#22c55e', padding: 0 }}
-                        >
-                          {currentTrack?.id === track.id && isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
-                        </IconButton>
+                      <div className="w-8 text-center flex justify-center items-center text-gray-400 font-medium">
+                        <span className="group-hover:hidden">
+                          {currentTrack?.id === track.id && isPlaying ? (
+                            <img 
+                              src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
+                              alt="playing" 
+                              className="w-3 h-3"
+                            />
+                          ) : (
+                            <span className={currentTrack?.id === track.id ? 'text-green-500' : ''}>{index + 1}</span>
+                          )}
+                        </span>
+                        <button className="hidden group-hover:block text-white">
+                          {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                        </button>
                       </div>
                       <div className="flex items-center gap-4 overflow-hidden">
                         <img 
@@ -314,6 +393,12 @@ const Library: React.FC = () => {
                         {Math.floor(track.duration_ms / 60000)}:
                         {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                       </div>
+                      <button
+                        onClick={(e) => handleTrackMenuOpen(e, track)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all w-8"
+                      >
+                        <MoreVert sx={{ fontSize: 18 }} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -338,9 +423,17 @@ const Library: React.FC = () => {
                             <PlayArrow sx={{ fontSize: 32, color: 'white' }} />
                           </div>
                         </div>
-                        <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem' }}>
-                          {al.name}
-                        </Typography>
+                        <div className="flex items-center justify-between gap-2">
+                          <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ fontSize: '0.9rem', flex: 1 }}>
+                            {al.name}
+                          </Typography>
+                          <button
+                            onClick={(e) => handleAlbumMenuOpen(e, al)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                          >
+                            <MoreVert sx={{ fontSize: 18 }} />
+                          </button>
+                        </div>
                         <Typography variant="caption" display="block" color="gray" noWrap sx={{ fontSize: '0.75rem' }}>
                           {al.artists?.map((a:any) => a.name).join(', ')}
                         </Typography>
@@ -366,22 +459,30 @@ const Library: React.FC = () => {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>
-                        <Typography 
-                          variant="subtitle2" 
-                          fontWeight="bold" 
-                          align="center" 
-                          noWrap
-                          sx={{ 
-                            fontSize: '0.9rem',
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                              color: '#22c55e',
-                              textShadow: '0 0 10px rgba(34, 197, 94, 0.5)'
-                            }
-                          }}
-                        >
-                          {artist.name}
-                        </Typography>
+                        <div className="flex items-center justify-center gap-2">
+                          <Typography 
+                            variant="subtitle2" 
+                            fontWeight="bold" 
+                            align="center" 
+                            noWrap
+                            sx={{ 
+                              fontSize: '0.9rem',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                color: '#22c55e',
+                                textShadow: '0 0 10px rgba(34, 197, 94, 0.5)'
+                              }
+                            }}
+                          >
+                            {artist.name}
+                          </Typography>
+                          <button
+                            onClick={(e) => handleArtistMenuOpen(e, artist)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                          >
+                            <MoreVert sx={{ fontSize: 18 }} />
+                          </button>
+                        </div>
                         <Typography variant="caption" display="block" align="center" color="gray" sx={{ fontSize: '0.75rem' }}>
                           {artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : 'Artist'}
                         </Typography>
@@ -394,6 +495,38 @@ const Library: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Track Menu */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={Boolean(trackMenuAnchor)}
+        onClose={handleTrackMenuClose}
+        track={selectedTrack}
+      />
+
+      {/* Playlist Menu */}
+      <PlaylistMenu
+        anchorEl={playlistMenuAnchor}
+        open={Boolean(playlistMenuAnchor)}
+        onClose={handlePlaylistMenuClose}
+        playlist={selectedPlaylist}
+      />
+
+      {/* Album Menu */}
+      <AlbumMenu
+        anchorEl={albumMenuAnchor}
+        open={Boolean(albumMenuAnchor)}
+        onClose={handleAlbumMenuClose}
+        album={selectedAlbum}
+      />
+
+      {/* Artist Menu */}
+      <ArtistMenu
+        anchorEl={artistMenuAnchor}
+        open={Boolean(artistMenuAnchor)}
+        onClose={handleArtistMenuClose}
+        artist={selectedArtist}
+      />
     </div>
   );
 };

@@ -12,7 +12,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Tooltip
 } from '@mui/material';
 import {
   PlayArrow,
@@ -32,8 +33,9 @@ import {
   Speaker,
   Tv,
   Watch,
-  
+  MoreVert,
 } from '@mui/icons-material';
+import TrackMenu from './TrackMenu';
 
 const Player: React.FC = () => {
   const navigate = useNavigate();
@@ -61,6 +63,18 @@ const Player: React.FC = () => {
 
   const [deviceMenuAnchor, setDeviceMenuAnchor] = React.useState<null | HTMLElement>(null);
   const deviceMenuOpen = Boolean(deviceMenuAnchor);
+
+  // Track menu state for 3-dot menu
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const trackMenuOpen = Boolean(trackMenuAnchor);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setTrackMenuAnchor(event.currentTarget);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+  };
 
   // Handle device menu
   const handleDeviceMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -349,6 +363,29 @@ const Player: React.FC = () => {
                 </Typography>
               )}
             </Box>
+
+            {/* 3-dot menu button for track actions */}
+            {isTrackLoaded && currentTrack && (
+              <Tooltip title="More options">
+                <IconButton
+                  onClick={handleTrackMenuOpen}
+                  size="small"
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'text.primary',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    transition: 'all 0.2s ease',
+                    width: 28,
+                    height: 28,
+                    ml: 0.5,
+                  }}
+                >
+                  <MoreVert sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
           </Stack>
 
           {/* Controls */}
@@ -770,6 +807,14 @@ const Player: React.FC = () => {
           </Stack>
         </Stack>
       </Box>
+
+      {/* Track Menu for 3-dot button */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={trackMenuOpen}
+        onClose={handleTrackMenuClose}
+        track={currentTrack}
+      />
     </Box>
   );
 };

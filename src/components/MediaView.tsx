@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { useAuth } from '../context/auth';
+import TrackMenu from './TrackMenu';
 import { 
   Typography, 
   Tooltip
@@ -15,7 +16,8 @@ import {
   Repeat,
   RepeatOne,
   MusicNote,
-  PlayCircleFilled
+  PlayCircleFilled,
+  MoreVert
 } from '@mui/icons-material';
 import type { Album as AlbumType, Playlist as PlaylistType, Track } from '../types/spotify';
 
@@ -34,6 +36,21 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+
+  // Track menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
 
   // Function to decode HTML entities
   const decodeHtmlEntities = (text: string): string => {
@@ -461,11 +478,12 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
 
       {/* Tracks List */}
       <div className="px-8 mt-4">
-        <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
+        <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
           <div className="w-8 text-center">#</div>
           <div>Title</div>
-          <div className="hidden md:block text-right">Album</div>
-          <div className="w-16 text-center"><AccessTime sx={{ fontSize: 16 }} /></div>
+          <div className="hidden md:block">Album</div>
+          <div className="w-12 flex justify-center"><AccessTime sx={{ fontSize: 16 }} /></div>
+          <div className="w-10"></div>
         </div>
 
         <div className="flex flex-col">
@@ -480,7 +498,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
               <div 
                 key={track.id}
                 className={`
-                  group grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 rounded-md items-center
+                  group grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-3 rounded-md items-center
                   hover:bg-white/10 transition-colors cursor-pointer
                   ${isCurrentTrack ? 'bg-white/10' : ''}
                 `}
@@ -535,7 +553,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                 </div>
 
                 <div 
-                  className="hidden md:block text-right text-sm text-white/50 truncate hover:text-white transition-colors cursor-pointer hover:underline"
+                  className="hidden md:block text-sm text-white/50 truncate hover:text-white transition-colors cursor-pointer hover:underline"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (track.album?.id) navigate(`/album/${track.album.id}`);
@@ -544,14 +562,33 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                   {track.album?.name}
                 </div>
 
-                <div className="w-16 text-center text-sm text-white/50 font-variant-numeric tabular-nums">
+                <div className="w-12 text-center text-sm text-white/50 font-variant-numeric tabular-nums">
                   {formatDuration(track.duration_ms)}
+                </div>
+
+                {/* More Options Button */}
+                <div className="w-10 flex justify-center">
+                  <button
+                    onClick={(e) => handleTrackMenuOpen(e, track)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-white/50 hover:text-white transition-all"
+                  >
+                    <MoreVert sx={{ fontSize: 20 }} />
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Track Menu */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={Boolean(trackMenuAnchor)}
+        onClose={handleTrackMenuClose}
+        track={selectedTrack}
+        currentPlaylistId={type === 'playlist' ? id : undefined}
+      />
     </div>
   );
 };

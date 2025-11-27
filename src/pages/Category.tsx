@@ -5,10 +5,13 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import TrackMenu from '../components/TrackMenu';
+import PlaylistMenu from '../components/PlaylistMenu';
 import { IconButton, Fade, Typography, Skeleton, Grow } from '@mui/material';
-import { PlayArrow, ChevronLeft, ChevronRight, AccessTime } from '@mui/icons-material';
+import { PlayArrow, Pause, ChevronLeft, ChevronRight, AccessTime, MoreVert } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
 import { getCategoryById, mapGenresToCategories, getCategorySearchTerms, type CustomCategory } from '../utils/categoryMapping';
+import type { Track as TrackType, Playlist as PlaylistType } from '../types/spotify';
 
 interface Playlist {
   id: string;
@@ -53,7 +56,7 @@ const Category: React.FC = () => {
   const { makeRequest } = useSpotifyApi();
   const navigate = useNavigate();
   const toast = useToast();
-  const { play } = usePlayer();
+  const { play, currentTrack, isPlaying } = usePlayer();
   
   const [category, setCategory] = React.useState<CustomCategory | null>(null);
   const [playlists, setPlaylists] = React.useState<Playlist[]>([]);
@@ -65,6 +68,36 @@ const Category: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [error, setError] = React.useState<string>('');
   const isLoadingRef = React.useRef(false);
+
+  // Track menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<TrackType | null>(null);
+  
+  // Playlist menu state
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = React.useState<PlaylistType | null>(null);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track as unknown as TrackType);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
+
+  const handlePlaylistMenuOpen = (event: React.MouseEvent<HTMLElement>, playlist: Playlist) => {
+    event.stopPropagation();
+    setPlaylistMenuAnchor(event.currentTarget);
+    setSelectedPlaylist(playlist as unknown as PlaylistType);
+  };
+
+  const handlePlaylistMenuClose = () => {
+    setPlaylistMenuAnchor(null);
+    setSelectedPlaylist(null);
+  };
 
   // Load category on mount
   React.useEffect(() => {
@@ -914,23 +947,36 @@ const Category: React.FC = () => {
                     <h2 className="text-2xl font-bold text-white mb-6">Popular Songs</h2>
                     <div className="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
                       {/* Table Header */}
-                      <div className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-4 border-b border-white/10 text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
+                      <div className="grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 border-b border-white/10 text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
                         <div className="w-8 text-center">#</div>
                         <div>Title</div>
                         <div className="hidden md:block">Album</div>
                         <div className="text-right"><AccessTime fontSize="small" /></div>
+                        <div className="w-8"></div>
                       </div>
                       
                       {/* Rows */}
                       {tracks.map((track, index) => (
                         <div 
                           key={track.id}
-                          className="group grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
+                          className="group grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
                           onClick={() => handleTrackPlay(track)}
                         >
-                          <div className="w-8 text-center text-gray-400 group-hover:text-white font-medium relative flex items-center justify-center">
-                            <span className="group-hover:opacity-0 transition-opacity duration-200">{index + 1}</span>
-                            <PlayArrow className="absolute opacity-0 group-hover:opacity-100 text-green-500 transition-opacity duration-200" sx={{ fontSize: 24 }} />
+                          <div className="w-8 text-center flex justify-center items-center text-gray-400 font-medium">
+                            <span className="group-hover:hidden">
+                              {currentTrack?.id === track.id && isPlaying ? (
+                                <img 
+                                  src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
+                                  alt="playing" 
+                                  className="w-3 h-3"
+                                />
+                              ) : (
+                                <span className={currentTrack?.id === track.id ? 'text-green-500' : ''}>{index + 1}</span>
+                              )}
+                            </span>
+                            <button className="hidden group-hover:block text-white">
+                              {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                            </button>
                           </div>
                           <div className="flex items-center gap-4 overflow-hidden">
                             <img 
@@ -954,6 +1000,12 @@ const Category: React.FC = () => {
                             {Math.floor(track.duration_ms / 60000)}:
                             {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                           </div>
+                          <button
+                            onClick={(e) => handleTrackMenuOpen(e, track)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all w-8"
+                          >
+                            <MoreVert sx={{ fontSize: 18 }} />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -968,7 +1020,7 @@ const Category: React.FC = () => {
                       {playlists.map((playlist, index) => (
                         <Grow in timeout={300 + (index % 10) * 50} key={playlist.id}>
                             <div 
-                            className="group p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl"
+                            className="group p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
                             onClick={() => handlePlaylistPlay(playlist)}
                             >
                             <div className="relative aspect-square mb-4 rounded-lg overflow-hidden shadow-lg">
@@ -983,9 +1035,17 @@ const Category: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-white truncate mb-1 group-hover:text-green-400 transition-colors">
-                                {playlist.name}
-                            </h3>
+                            <div className="flex items-center justify-between gap-1">
+                              <h3 className="font-bold text-white truncate mb-1 group-hover:text-green-400 transition-colors flex-1">
+                                  {playlist.name}
+                              </h3>
+                              <button
+                                onClick={(e) => handlePlaylistMenuOpen(e, playlist)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                              >
+                                <MoreVert sx={{ fontSize: 18 }} />
+                              </button>
+                            </div>
                             <p className="text-sm text-gray-400 truncate line-clamp-2">
                                 By {playlist.owner.display_name}
                             </p>
@@ -1000,6 +1060,22 @@ const Category: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Track Menu */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={Boolean(trackMenuAnchor)}
+        onClose={handleTrackMenuClose}
+        track={selectedTrack}
+      />
+
+      {/* Playlist Menu */}
+      <PlaylistMenu
+        anchorEl={playlistMenuAnchor}
+        open={Boolean(playlistMenuAnchor)}
+        onClose={handlePlaylistMenuClose}
+        playlist={selectedPlaylist}
+      />
     </div>
   );
 };

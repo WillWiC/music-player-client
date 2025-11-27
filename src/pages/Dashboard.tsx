@@ -6,8 +6,11 @@ import type { User, Playlist, RecentlyPlayedItem, Track } from '../types/spotify
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import PlaylistRecommendations from '../components/PlaylistRecommendations';
+import TrackMenu from '../components/TrackMenu';
+import PlaylistMenu from '../components/PlaylistMenu';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Box, CircularProgress, Fade, Grow, Skeleton } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { Box, CircularProgress, Fade, Grow, Skeleton, IconButton } from '@mui/material';
 import { useToast } from '../context/toast';
 import '../index.css';
 
@@ -45,6 +48,11 @@ const Dashboard: React.FC = () => {
   // Playlists loading
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
 
+  // Playlists pagination
+  const [playlistsStartIndex, setPlaylistsStartIndex] = React.useState(0);
+  const playlistsPerView = 6;
+  const [isAnimatingPlaylists, setIsAnimatingPlaylists] = React.useState(false);
+
   // Animation flags used for subtle transitions
   const [isAnimatingRecently, setIsAnimatingRecently] = React.useState(false);
   const [isAnimatingTracks, setIsAnimatingTracks] = React.useState(false);
@@ -52,9 +60,38 @@ const Dashboard: React.FC = () => {
   // Generic errors map for sections
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // Context menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<Track | null>(null);
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = React.useState<Playlist | null>(null);
+
   // Small helpers
   const formatDisplayName = (name?: string) => (name ? name : '');
   const decodeHtmlEntities = (str?: string) => (str ? str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : str || '');
+
+  // Context menu handlers
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
+
+  const handlePlaylistMenuOpen = (event: React.MouseEvent<HTMLElement>, playlist: Playlist) => {
+    event.stopPropagation();
+    setPlaylistMenuAnchor(event.currentTarget);
+    setSelectedPlaylist(playlist);
+  };
+
+  const handlePlaylistMenuClose = () => {
+    setPlaylistMenuAnchor(null);
+    setSelectedPlaylist(null);
+  };
 
   // Navigation/scroll helpers for paginated sections
   const handlePrevRecently = () => {
@@ -85,12 +122,29 @@ const Dashboard: React.FC = () => {
     setTimeout(() => setIsAnimatingTracks(false), 260);
   };
 
+  // Playlists navigation
+  const handlePrevPlaylists = () => {
+    if (isAnimatingPlaylists) return;
+    setIsAnimatingPlaylists(true);
+    setPlaylistsStartIndex(prev => Math.max(0, prev - playlistsPerView));
+    setTimeout(() => setIsAnimatingPlaylists(false), 260);
+  };
+  const handleNextPlaylists = () => {
+    if (isAnimatingPlaylists) return;
+    if (playlistsStartIndex + playlistsPerView >= playlists.length) return;
+    setIsAnimatingPlaylists(true);
+    setPlaylistsStartIndex(prev => Math.min(prev + playlistsPerView, Math.max(0, playlists.length - playlistsPerView)));
+    setTimeout(() => setIsAnimatingPlaylists(false), 260);
+  };
+
   // (Releases navigation removed)
 
   const canGoNext = topTracksStartIndex + tracksPerView < topTracks.length;
   const canGoPrev = topTracksStartIndex > 0;
   const canGoNextRecently = recentlyStartIndex + recentlyPerView < recentlyPlayed.length;
   const canGoPrevRecently = recentlyStartIndex > 0;
+  const canGoNextPlaylists = playlistsStartIndex + playlistsPerView < playlists.length;
+  const canGoPrevPlaylists = playlistsStartIndex > 0;
   // (releases pagination flags removed)
 
   // Scroll to top functionality
@@ -598,6 +652,41 @@ const Dashboard: React.FC = () => {
                   <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
                   <p className="text-gray-400 text-sm">Your personal music collections</p>
                 </div>
+                <div className="flex items-center gap-3">
+                  {/* Navigation Arrows */}
+                  {playlists.length > playlistsPerView && (
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={handlePrevPlaylists}
+                        disabled={!canGoPrevPlaylists || isAnimatingPlaylists}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoPrevPlaylists && !isAnimatingPlaylists
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Previous playlists"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={handleNextPlaylists}
+                        disabled={!canGoNextPlaylists || isAnimatingPlaylists}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                          canGoNextPlaylists && !isAnimatingPlaylists
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                        }`}
+                        title="Next playlists"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </Fade>
             
@@ -617,10 +706,16 @@ const Dashboard: React.FC = () => {
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {playlists.map((playlist, index) => (
-                  <Grow in timeout={400 + index * 50} key={playlist.id}>
-                    <div className="group cursor-pointer">
+              <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                {playlists.slice(playlistsStartIndex, playlistsStartIndex + playlistsPerView).map((playlist, index) => (
+                  <Grow in timeout={400 + index * 50} key={`${playlist.id}-${playlistsStartIndex}`}>
+                    <div 
+                      className={`group cursor-pointer transition-all duration-300 ease-out ${isAnimatingPlaylists ? 'animate-pulse' : ''}`}
+                      style={{ 
+                        animationDelay: `${index * 50}ms`,
+                        transform: isAnimatingPlaylists ? 'translateY(10px)' : 'translateY(0px)'
+                      }}
+                    >
                       <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/2 border border-white/5 hover:border-purple-500/30 transition-all duration-300 hover:scale-102 backdrop-blur-sm">
                       <div className="aspect-square relative">
                         <img 
@@ -677,15 +772,31 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-2">
-                        <h3 
-                          className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPlaylist(playlist.id);
-                          }}
-                        >
-                          {playlist.name}
-                        </h3>
+                        <div className="flex items-center justify-between gap-1">
+                          <h3 
+                            className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPlaylist(playlist.id);
+                            }}
+                          >
+                            {playlist.name}
+                          </h3>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handlePlaylistMenuOpen(e, playlist)}
+                            sx={{ 
+                              p: 0.25,
+                              opacity: 0,
+                              transition: 'opacity 0.2s',
+                              '.group:hover &': { opacity: 1 },
+                              color: 'rgba(255,255,255,0.6)',
+                              '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                            }}
+                          >
+                            <MoreVertIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </div>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
                           {playlist.description ? decodeHtmlEntities(playlist.description) : `${playlist.tracks.total} tracks`}
                         </p>
@@ -834,12 +945,28 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-2">
-                        <h4 
-                          className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight cursor-pointer hover:underline"
-                          onClick={(e) => handleTrackNameClick(e, item.track.album?.id || '')}
-                        >
-                          {item.track.name}
-                        </h4>
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 
+                            className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
+                            onClick={(e) => handleTrackNameClick(e, item.track.album?.id || '')}
+                          >
+                            {item.track.name}
+                          </h4>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleTrackMenuOpen(e, item.track)}
+                            sx={{ 
+                              p: 0.25,
+                              opacity: 0,
+                              transition: 'opacity 0.2s',
+                              '.group:hover &': { opacity: 1 },
+                              color: 'rgba(255,255,255,0.6)',
+                              '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                            }}
+                          >
+                            <MoreVertIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </div>
                         <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
                           <Box
                             component="span"
@@ -1019,6 +1146,17 @@ const Dashboard: React.FC = () => {
                             {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}` : '--:--'}
                           </span>
                           
+                          {/* More Options Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTrackMenuOpen(e, track);
+                            }}
+                            className="w-8 h-8 text-gray-400 hover:text-yellow-400 rounded-full flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <MoreVertIcon fontSize="small" />
+                          </button>
+                          
                           {/* Play Button */}
                           <button 
                             onClick={async (e) => {
@@ -1091,6 +1229,22 @@ const Dashboard: React.FC = () => {
             />
           </button>
         )}
+
+        {/* Track Context Menu */}
+        <TrackMenu
+          anchorEl={trackMenuAnchor}
+          open={Boolean(trackMenuAnchor)}
+          onClose={handleTrackMenuClose}
+          track={selectedTrack}
+        />
+
+        {/* Playlist Context Menu */}
+        <PlaylistMenu
+          anchorEl={playlistMenuAnchor}
+          open={Boolean(playlistMenuAnchor)}
+          onClose={handlePlaylistMenuClose}
+          playlist={selectedPlaylist}
+        />
       </div>
     </div>
   );

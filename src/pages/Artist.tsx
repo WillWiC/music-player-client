@@ -6,11 +6,14 @@ import { useToast } from '../context/toast';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import TrackMenu from '../components/TrackMenu';
+import AlbumMenu from '../components/AlbumMenu';
 import { CircularProgress, IconButton, Fade, Grow, Skeleton } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import type { Artist as ArtistType, Album, Track } from '../types/spotify';
 import { formatCount } from '../utils/numberFormat';
 
@@ -38,6 +41,36 @@ const Artist: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showAllTracks, setShowAllTracks] = React.useState(false);
   const [showAllAlbums, setShowAllAlbums] = React.useState(false);
+  
+  // Track menu state
+  const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<Track | null>(null);
+
+  // Album menu state
+  const [albumMenuAnchor, setAlbumMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = React.useState<Album | null>(null);
+
+  const handleTrackMenuOpen = (event: React.MouseEvent<HTMLElement>, track: Track) => {
+    event.stopPropagation();
+    setTrackMenuAnchor(event.currentTarget);
+    setSelectedTrack(track);
+  };
+
+  const handleTrackMenuClose = () => {
+    setTrackMenuAnchor(null);
+    setSelectedTrack(null);
+  };
+
+  const handleAlbumMenuOpen = (event: React.MouseEvent<HTMLElement>, album: Album) => {
+    event.stopPropagation();
+    setAlbumMenuAnchor(event.currentTarget);
+    setSelectedAlbum(album);
+  };
+
+  const handleAlbumMenuClose = () => {
+    setAlbumMenuAnchor(null);
+    setSelectedAlbum(null);
+  };
   
   // Error handling
   const [error, setError] = React.useState<string>('');
@@ -359,19 +392,21 @@ const Artist: React.FC = () => {
                       className="group flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                       onClick={() => handleTrackPlay(track)}
                     >
-                    <div className="flex-shrink-0 w-10 text-gray-400 text-sm font-medium group-hover:hidden text-center">
-                      {index + 1}
-                    </div>
-                    <div className="flex-shrink-0 w-10 hidden group-hover:flex items-center justify-center">
-                      {currentTrack?.id === track.id && isPlaying ? (
-                        <svg className="w-8 h-8 text-[#1DB954] transition-transform duration-200 hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6 4h2v12H6V4zm6 0h2v12h-2V4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-8 h-8 text-white transition-transform duration-200 hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                        </svg>
-                      )}
+                    <div className="flex-shrink-0 w-10 text-center flex justify-center items-center text-gray-400 font-medium">
+                      <span className="group-hover:hidden">
+                        {currentTrack?.id === track.id && isPlaying ? (
+                          <img 
+                            src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
+                            alt="playing" 
+                            className="w-3 h-3"
+                          />
+                        ) : (
+                          <span className={currentTrack?.id === track.id ? 'text-green-500' : ''}>{index + 1}</span>
+                        )}
+                      </span>
+                      <button className="hidden group-hover:block text-white">
+                        {currentTrack?.id === track.id && isPlaying ? <PauseIcon sx={{ fontSize: 16 }} /> : <PlayArrowIcon sx={{ fontSize: 16 }} />}
+                      </button>
                     </div>
                     
                     <div className="flex-shrink-0">
@@ -399,6 +434,14 @@ const Artist: React.FC = () => {
                         : '--:--'
                       }
                     </div>
+                    
+                    {/* More Options Button */}
+                    <button
+                      onClick={(e) => handleTrackMenuOpen(e, track)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                    >
+                      <MoreVertIcon sx={{ fontSize: 20 }} />
+                    </button>
                   </div>  
                   </Grow>
                 ))}
@@ -464,8 +507,16 @@ const Artist: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <div className="text-white font-medium truncate group-hover:text-green-400 transition-colors">
-                        {album.name}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-white font-medium truncate group-hover:text-green-400 transition-colors flex-1">
+                          {album.name}
+                        </div>
+                        <button
+                          onClick={(e) => handleAlbumMenuOpen(e, album)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                        >
+                          <MoreVertIcon sx={{ fontSize: 18 }} />
+                        </button>
                       </div>
                       <div className="text-sm text-gray-400 truncate">
                         {album.release_date?.split('-')[0]} • {album.album_type}
@@ -486,6 +537,22 @@ const Artist: React.FC = () => {
 
         </div>
       </main>
+
+      {/* Track Menu */}
+      <TrackMenu
+        anchorEl={trackMenuAnchor}
+        open={Boolean(trackMenuAnchor)}
+        onClose={handleTrackMenuClose}
+        track={selectedTrack}
+      />
+
+      {/* Album Menu */}
+      <AlbumMenu
+        anchorEl={albumMenuAnchor}
+        open={Boolean(albumMenuAnchor)}
+        onClose={handleAlbumMenuClose}
+        album={selectedAlbum}
+      />
     </div>
   );
 };
