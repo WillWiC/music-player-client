@@ -41,7 +41,7 @@ const Recommendations: React.FC = () => {
   } = useLocalAnalysis();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showAllGenres, setShowAllGenres] = React.useState(false);
-  const [showAllClusters, setShowAllClusters] = React.useState(false);
+  const [expandedClusters, setExpandedClusters] = React.useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = React.useState<'playlists' | 'similar'>('playlists');
   const [discoveryFilter, setDiscoveryFilter] = React.useState<'all' | 'hidden-gem' | 'mood-shift' | 'genre-explorer' | 'perfect-match'>('all');
   const [showAllDiscoveries, setShowAllDiscoveries] = React.useState(false);
@@ -383,11 +383,6 @@ const Recommendations: React.FC = () => {
               >
                 <AnalyticsIcon sx={{ fontSize: 18 }} />
                 Music Profile
-                {analysis && (
-                  <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {analysis.analyzedCount}
-                  </span>
-                )}
               </button>
             </div>
           </Fade>
@@ -879,23 +874,15 @@ const Recommendations: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          {analysis.clusters.length > 5 && (
-                            <button
-                              onClick={() => setShowAllClusters(!showAllClusters)}
-                              className="px-4 py-2 text-sm text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-colors"
-                            >
-                              {showAllClusters ? (
-                                <span className="flex items-center gap-1">Show Less <span className="text-xs">▲</span></span>
-                              ) : (
-                                <span className="flex items-center gap-1">View All ({analysis.clusters.length}) <span className="text-xs">▼</span></span>
-                              )}
-                            </button>
-                          )}
                         </div>
 
-                        {/* Clusters Grid */}
+                        {/* Clusters Grid - Show ALL clusters */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {analysis.clusters.slice(0, showAllClusters ? analysis.clusters.length : 5).map((cluster, idx) => (
+                          {analysis.clusters.map((cluster, idx) => {
+                            const isExpanded = expandedClusters.has(cluster.name);
+                            const displayTracks = isExpanded ? 10 : 5;
+                            const totalTracks = (cluster as any)._fullTrackCount || cluster.tracks.length;
+                            return (
                             <Grow key={cluster.name} in timeout={300 + (idx * 50)}>
                               <div className="group bg-white/5 rounded-xl p-4 border border-white/10 hover:border-violet-500/30 hover:bg-white/8 transition-all">
                                 {/* Cluster Header */}
@@ -917,7 +904,7 @@ const Recommendations: React.FC = () => {
                                       {cluster.name}
                                     </h3>
                                     <p className="text-gray-500 text-xs">
-                                      {(cluster as any)._fullTrackCount || cluster.tracks.length} tracks • {cluster.description}
+                                      {totalTracks} tracks • {cluster.description}
                                     </p>
                                   </div>
                                 </div>
@@ -933,10 +920,10 @@ const Recommendations: React.FC = () => {
                                   </div>
                                 )}
 
-                                {/* Sample Tracks */}
+                                {/* Sample Tracks - Show 5 by default, 10 when expanded */}
                                 <div className="space-y-2">
                                   <h4 className="text-gray-400 font-medium text-xs">Top tracks:</h4>
-                                  {cluster.tracks.slice(0, 3).map((item) => (
+                                  {cluster.tracks.slice(0, displayTracks).map((item) => (
                                     <div 
                                       key={item.track.id}
                                       className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
@@ -963,20 +950,42 @@ const Recommendations: React.FC = () => {
                                   ))}
                                 </div>
 
+                                {/* View More / View Less Button */}
+                                {cluster.tracks.length > 5 && (
+                                  <div className="mt-3 pt-3 border-t border-white/5">
+                                    <button
+                                      onClick={() => {
+                                        setExpandedClusters(prev => {
+                                          const newSet = new Set(prev);
+                                          if (isExpanded) {
+                                            newSet.delete(cluster.name);
+                                          } else {
+                                            newSet.add(cluster.name);
+                                          }
+                                          return newSet;
+                                        });
+                                      }}
+                                      className="w-full py-2 text-xs text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-colors"
+                                    >
+                                      {isExpanded ? 'Show Less ▲' : `View More (+${Math.min(5, cluster.tracks.length - 5)} tracks) ▼`}
+                                    </button>
+                                  </div>
+                                )}
+
                                 {/* Track Count Badge */}
                                 <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
                                   <span className="text-xs text-gray-500">
-                                    {((cluster as any)._fullTrackCount || cluster.tracks.length) > 3 
-                                      ? `+${((cluster as any)._fullTrackCount || cluster.tracks.length) - 3} more tracks` 
+                                    {totalTracks > displayTracks 
+                                      ? `+${totalTracks - displayTracks} more in library` 
                                       : ''}
                                   </span>
                                   <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white">
-                                    {Math.round((((cluster as any)._fullTrackCount || cluster.tracks.length) / analysis.analyzedCount) * 100)}%
+                                    {Math.round((totalTracks / analysis.analyzedCount) * 100)}%
                                   </span>
                                 </div>
                               </div>
                             </Grow>
-                          ))}
+                          )})}
                         </div>
                       </div>
                     )}

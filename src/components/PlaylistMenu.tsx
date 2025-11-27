@@ -19,7 +19,9 @@ import {
   LibraryAddCheck,
   OpenInNew,
   PlayArrow,
-  Share
+  Share,
+  Edit,
+  Delete
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
@@ -37,6 +39,8 @@ interface PlaylistMenuProps {
   playlist: Playlist | null;
   onPlaylistFollowChanged?: (isFollowing: boolean) => void;
   onPlay?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
@@ -45,7 +49,9 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
   onClose,
   playlist,
   onPlaylistFollowChanged,
-  onPlay
+  onPlay,
+  onEdit,
+  onDelete
 }) => {
   const { token, user } = useAuth();
   const toast = useToast();
@@ -245,6 +251,32 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
         </ListItemIcon>
         <ListItemText primary="Share" primaryTypographyProps={{ fontSize: '0.8rem' }} />
       </MenuItem>
+
+      {/* Edit Details - only for own playlists */}
+      {isOwnPlaylist && onEdit && (
+        <MenuItem 
+          onClick={() => { onEdit(); onClose(); }}
+          sx={{ color: 'white', py: 0.75, px: 1.5, minHeight: 32, '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
+        >
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <Edit sx={{ color: 'white', fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Edit Details" primaryTypographyProps={{ fontSize: '0.8rem' }} />
+        </MenuItem>
+      )}
+
+      {/* Delete Playlist - only for own playlists */}
+      {isOwnPlaylist && onDelete && (
+        <MenuItem 
+          onClick={() => { onDelete(); onClose(); }}
+          sx={{ color: 'rgb(239,68,68)', py: 0.75, px: 1.5, minHeight: 32, '&:hover': { bgcolor: 'rgba(239,68,68,0.1)' } }}
+        >
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <Delete sx={{ color: 'rgb(239,68,68)', fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Delete Playlist" primaryTypographyProps={{ fontSize: '0.8rem' }} />
+        </MenuItem>
+      )}
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', my: 0.25 }} />
 

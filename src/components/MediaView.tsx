@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { useAuth } from '../context/auth';
 import TrackMenu from './TrackMenu';
+import PlaylistMenu from './PlaylistMenu';
 import { 
   Typography, 
   Tooltip
@@ -17,7 +18,9 @@ import {
   RepeatOne,
   MusicNote,
   PlayCircleFilled,
-  MoreVert
+  MoreVert,
+  ArrowUpward,
+  ArrowDownward
 } from '@mui/icons-material';
 import type { Album as AlbumType, Playlist as PlaylistType, Track } from '../types/spotify';
 
@@ -37,6 +40,12 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
+  // Sort state
+  type SortField = 'default' | 'title' | 'album' | 'dateAdded' | 'duration';
+  type SortOrder = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('default');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
   // Track menu state
   const [trackMenuAnchor, setTrackMenuAnchor] = useState<HTMLElement | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
@@ -50,6 +59,47 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   const handleTrackMenuClose = () => {
     setTrackMenuAnchor(null);
     setSelectedTrack(null);
+  };
+
+  // Playlist/Album menu state (for 3-dot button in action bar)
+  const [mediaMenuAnchor, setMediaMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const handleMediaMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    setMediaMenuAnchor(event.currentTarget);
+  };
+
+  const handleMediaMenuClose = () => {
+    setMediaMenuAnchor(null);
+  };
+
+  const handleEditPlaylist = () => {
+    // For now, show a toast - could open a modal in the future
+    toast.showToast('Edit playlist feature coming soon', 'info');
+  };
+
+  const handleDeletePlaylist = async () => {
+    if (!mediaData || !token || type !== 'playlist') return;
+    
+    const confirmed = window.confirm(`Are you sure you want to delete "${mediaData.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+    
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/playlists/${id}/followers`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok || response.status === 200) {
+        toast.showToast(`Deleted "${mediaData.name}"`, 'success');
+        onBack(); // Go back after deletion
+      } else {
+        toast.showToast('Failed to delete playlist', 'error');
+      }
+    } catch (error) {
+      console.error('Delete playlist error:', error);
+      toast.showToast('Failed to delete playlist', 'error');
+    }
   };
 
   // Function to decode HTML entities
@@ -294,8 +344,103 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     return `${minutes}:${Number(seconds) < 10 ? '0' : ''}${seconds}`;
   };
 
+  const formatTotalDuration = (ms: number) => {
+    const totalMinutes = Math.floor(ms / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    if (hours > 0) {
+      return `${hours} hr ${minutes} min`;
+    }
+    return `${minutes} min`;
+  };
+
+  const formatDateAdded = (dateString: string | undefined) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   const getTrackFromItem = (item: any) => {
     return type === 'album' ? item : item.track;
+  };
+
+  const getDateAdded = (item: any): string | undefined => {
+    if (type === 'playlist') {
+      return item.added_at;
+    }
+    // For albums, use the album's release date
+    return mediaData ? (mediaData as AlbumType).release_date : undefined;
+  };
+
+  // Sort tracks
+  const handleSort = (field: SortField) => {
+    if (field === 'default') {
+      // Clicking # always resets to default
+      setSortField('default');
+      setSortOrder('asc');
+    } else if (field === sortField) {
+      // Third click resets to default
+      if (sortOrder === 'desc') {
+        setSortField('default');
+        setSortOrder('asc');
+      } else {
+        setSortOrder('desc');
+      }
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const sortedTracks = React.useMemo(() => {
+    if (sortField === 'default') return tracks;
+    
+    return [...tracks].sort((a, b) => {
+      const trackA = getTrackFromItem(a);
+      const trackB = getTrackFromItem(b);
+      
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'title':
+          comparison = (trackA?.name || '').localeCompare(trackB?.name || '');
+          break;
+        case 'album':
+          const albumA = trackA?.album?.name || (mediaData as AlbumType)?.name || '';
+          const albumB = trackB?.album?.name || (mediaData as AlbumType)?.name || '';
+          comparison = albumA.localeCompare(albumB);
+          break;
+        case 'dateAdded':
+          const dateA = new Date(getDateAdded(a) || 0).getTime();
+          const dateB = new Date(getDateAdded(b) || 0).getTime();
+          comparison = dateA - dateB;
+          break;
+        case 'duration':
+          comparison = (trackA?.duration_ms || 0) - (trackB?.duration_ms || 0);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [tracks, sortField, sortOrder]);
+
+  const SortIndicator = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' 
+      ? <ArrowUpward sx={{ fontSize: 14 }} className="ml-1" />
+      : <ArrowDownward sx={{ fontSize: 14 }} className="ml-1" />;
   };
 
   if (loading) {
@@ -345,7 +490,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
     const t = getTrackFromItem(track);
     return acc + (t?.duration_ms || 0);
   }, 0);
-  const formattedDuration = formatDuration(totalDuration);
+  const formattedDuration = formatTotalDuration(totalDuration);
 
   return (
     <div className="relative min-h-full pb-24">
@@ -473,36 +618,91 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
               )}
             </button>
           </Tooltip>
+
+          <Tooltip title="More options">
+            <button 
+              onClick={handleMediaMenuOpen}
+              className="text-white/50 hover:text-white transition-colors"
+            >
+              <MoreVert sx={{ fontSize: 32 }} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
+      {/* Playlist Menu for action bar 3-dot button */}
+      {type === 'playlist' && mediaData && (
+        <PlaylistMenu
+          anchorEl={mediaMenuAnchor}
+          open={Boolean(mediaMenuAnchor)}
+          onClose={handleMediaMenuClose}
+          playlist={mediaData as PlaylistType}
+          onPlay={playAllTracks}
+          onEdit={handleEditPlaylist}
+          onDelete={handleDeletePlaylist}
+        />
+      )}
+
       {/* Tracks List */}
       <div className="px-8 mt-4">
-        <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
-          <div className="w-8 text-center">#</div>
-          <div>Title</div>
-          <div className="hidden md:block">Album</div>
-          <div className="w-12 flex justify-center"><AccessTime sx={{ fontSize: 16 }} /></div>
+        <div className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
+          <div 
+            className="w-8 text-center cursor-pointer hover:text-white flex items-center justify-center"
+            onClick={() => handleSort('default')}
+          >
+            #
+            <SortIndicator field="default" />
+          </div>
+          <div 
+            className="cursor-pointer hover:text-white flex items-center"
+            onClick={() => handleSort('title')}
+          >
+            Title
+            <SortIndicator field="title" />
+          </div>
+          <div 
+            className="hidden md:flex items-center cursor-pointer hover:text-white"
+            onClick={() => handleSort('album')}
+          >
+            Album
+            <SortIndicator field="album" />
+          </div>
+          <div 
+            className="hidden md:flex items-center cursor-pointer hover:text-white whitespace-nowrap"
+            onClick={() => handleSort('dateAdded')}
+          >
+            Date Added
+            <SortIndicator field="dateAdded" />
+          </div>
+          <div 
+            className="w-12 flex justify-center items-center cursor-pointer hover:text-white"
+            onClick={() => handleSort('duration')}
+          >
+            <AccessTime sx={{ fontSize: 16 }} />
+            <SortIndicator field="duration" />
+          </div>
           <div className="w-10"></div>
         </div>
 
         <div className="flex flex-col">
-          {tracks.map((item, index) => {
+          {sortedTracks.map((item, index) => {
             const track = getTrackFromItem(item);
             if (!track) return null;
             
             const isCurrentTrack = currentTrack?.id === track.id;
             const isCurrentlyPlaying = isCurrentTrack && isPlaying;
+            // Use original index for playback when not sorted
+            const originalIndex = sortField === 'default' ? index : tracks.findIndex(t => getTrackFromItem(t)?.id === track.id);
             
             return (
               <div 
                 key={track.id}
                 className={`
-                  group grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-3 rounded-md items-center
+                  group grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-4 py-3 rounded-md items-center
                   hover:bg-white/10 transition-colors cursor-pointer
                   ${isCurrentTrack ? 'bg-white/10' : ''}
                 `}
-                onClick={() => handleTrackPlay(track, index)}
+                onClick={() => handleTrackPlay(track, originalIndex)}
               >
                 <div className="w-8 text-center flex justify-center items-center text-white/50 font-medium">
                   <span className="group-hover:hidden">
@@ -560,6 +760,10 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                   }}
                 >
                   {track.album?.name}
+                </div>
+
+                <div className="hidden md:block text-sm text-white/50 whitespace-nowrap">
+                  {formatDateAdded(getDateAdded(item))}
                 </div>
 
                 <div className="w-12 text-center text-sm text-white/50 font-variant-numeric tabular-nums">
