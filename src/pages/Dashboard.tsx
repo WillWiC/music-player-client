@@ -8,6 +8,7 @@ import Header from '../components/Header';
 import PlaylistRecommendations from '../components/PlaylistRecommendations';
 import TrackMenu from '../components/TrackMenu';
 import PlaylistMenu from '../components/PlaylistMenu';
+import NavigationButton from '../components/NavigationButton';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Box, CircularProgress, Fade, Grow, Skeleton, IconButton } from '@mui/material';
@@ -535,25 +536,24 @@ const Dashboard: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      {/* Main Content - Always has left margin on desktop for permanent sidebar */}
-      {/* Mobile: pb for player (90px) + mobile nav (64px) + safe area */}
-      {/* Desktop: pb for player only */}
-      <div className="flex-1 lg:ml-72 pb-40 lg:pb-28 pt-16 sm:pt-20 transition-all duration-300">
+      {/* Main Content - Always has left margin for sidebar (desktop-only app) */}
+      {/* pb-28 for player height */}
+      <div className="flex-1 ml-72 pb-28 pt-20 transition-all duration-300">
         
-        {/* Content Container - Full width on all screen sizes */}
-        <div className="relative w-full py-6 sm:py-10 px-3 sm:px-6 lg:px-12 space-y-6 sm:space-y-10">
+        {/* Content Container - Responsive padding for different screen sizes */}
+        <div className="relative w-full py-6 lg:py-8 xl:py-10 px-4 lg:px-8 xl:px-12 space-y-6 lg:space-y-8 xl:space-y-10">
           {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}
-<div className="relative overflow-hidden mb-6 sm:mb-8 max-h-[85vh] min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
+<div className="relative overflow-hidden mb-6 lg:mb-8 max-h-[85vh] min-h-[280px] lg:min-h-[300px] xl:min-h-[340px] flex items-center justify-center">
   {/* Glassmorphism background */}
-  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/10"></div>
-  <div className="relative p-3 sm:p-6 md:p-8 space-y-3 sm:space-y-4 w-full overflow-y-auto max-h-[85vh]">
+  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-white/10"></div>
+  <div className="relative p-4 lg:p-6 xl:p-8 space-y-3 lg:space-y-4 w-full overflow-y-auto max-h-[85vh]">
     {/* Top Status Bar */}
-    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-[10px] sm:text-xs">
-          <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+    <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-2">
+      <div className="flex flex-wrap items-center gap-1.5 lg:gap-2">
+        <div className="flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-1 lg:py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-[10px] lg:text-xs">
+          <div className="w-1.5 lg:w-2 h-1.5 lg:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
           <span className="text-green-300 font-semibold">Live Dashboard</span>
         </div>
         
@@ -658,34 +658,20 @@ const Dashboard: React.FC = () => {
                   {/* Navigation Arrows */}
                   {playlists.length > playlistsPerView && (
                     <div className="flex items-center gap-1">
-                      <button 
+                      <NavigationButton
+                        direction="left"
                         onClick={handlePrevPlaylists}
                         disabled={!canGoPrevPlaylists || isAnimatingPlaylists}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
-                          canGoPrevPlaylists && !isAnimatingPlaylists
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40 active:scale-95' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Previous playlists"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button 
+                      />
+                      <NavigationButton
+                        direction="right"
                         onClick={handleNextPlaylists}
                         disabled={!canGoNextPlaylists || isAnimatingPlaylists}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
-                          canGoNextPlaylists && !isAnimatingPlaylists
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40 active:scale-95' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Next playlists"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      />
                     </div>
                   )}
                 </div>
@@ -843,34 +829,20 @@ const Dashboard: React.FC = () => {
                   {/* Navigation Arrows */}
                   {recentlyPlayed.length > recentlyPerView && (
                     <div className="flex items-center gap-1">
-                      <button 
+                      <NavigationButton
+                        direction="left"
                         onClick={handlePrevRecently}
                         disabled={!canGoPrevRecently || isAnimatingRecently}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
-                          canGoPrevRecently && !isAnimatingRecently
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Previous tracks"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button 
+                      />
+                      <NavigationButton
+                        direction="right"
                         onClick={handleNextRecently}
                         disabled={!canGoNextRecently || isAnimatingRecently}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                          canGoNextRecently && !isAnimatingRecently
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Next tracks"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      />
                     </div>
                   )}
                 </div>
@@ -1025,34 +997,20 @@ const Dashboard: React.FC = () => {
                   {/* Navigation Arrows */}
                   {topTracks.length > tracksPerView && (
                     <div className="flex items-center gap-1">
-                      <button 
+                      <NavigationButton
+                        direction="left"
                         onClick={handlePrevTracks}
                         disabled={!canGoPrev || isAnimatingTracks}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
-                          canGoPrev && !isAnimatingTracks
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Previous tracks"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button 
+                      />
+                      <NavigationButton
+                        direction="right"
                         onClick={handleNextTracks}
                         disabled={!canGoNext || isAnimatingTracks}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
-                          canGoNext && !isAnimatingTracks
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                            : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
-                        }`}
+                        size="small"
                         title="Next tracks"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      />
                     </div>
                   )}
                 </div>

@@ -319,25 +319,25 @@ const Recommendations: React.FC = () => {
         onMobileMenuToggle={() => setSidebarOpen(true)}
       />
       
-      <div className="flex-1 lg:ml-72 pb-36 sm:pb-32 pt-16 sm:pt-20">
-        <div className="relative w-full py-6 sm:py-10 px-3 sm:px-6 lg:px-12 space-y-6 sm:space-y-8">
+      <div className="flex-1 ml-72 pb-28 pt-20">
+        <div className="relative w-full py-6 lg:py-8 xl:py-10 px-4 lg:px-8 xl:px-12 space-y-6 lg:space-y-8">
           {/* Header */}
           <Fade in timeout={600}>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex flex-wrap items-center gap-3 lg:gap-4 mb-4 lg:mb-6">
               <button
                 onClick={() => navigate(-1)}
                 className="p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-violet-500/30 transition-all touch-target"
               >
-                <ArrowBackIcon className="text-white" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                <ArrowBackIcon className="text-white" sx={{ fontSize: { xs: 22, lg: 24 } }} />
               </button>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg sm:text-xl">🎯</span>
+                <h1 className="text-xl lg:text-2xl xl:text-3xl font-bold text-white flex items-center gap-2 lg:gap-3">
+                  <div className="w-9 h-9 lg:w-10 lg:h-10 bg-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg lg:text-xl">🎯</span>
                   </div>
                   <span className="truncate">Smart Recommendations</span>
                 </h1>
-                <p className="text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
+                <p className="text-gray-400 text-xs lg:text-sm mt-0.5 lg:mt-1">
                   AI-powered analysis and personalized suggestions
                 </p>
               </div>

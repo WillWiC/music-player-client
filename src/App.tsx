@@ -107,8 +107,8 @@ const MediaPage: React.FC = () => {
       {/* Header */}
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-72 relative">
+      {/* Main Content - Desktop only, always has sidebar margin */}
+      <div className="flex-1 ml-72 relative">
         <MediaView 
           id={id} 
           type={type} 

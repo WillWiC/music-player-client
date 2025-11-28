@@ -211,7 +211,7 @@ const Library: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => {}} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main className="flex-1 lg:ml-72 relative z-0">
+      <main className="flex-1 ml-72 relative z-0">
         {/* Dynamic Background Gradient */}
         <div 
           className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
@@ -220,12 +220,12 @@ const Library: React.FC = () => {
           }}
         />
 
-        <div className="relative z-10 pb-40 lg:pb-28 pt-16 sm:pt-20 px-3 sm:px-6 lg:px-12">
+        <div className="relative z-10 pb-28 pt-20 px-4 lg:px-8 xl:px-12">
           {/* Header Section */}
           <Fade in timeout={600}>
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-8 mb-6 sm:mb-10 pt-4">
+            <div className="flex flex-col lg:flex-row items-center lg:items-end gap-4 lg:gap-8 mb-6 lg:mb-10 pt-4">
               <div 
-                className="w-24 h-24 sm:w-40 sm:h-40 shadow-2xl flex items-center justify-center text-4xl sm:text-7xl bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg border border-white/10 flex-shrink-0"
+                className="w-28 h-28 lg:w-36 lg:h-36 xl:w-40 xl:h-40 shadow-2xl flex items-center justify-center text-5xl lg:text-6xl xl:text-7xl bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg border border-white/10 flex-shrink-0"
               >
                 <span className="filter drop-shadow-lg">📚</span>
               </div>

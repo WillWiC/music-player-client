@@ -51,23 +51,23 @@ const Account: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      <div className="flex-1 flex flex-col lg:ml-72 relative">
+      <div className="flex-1 flex flex-col ml-72 relative">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 pb-36 sm:pb-32 pt-20 sm:pt-24 px-3 sm:px-6 lg:px-8">
+        <main className="flex-1 pb-28 pt-20 lg:pt-24 px-4 lg:px-8">
           <Container maxWidth="lg">
             {/* Profile Header */}
-            <div className="flex flex-col items-center gap-4 sm:gap-8 mb-8 sm:mb-12 md:flex-row md:items-center">
+            <div className="flex flex-col items-center gap-4 lg:gap-8 mb-8 lg:mb-12 lg:flex-row lg:items-center">
               <Avatar 
                 src={user?.images?.[0]?.url} 
-                sx={{ width: { xs: 120, sm: 150, md: 180 }, height: { xs: 120, sm: 150, md: 180 } }}
+                sx={{ width: { xs: 140, lg: 160, xl: 180 }, height: { xs: 140, lg: 160, xl: 180 } }}
                 className="border-4 border-white/10 shadow-2xl"
               >
                 {user?.display_name?.[0] || 'U'}
               </Avatar>
               
-              <div className="text-center md:text-left flex-1">
-                <Typography variant="overline" className="text-green-500 font-bold tracking-wider text-xs sm:text-sm">
+              <div className="text-center lg:text-left flex-1">
+                <Typography variant="overline" className="text-green-500 font-bold tracking-wider text-xs lg:text-sm">
                   Profile
                 </Typography>
                 <Typography variant="h2" className="text-white font-bold mb-2 text-2xl sm:text-3xl md:text-4xl lg:text-5xl">

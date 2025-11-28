@@ -163,9 +163,8 @@ const Player: React.FC = () => {
     <Box
       sx={{
         position: 'fixed',
-        // On mobile, position above the bottom nav (64px) + safe area
-        // On desktop (lg+), position at bottom
-        bottom: { xs: 'calc(64px + env(safe-area-inset-bottom))', lg: 0 },
+        // Desktop-only app - always position at bottom
+        bottom: 0,
         left: 0,
         right: 0,
         background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.92) 0%, rgba(18, 18, 18, 0.95) 100%)',
@@ -299,20 +298,8 @@ const Player: React.FC = () => {
               </Box>
             </Stack>
             
-            {/* Mobile Controls */}
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              {/* Shuffle button */}
-              <IconButton 
-                onClick={handleShuffleToggle}
-                disabled={!isTrackLoaded}
-                sx={{ 
-                  color: isShuffled ? '#1db954' : 'text.secondary', 
-                  p: 0.5,
-                  '&:hover': { color: isShuffled ? '#1ed760' : 'white' }
-                }}
-              >
-                <Shuffle sx={{ fontSize: 16 }} />
-              </IconButton>
+            {/* Mobile Controls - Compact for narrow screens */}
+            <Stack direction="row" alignItems="center" spacing={0} sx={{ flexShrink: 0 }}>
               <IconButton 
                 onClick={previousTrack}
                 disabled={!isTrackLoaded}
@@ -330,6 +317,7 @@ const Player: React.FC = () => {
                   color: '#ffffff',
                   width: 36,
                   height: 36,
+                  mx: 0.5,
                   '&:hover': { background: isRemotePlaying ? '#f97316' : '#1ed760' },
                 }}
               >
@@ -341,18 +329,6 @@ const Player: React.FC = () => {
                 sx={{ color: 'text.secondary', p: 0.5 }}
               >
                 <SkipNext sx={{ fontSize: 20 }} />
-              </IconButton>
-              {/* Repeat button */}
-              <IconButton 
-                onClick={handleRepeatToggle}
-                disabled={!isTrackLoaded}
-                sx={{ 
-                  color: repeatMode !== 'off' ? '#1db954' : 'text.secondary', 
-                  p: 0.5,
-                  '&:hover': { color: repeatMode !== 'off' ? '#1ed760' : 'white' }
-                }}
-              >
-                {getRepeatIcon()}
               </IconButton>
             </Stack>
           </Stack>

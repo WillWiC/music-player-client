@@ -213,21 +213,21 @@ const SearchPage: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => { /* no-op - header search handles it */ }} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-40 lg:pb-28 pt-16 sm:pt-20 overflow-y-auto">
-        <div className="relative w-full py-4 sm:py-8 px-3 sm:px-6 lg:px-12">
+      <main ref={scrollContainerRef} className="flex-1 ml-72 pb-28 pt-20 overflow-y-auto">
+        <div className="relative w-full py-4 lg:py-6 xl:py-8 px-4 lg:px-8 xl:px-12">
           
           {/* Search Header (Only when searching) */}
           {query && (
             <Fade in timeout={600}>
-              <div className="flex items-end gap-3 sm:gap-6 mb-6 sm:mb-8">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <SearchIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'white' }} />
+              <div className="flex items-end gap-3 lg:gap-6 mb-6 lg:mb-8">
+                <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <SearchIcon sx={{ fontSize: { xs: 28, lg: 32 }, color: 'white' }} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 sm:mb-2 truncate">
+                  <h2 className="text-xl lg:text-3xl xl:text-5xl font-bold text-white tracking-tight mb-1 lg:mb-2 truncate">
                     {query}
                   </h2>
-                  <p className="text-gray-400 font-medium text-sm sm:text-base">
+                  <p className="text-gray-400 font-medium text-sm lg:text-base">
                     Search results
                   </p>
                 </div>

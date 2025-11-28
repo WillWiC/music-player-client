@@ -7,8 +7,9 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import TrackMenu from '../components/TrackMenu';
 import PlaylistMenu from '../components/PlaylistMenu';
-import { IconButton, Fade, Typography, Skeleton, Grow } from '@mui/material';
-import { PlayArrow, Pause, ChevronLeft, ChevronRight, AccessTime, MoreVert } from '@mui/icons-material';
+import NavigationButton from '../components/NavigationButton';
+import { Fade, Typography, Skeleton, Grow } from '@mui/material';
+import { PlayArrow, Pause, AccessTime, MoreVert } from '@mui/icons-material';
 import { usePlayer } from '../context/player';
 import { getCategoryById, mapGenresToCategories, getCategorySearchTerms, type CustomCategory } from '../utils/categoryMapping';
 import type { Track as TrackType, Playlist as PlaylistType } from '../types/spotify';
@@ -792,14 +793,14 @@ const Category: React.FC = () => {
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-        <main className="flex-1 lg:ml-72 pb-36 sm:pb-32 pt-20">
-          <div className="relative max-w-6xl mx-auto py-12 sm:py-20 px-4 sm:px-6 lg:px-12">
+        <main className="flex-1 ml-72 pb-28 pt-20">
+          <div className="relative max-w-6xl mx-auto py-12 lg:py-16 xl:py-20 px-4 lg:px-8 xl:px-12">
             <div className="text-center">
-              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-4 sm:mb-6">Music Category</h1>
-              <p className="text-gray-400 mb-6 sm:mb-8 text-base sm:text-lg">Sign in to explore this music category</p>
+              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-4 lg:mb-6">Music Category</h1>
+              <p className="text-gray-400 mb-6 lg:mb-8 text-base lg:text-lg">Sign in to explore this music category</p>
               <button 
                 onClick={() => navigate('/login')}
-                className="px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105 touch-target text-sm sm:text-base"
+                className="px-6 lg:px-8 py-2.5 lg:py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105 touch-target text-sm lg:text-base"
               >
                 Sign In to Browse
               </button>
@@ -815,7 +816,7 @@ const Category: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
       
-      <main className="flex-1 lg:ml-72 relative z-0">
+      <main className="flex-1 ml-72 relative z-0">
         {/* Dynamic Background Gradient Overlay */}
         {category && (
           <div 
@@ -826,14 +827,14 @@ const Category: React.FC = () => {
           />
         )}
 
-        <div className="relative z-10 pb-36 sm:pb-32">
+        <div className="relative z-10 pb-28">
           {/* Header Section */}
-          <div className="pt-20 sm:pt-24 px-4 sm:px-8 md:px-12 pb-6 sm:pb-8">
+          <div className="pt-20 lg:pt-24 px-4 lg:px-8 xl:px-12 pb-6 lg:pb-8">
             {category ? (
               <Fade in timeout={600}>
-                <div className="flex flex-col items-center text-center md:flex-row md:items-end md:text-left gap-4 sm:gap-6 md:gap-8">
+                <div className="flex flex-col items-center text-center lg:flex-row lg:items-end lg:text-left gap-4 lg:gap-6 xl:gap-8">
                   <div 
-                    className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 shadow-2xl flex items-center justify-center text-4xl sm:text-5xl md:text-6xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10"
+                    className="w-28 h-28 lg:w-32 lg:h-32 xl:w-40 xl:h-40 shadow-2xl flex items-center justify-center text-4xl lg:text-5xl xl:text-6xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10"
                     style={{ boxShadow: `0 20px 50px -12px ${category.color}50` }}
                   >
                     <span className="filter drop-shadow-lg transform scale-110">
@@ -841,24 +842,24 @@ const Category: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex-1 mb-2">
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-2 sm:mb-4 tracking-tight">
+                    <h1 className="text-2xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-white mb-2 lg:mb-4 tracking-tight">
                       {category.name}
                     </h1>
-                    <p className="text-gray-300 text-sm sm:text-base lg:text-lg max-w-2xl mb-4 sm:mb-6 font-medium">
+                    <p className="text-gray-300 text-sm lg:text-base xl:text-lg max-w-2xl mb-4 lg:mb-6 font-medium">
                       {category.description || `Discover the best music in ${category.name}`}
                     </p>
                     
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-6 text-xs sm:text-sm font-semibold text-gray-300">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 lg:gap-6 text-xs lg:text-sm font-semibold text-gray-300">
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"/>
+                        <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"/>
                         {loadingPlaylists ? '...' : artists.length} Artists
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
+                        <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
                         {loadingPlaylists ? '...' : tracks.length} Songs
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"/>
+                        <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"/>
                         {loadingPlaylists ? '...' : playlists.length} Playlists
                       </div>
                     </div>
@@ -866,7 +867,7 @@ const Category: React.FC = () => {
                 </div>
               </Fade>
             ) : (
-                <div className="flex flex-col md:flex-row items-end gap-8">
+                <div className="flex flex-col lg:flex-row items-end gap-8">
                     <Skeleton variant="rectangular" width={160} height={160} sx={{ bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }} />
                     <div className="flex-1">
                         <Skeleton width="20%" height={30} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
@@ -910,21 +911,19 @@ const Category: React.FC = () => {
                   <section className="relative group/section">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-white">Popular Artists</h2>
-                      <div className="flex gap-2">
-                        <IconButton 
-                            disabled={artistStart <= 0}
-                            onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
-                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
-                        >
-                            <ChevronLeft />
-                        </IconButton>
-                        <IconButton 
-                            disabled={artistStart >= maxArtistStart}
-                            onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
-                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
-                        >
-                            <ChevronRight />
-                        </IconButton>
+                      <div className="flex gap-1">
+                        <NavigationButton
+                          direction="left"
+                          onClick={() => setArtistStart(s => Math.max(0, s - visibleCount))}
+                          disabled={artistStart <= 0}
+                          size="small"
+                        />
+                        <NavigationButton
+                          direction="right"
+                          onClick={() => setArtistStart(s => Math.min(s + visibleCount, maxArtistStart))}
+                          disabled={artistStart >= maxArtistStart}
+                          size="small"
+                        />
                       </div>
                     </div>
                     
@@ -1040,21 +1039,19 @@ const Category: React.FC = () => {
                   <section className="relative group/section">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-bold text-white">Related Playlists</h2>
-                      <div className="flex gap-2">
-                        <IconButton 
-                            disabled={playlistStart <= 0}
-                            onClick={() => setPlaylistStart(s => Math.max(0, s - playlistVisibleCount))}
-                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
-                        >
-                            <ChevronLeft />
-                        </IconButton>
-                        <IconButton 
-                            disabled={playlistStart >= maxPlaylistStart}
-                            onClick={() => setPlaylistStart(s => Math.min(s + playlistVisibleCount, maxPlaylistStart))}
-                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
-                        >
-                            <ChevronRight />
-                        </IconButton>
+                      <div className="flex gap-1">
+                        <NavigationButton
+                          direction="left"
+                          onClick={() => setPlaylistStart(s => Math.max(0, s - playlistVisibleCount))}
+                          disabled={playlistStart <= 0}
+                          size="small"
+                        />
+                        <NavigationButton
+                          direction="right"
+                          onClick={() => setPlaylistStart(s => Math.min(s + playlistVisibleCount, maxPlaylistStart))}
+                          disabled={playlistStart >= maxPlaylistStart}
+                          size="small"
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">

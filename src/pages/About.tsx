@@ -39,35 +39,35 @@ const About: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      <div className="flex-1 flex flex-col lg:ml-72 relative">
+      <div className="flex-1 flex flex-col ml-72 relative">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 pb-36 sm:pb-32 pt-20 sm:pt-24 px-3 sm:px-6 lg:px-8">
+        <main className="flex-1 pb-28 pt-20 lg:pt-24 px-4 lg:px-8">
           <Container maxWidth="lg">
             {/* Hero Header */}
-            <div className="flex flex-col items-center text-center mb-8 sm:mb-16">
-              <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl mb-4 sm:mb-6 rotate-3 hover:rotate-0 transition-transform duration-300">
-                <MusicNote sx={{ fontSize: { xs: 32, sm: 50 }, color: 'white' }} />
+            <div className="flex flex-col items-center text-center mb-8 lg:mb-16">
+              <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl mb-4 lg:mb-6 rotate-3 hover:rotate-0 transition-transform duration-300">
+                <MusicNote sx={{ fontSize: { xs: 40, lg: 50 }, color: 'white' }} />
               </div>
               
-              <Typography variant="overline" className="text-blue-400 font-bold tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-2 text-[10px] sm:text-xs">
+              <Typography variant="overline" className="text-blue-400 font-bold tracking-[0.15em] lg:tracking-[0.2em] mb-1 lg:mb-2 text-[10px] lg:text-xs">
                 Version 1.0.0
               </Typography>
               
-              <Typography variant="h2" className="text-white font-black mb-2 sm:mb-4 tracking-tight text-2xl sm:text-3xl md:text-4xl lg:text-5xl">
+              <Typography variant="h2" className="text-white font-black mb-2 lg:mb-4 tracking-tight text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">
                 About Flowbeats
               </Typography>
               
-              <Typography className="text-gray-400 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed px-4">
+              <Typography className="text-gray-400 text-sm lg:text-base xl:text-lg max-w-2xl leading-relaxed px-4">
                 A modern, lightweight web client built on top of the Spotify Web API. 
                 Designed for a distraction-free listening experience with powerful discovery tools.
               </Typography>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8">
               {/* Features Grid */}
-              <div className="col-span-1 md:col-span-12">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              <div className="col-span-1 lg:col-span-12">
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6">
                   {features.map((feature, index) => (
                     <Card key={index} className="bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-300">
                       <CardContent className="p-3 sm:p-6 flex flex-col items-center text-center h-full">
