@@ -24,7 +24,6 @@ This is a university capstone project that utilizes the Spotify API to build an 
 
 ### 🧠 AI-Powered Music Intelligence
 - **Smart Genre Detection** - Pattern matching for 12+ music categories
-- **K-pop Specialization** - Enhanced detection for Korean music and artists
 - **Personalized Recommendations** - AI-driven playlist suggestions
 - **Music Profile Analysis** - Insights into your listening preferences
 - **Performance Optimized** - Smart caching with sub-100ms load times
