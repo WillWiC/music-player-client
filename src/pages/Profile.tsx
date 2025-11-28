@@ -78,35 +78,35 @@ const Profile: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      <div className="flex-1 flex flex-col ml-72 relative">
+      <div className="flex-1 flex flex-col xl:ml-80 relative">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
         <main className="flex-1 pb-28">
           {/* Header Section */}
-          <div className="relative pt-24 lg:pt-32 pb-6 lg:pb-8 px-4 lg:px-8 xl:px-12 bg-gradient-to-b from-gray-800 to-black">
-            <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-end lg:gap-8">
+          <div className="relative pt-20 sm:pt-32 pb-6 sm:pb-8 px-4 sm:px-8 md:px-12 bg-gradient-to-b from-gray-800 to-black">
+            <div className="flex flex-col items-center gap-4 sm:gap-6 md:flex-row md:items-end md:gap-8">
               <Avatar 
                 src={user.images?.[0]?.url} 
                 alt={user.display_name || 'User'}
                 sx={{ 
-                  width: { xs: 180, lg: 200, xl: 232 }, 
-                  height: { xs: 180, lg: 200, xl: 232 }, 
+                  width: { xs: 160, sm: 200, md: 232 }, 
+                  height: { xs: 160, sm: 200, md: 232 }, 
                   boxShadow: '0 8px 40px rgba(0,0,0,0.5)' 
                 }}
               >
                 {(user.display_name || 'U')[0]}
               </Avatar>
               
-              <div className="flex flex-col items-center lg:items-start gap-2 lg:gap-4 text-center lg:text-left">
-                <span className="uppercase text-[11px] lg:text-xs font-bold tracking-wider text-white/80">
+              <div className="flex flex-col items-center md:items-start gap-2 sm:gap-4 text-center md:text-left">
+                <span className="uppercase text-[10px] sm:text-xs font-bold tracking-wider text-white/80">
                   Profile
                 </span>
-                <h1 className="text-2xl lg:text-4xl xl:text-6xl 2xl:text-7xl font-black text-white tracking-tight leading-none">
+                <h1 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none">
                   {user.display_name}
                 </h1>
                 
                 {user.followers && (
-                  <span className="text-white/70 text-sm lg:text-base">
+                  <span className="text-white/70 text-sm sm:text-base">
                     {user.followers.total.toLocaleString()} followers
                   </span>
                 )}

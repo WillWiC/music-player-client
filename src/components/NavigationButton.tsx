@@ -1,7 +1,6 @@
 /**
  * NavigationButton Component
  * Unified navigation arrow button used for pagination across the app
- * Responsive sizing that scales with screen size
  */
 
 import React from 'react';
@@ -24,6 +23,12 @@ const NavigationButton: React.FC<NavigationButtonProps> = ({
   title
 }) => {
   const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
+  // Responsive sizing using clamp - scales between min and max based on viewport
+  // Small: 28px-32px, Medium: 32px-36px
+  const buttonSizeMin = size === 'small' ? 28 : 30;
+  const buttonSizeMax = size === 'small' ? 32 : 36;
+  const iconSizeMin = size === 'small' ? 18 : 20;
+  const iconSizeMax = size === 'small' ? 20 : 24;
 
   return (
     <IconButton
@@ -33,16 +38,14 @@ const NavigationButton: React.FC<NavigationButtonProps> = ({
       sx={{
         color: 'white',
         bgcolor: 'rgba(255,255,255,0.08)',
-        // Responsive sizing based on screen width
-        width: size === 'small' 
-          ? { xs: 28, lg: 30, xl: 32 } 
-          : { xs: 30, lg: 34, xl: 36 },
-        height: size === 'small' 
-          ? { xs: 28, lg: 30, xl: 32 } 
-          : { xs: 30, lg: 34, xl: 36 },
-        minWidth: 'unset',
+        // Responsive button size - scales with viewport width
+        width: `clamp(${buttonSizeMin}px, 2.5vw, ${buttonSizeMax}px)`,
+        height: `clamp(${buttonSizeMin}px, 2.5vw, ${buttonSizeMax}px)`,
+        minWidth: buttonSizeMin,
+        minHeight: buttonSizeMin,
         border: '1px solid rgba(255,255,255,0.1)',
         transition: 'all 0.2s ease',
+        flexShrink: 0,
         '&:hover': {
           bgcolor: 'rgba(255,255,255,0.15)',
           borderColor: 'rgba(255,255,255,0.2)',
@@ -54,14 +57,12 @@ const NavigationButton: React.FC<NavigationButtonProps> = ({
         '&:active': {
           transform: 'scale(0.95)',
         },
+        '& .MuiSvgIcon-root': {
+          fontSize: `clamp(${iconSizeMin}px, 1.5vw, ${iconSizeMax}px)`,
+        },
       }}
     >
-      <Icon sx={{ 
-        // Responsive icon sizing
-        fontSize: size === 'small' 
-          ? { xs: 18, lg: 19, xl: 20 } 
-          : { xs: 20, lg: 22, xl: 24 } 
-      }} />
+      <Icon />
     </IconButton>
   );
 };

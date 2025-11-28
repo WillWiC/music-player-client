@@ -11,13 +11,40 @@ import type { PlaylistRecommendation } from '../services/musicIntelligenceServic
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { CircularProgress, Tooltip } from '@mui/material';
+import { CircularProgress, Tooltip, useMediaQuery, useTheme, Grow } from '@mui/material';
+import NavigationButton from './NavigationButton';
 
 const PlaylistRecommendations: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const theme = useTheme();
   const { recommendations, insights, isLoading, error, refreshRecommendations, clearError } = useMusicIntelligence();
   const [, setLastRefreshTime] = React.useState<number | null>(null);
+  const [startIndex, setStartIndex] = React.useState(0);
+  const [isAnimating, setIsAnimating] = React.useState(false);
+
+  // Responsive card count based on screen size
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));  // < 600px
+  const isSm = useMediaQuery(theme.breakpoints.between('sm', 'md')); // 600-900px
+  const isMd = useMediaQuery(theme.breakpoints.between('md', 'lg')); // 900-1200px
+  
+  const visibleCount = isXs ? 3 : isSm ? 4 : isMd ? 5 : 6;
+  const maxStartIndex = Math.max(0, (recommendations?.length || 0) - visibleCount);
+  
+  // Navigation with animation
+  const handlePrev = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setStartIndex(s => Math.max(0, s - visibleCount));
+    setTimeout(() => setIsAnimating(false), 260);
+  };
+  const handleNext = () => {
+    if (isAnimating) return;
+    if (startIndex >= maxStartIndex) return;
+    setIsAnimating(true);
+    setStartIndex(s => Math.min(s + visibleCount, maxStartIndex));
+    setTimeout(() => setIsAnimating(false), 260);
+  };
 
   const handlePlaylistPlay = async (recommendation: PlaylistRecommendation) => {
     try {
@@ -88,64 +115,73 @@ const PlaylistRecommendations: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-5">
-      {/* Header & Insights Row */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">✨</span>
-            <h2 className="text-xl font-bold text-white">For You</h2>
-          </div>
-          <p className="text-sm text-gray-400">
-            AI-curated playlists based on your listening history
-          </p>
+    <div className="w-full space-y-4">
+      {/* Compact Header Row */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">✨</span>
+          <h2 className="text-base sm:text-lg font-bold text-white">For You</h2>
+          {insights && (
+            <span className="text-[10px] text-gray-500 hidden sm:inline">
+              {insights.topGenres[0]?.genre} · {insights.discoveryRate}% new
+            </span>
+          )}
         </div>
 
-        {/* Insights Chips & Actions */}
-        <div className="flex flex-wrap items-center gap-3">
-          {insights && (
-            <div className="flex flex-wrap gap-2">
-              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 flex items-center gap-2">
-                <span className="text-violet-400">●</span> {insights.topGenres.slice(0, 2).map(g => g.genre).join(' + ') || 'Mixed'}
-              </div>
-              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-                {insights.discoveryRate}% Discovery
-              </div>
-              <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 capitalize">
-                {insights.popularityBias}
-              </div>
-            </div>
+        {/* Right side: Nav + Actions */}
+        <div className="flex items-center gap-1">
+          {/* Navigation Buttons */}
+          {recommendations && recommendations.length > visibleCount && (
+            <>
+              <NavigationButton
+                direction="left"
+                onClick={handlePrev}
+                disabled={startIndex <= 0 || isAnimating}
+                size="small"
+              />
+              <NavigationButton
+                direction="right"
+                onClick={handleNext}
+                disabled={startIndex >= maxStartIndex || isAnimating}
+                size="small"
+              />
+            </>
           )}
           
-          <div className="h-6 w-px bg-white/10 hidden md:block"></div>
-
-          <div className="flex items-center gap-2">
-            <Tooltip title="Refresh recommendations">
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="p-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <RefreshIcon sx={{ fontSize: 16 }} className={isLoading ? 'animate-spin' : ''} />
-              </button>
-            </Tooltip>
-            
+          <Tooltip title="Refresh">
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="p-1 text-gray-500 hover:text-white transition-colors"
+            >
+              <RefreshIcon sx={{ fontSize: 16 }} className={isLoading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
+          
+          <Tooltip title="View music profile">
             <button 
               onClick={() => navigate('/recommendations')}
-              className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-white transition-colors whitespace-nowrap"
+              className="p-1 text-gray-500 hover:text-violet-400 transition-colors"
             >
-              View Full Profile
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
             </button>
-          </div>
+          </Tooltip>
         </div>
       </div>
-
-      {/* Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {recommendations.slice(0, 6).map((rec) => (
+      {/* Cards Row - responsive grid */}
+      <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimating ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+        {recommendations.slice(startIndex, startIndex + visibleCount).map((rec, index) => (
+          <Grow in timeout={300 + index * 50} key={`${rec.playlist.id}-${startIndex}`}>
            <div 
-             key={rec.playlist.id}
-             className="group cursor-pointer"
+             className={`group cursor-pointer transition-all duration-300 ease-out ${isAnimating ? 'animate-pulse' : ''}`}
+             style={{ 
+               animationDelay: `${index * 50}ms`,
+               transform: isAnimating ? 'translateY(10px)' : 'translateY(0px)'
+             }}
              onClick={() => navigate(`/playlist/${rec.playlist.id}`)}
            >
              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-white/5 to-white/5 border border-white/5 hover:border-violet-500/30 transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm">
@@ -166,29 +202,30 @@ const PlaylistRecommendations: React.FC = () => {
                          e.stopPropagation();
                          handlePlaylistPlay(rec);
                        }}
-                       className="w-12 h-12 bg-violet-500 hover:bg-violet-400 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all translate-y-4 group-hover:translate-y-0 duration-300"
+                       className="w-10 h-10 sm:w-12 sm:h-12 bg-violet-500 hover:bg-violet-400 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all translate-y-4 group-hover:translate-y-0 duration-300"
                      >
-                       <PlayArrowIcon className="text-white" sx={{ fontSize: 24 }} />
+                       <PlayArrowIcon className="text-white" sx={{ fontSize: { xs: 20, sm: 24 } }} />
                      </button>
                   </div>
                   
                   {/* Score Badge */}
-                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-[10px] font-bold text-violet-400 border border-violet-500/30 shadow-lg">
+                  <div className="absolute top-1 right-1 sm:top-2 sm:right-2 px-1 sm:px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-[8px] sm:text-[10px] font-bold text-violet-400 border border-violet-500/30 shadow-lg">
                      {rec.score}%
                   </div>
                </div>
 
                {/* Text Content */}
-               <div className="p-3">
-                  <h3 className="font-semibold text-white truncate text-sm mb-1" title={rec.playlist.name}>
+               <div className="p-2 sm:p-3">
+                  <h3 className="font-semibold text-white truncate text-xs sm:text-sm mb-0.5 sm:mb-1" title={rec.playlist.name}>
                     {rec.playlist.name}
                   </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed h-8">
+                  <p className="text-[10px] sm:text-xs text-gray-400 line-clamp-2 leading-relaxed h-6 sm:h-8">
                      {rec.reasons.join(' • ')}
                   </p>
                </div>
              </div>
            </div>
+          </Grow>
         ))}
       </div>
     </div>

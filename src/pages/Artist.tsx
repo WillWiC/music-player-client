@@ -254,24 +254,24 @@ const Artist: React.FC = () => {
       />
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
 
-      <main className="flex-1 ml-72 relative z-0">
+      <main className="flex-1 xl:ml-80 relative z-0">
         {/* Dynamic Background Gradient Overlay */}
         <div 
-          className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+          className="absolute top-0 left-0 w-full h-[30vh] sm:h-[50vh] opacity-20 pointer-events-none z-0"
           style={{ 
             background: `linear-gradient(to bottom, ${artist.images?.[0]?.url ? 'var(--dominant-color, #7c3aed)' : '#7c3aed'}, transparent)` 
           }}
         />
 
-        <div className="relative z-10 pb-28 pt-24 lg:pt-32 px-4 lg:px-8 xl:px-12">
+        <div className="relative z-10 pb-28 pt-20 sm:pt-32 px-3 sm:px-6 lg:px-12">
           
           {/* Artist Header */}
           <Fade in timeout={600}>
-            <div className="flex flex-col items-center gap-4 lg:gap-6 xl:gap-8 mb-6 lg:mb-10 lg:flex-row lg:items-end">
+            <div className="flex flex-col items-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-10 md:flex-row md:items-end">
               
               {/* Artist Image */}
               <div className="relative flex-shrink-0">
-                <div className="w-36 h-36 lg:w-48 lg:h-48 xl:w-60 xl:h-60 rounded-full overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)] border-2 lg:border-4 border-white/10">
+                <div className="w-32 h-32 sm:w-44 sm:h-44 lg:w-60 lg:h-60 rounded-full overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)] border-2 sm:border-4 border-white/10">
                   {artist.images?.[0] ? (
                     <img
                       src={artist.images[0].url}
@@ -471,7 +471,7 @@ const Artist: React.FC = () => {
             </Fade>
             
             {loadingAlbums ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3 sm:gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton 
                     key={i} 
@@ -486,7 +486,7 @@ const Artist: React.FC = () => {
                 ))}
               </div>
             ) : displayedAlbums.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3 sm:gap-4">
                 {displayedAlbums.map((album, index) => (
                   <Grow key={album.id} in timeout={400 + (index * 50)}>
                     <div

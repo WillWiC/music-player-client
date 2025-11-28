@@ -495,7 +495,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   return (
     <div className="relative min-h-full pb-24">
       {/* Header Section */}
-      <div className="relative pt-32 pb-8 px-12">
+      <div className="relative pt-20 sm:pt-32 pb-8 px-4 sm:px-8 md:px-12">
         {/* Background Gradient */}
         <div 
           className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none"
@@ -504,10 +504,10 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-end">
+        <div className="relative z-10 flex flex-col items-center md:flex-row md:items-end gap-6 md:gap-8">
           {/* Cover Image */}
           <div className="relative group shrink-0">
-            <div className="w-52 h-52 shadow-2xl rounded-lg overflow-hidden relative">
+            <div className="w-40 h-40 sm:w-48 sm:h-48 md:w-52 md:h-52 shadow-2xl rounded-lg overflow-hidden relative">
               {getImage() ? (
                 <img 
                   src={getImage()} 
@@ -531,24 +531,24 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           </div>
 
           {/* Info */}
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-3 md:gap-4 w-full text-center md:text-left">
             <span className="uppercase text-xs font-bold tracking-wider text-white/80">
               {type}
             </span>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none">
               {getTitle()}
             </h1>
             
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-sm font-medium text-white/90">
                 {getDescription() && (
-                  <span className="text-white/60 line-clamp-1 max-w-2xl">
+                  <span className="text-white/60 line-clamp-2 md:line-clamp-1 max-w-2xl">
                     {getDescription()}
                   </span>
                 )}
               </div>
               
-              <div className="flex items-center gap-2 text-sm text-white/70 mt-2">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs sm:text-sm text-white/70 mt-2">
                 <span className="font-bold text-white">
                   {type === 'playlist' ? (
                     <span 

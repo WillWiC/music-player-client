@@ -213,21 +213,21 @@ const SearchPage: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => { /* no-op - header search handles it */ }} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main ref={scrollContainerRef} className="flex-1 ml-72 pb-28 pt-20 overflow-y-auto">
-        <div className="relative w-full py-4 lg:py-6 xl:py-8 px-4 lg:px-8 xl:px-12">
+      <main ref={scrollContainerRef} className="flex-1 xl:ml-80 pb-28 pt-16 sm:pt-20 overflow-y-auto">
+        <div className="relative w-full py-4 sm:py-8 px-3 sm:px-6 lg:px-12">
           
           {/* Search Header (Only when searching) */}
           {query && (
             <Fade in timeout={600}>
-              <div className="flex items-end gap-3 lg:gap-6 mb-6 lg:mb-8">
-                <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <SearchIcon sx={{ fontSize: { xs: 28, lg: 32 }, color: 'white' }} />
+              <div className="flex items-end gap-3 sm:gap-6 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <SearchIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'white' }} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-xl lg:text-3xl xl:text-5xl font-bold text-white tracking-tight mb-1 lg:mb-2 truncate">
+                  <h2 className="text-xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 sm:mb-2 truncate">
                     {query}
                   </h2>
-                  <p className="text-gray-400 font-medium text-sm lg:text-base">
+                  <p className="text-gray-400 font-medium text-sm sm:text-base">
                     Search results
                   </p>
                 </div>
@@ -317,13 +317,13 @@ const SearchPage: React.FC = () => {
           {/* Results Section */}
           {query && !isSearching && (
             <Box>
-              <div className="flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                 {['All', 'Songs', 'Artists', 'Albums', 'Playlists'].map((label, index) => (
                   <button
                     key={label}
                     onClick={() => setActiveTab(index)}
                     className={`
-                      px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex-shrink-0
+                      px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex-shrink-0
                       ${activeTab === index 
                         ? 'bg-white text-black scale-105' 
                         : 'bg-white/10 text-white hover:bg-white/20'}
@@ -507,7 +507,7 @@ const SearchPage: React.FC = () => {
                             Show all
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                           {results.artists.filter(a => a != null).slice(0, 7).map((artist, index) => (
                             <Grow in key={artist.id} timeout={300 + index * 50}>
                               <div 
@@ -558,7 +558,7 @@ const SearchPage: React.FC = () => {
                             Show all
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                           {results.albums.filter(a => a != null).slice(0, 7).map((album, index) => (
                             <Grow in key={album.id} timeout={300 + index * 50}>
                               <div 
@@ -609,7 +609,7 @@ const SearchPage: React.FC = () => {
                             Show all
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                           {results.playlists.filter(p => p != null).slice(0, 7).map((playlist: any, index: number) => (
                             <Grow in key={playlist.id} timeout={300 + index * 50}>
                               <div 
@@ -758,7 +758,7 @@ const SearchPage: React.FC = () => {
 
                 {/* ARTISTS TAB - All artists */}
                 {activeTab === 2 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                     {results.artists.length > 0 ? (
                       results.artists.filter(a => a != null).map((artist, index) => (
                         <Grow in key={artist.id} timeout={300 + index * 50}>
@@ -821,7 +821,7 @@ const SearchPage: React.FC = () => {
 
                 {/* ALBUMS TAB - All albums */}
                 {activeTab === 3 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                     {results.albums.length > 0 ? (
                       results.albums.filter(a => a != null).map((album, index) => (
                         <Grow in key={album.id} timeout={300 + index * 50}>
@@ -884,7 +884,7 @@ const SearchPage: React.FC = () => {
 
                 {/* PLAYLISTS TAB - Community playlists */}
                 {activeTab === 4 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
                     {results.playlists.length > 0 ? (
                       results.playlists.filter(p => p != null).map((playlist: any, index: number) => (
                         <Grow in key={playlist.id} timeout={300 + index * 50}>

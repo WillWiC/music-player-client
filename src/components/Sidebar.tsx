@@ -44,7 +44,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  // Use xl breakpoint (1280px) for permanent sidebar - below that it's temporary/overlay
+  const isMobile = useMediaQuery(theme.breakpoints.down('xl'));
   const { isGuest, token } = useAuth();
   
   // Use global playlists context instead of local state
@@ -141,16 +142,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       sx={{
         width: isMobile ? '85vw' : 320,
         maxWidth: isMobile ? 350 : 320,
-        height: '100vh',
+        height: '100dvh',
+        maxHeight: '-webkit-fill-available', // iOS Safari fix
         bgcolor: '#0a0a0a',
         backdropFilter: 'blur(20px)',
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden', // Prevent main container from scrolling
-        px: isMobile ? 3 : 4,
-        py: isMobile ? 3 : 4.5,
-        pb: isMobile ? 12 : 10 // Add bottom padding to prevent conflict with player
+        px: isMobile ? 2 : 4,
+        pt: isMobile ? 2 : 4.5,
+        pb: 0 // No bottom padding on container - applied to scrollable area instead
       }}
     >
       {/* Header with title and close button */}
@@ -225,16 +227,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
       </Box>
 
       {/* Main Navigation */}
-      <Box sx={{ mb: 3, flexShrink: 0 }}>
+      <Box sx={{ mb: 2, flexShrink: 0 }}>
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => (
-            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={item.id} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
                 onClick={() => handleNavigation(item.path, item.id === 'home')}
                 sx={{
-                  borderRadius: 3,
-                  px: 3,
-                  py: 2,
+                  borderRadius: 2,
+                  px: 2.5,
+                  py: isMobile ? 1.25 : 2,
                   color: item.isActive ? 'white' : 'rgba(255, 255, 255, 0.7)',
                   bgcolor: item.isActive ? 'rgba(29, 185, 84, 0.15)' : 'transparent',
                   border: item.isActive ? '1px solid rgba(29, 185, 84, 0.3)' : '1px solid transparent',
@@ -248,9 +250,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
               >
                 <ListItemIcon sx={{ 
                   color: item.isActive ? '#1db954' : 'inherit', 
-                  minWidth: 44,
+                  minWidth: 36,
                   '& .MuiSvgIcon-root': {
-                    fontSize: '1.2rem'
+                    fontSize: '1.1rem'
                   }
                 }}>
                   {item.icon}
@@ -359,7 +361,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
           overflow: 'auto', 
           flexGrow: 1,
           minHeight: 0, // Important for flex child to enable scrolling
-          pb: 2, // Additional bottom padding for playlist items
+          pb: isMobile ? 20 : 12, // Bottom padding to clear player
           '&::-webkit-scrollbar': {
             display: 'none'
           },

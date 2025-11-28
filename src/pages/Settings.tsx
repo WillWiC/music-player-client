@@ -145,22 +145,22 @@ const Settings: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      <div className="flex-1 flex flex-col ml-72 relative h-full">
+      <div className="flex-1 flex flex-col xl:ml-80 relative h-full">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 flex flex-col justify-center p-4 lg:p-6 overflow-y-auto pb-28 pt-20 lg:pt-24">
+        <main className="flex-1 flex flex-col justify-center p-3 sm:p-6 overflow-y-auto pb-28 pt-20 sm:pt-24">
           <Container maxWidth="md">
             {/* Header Section - Compact */}
-            <div className="flex items-center gap-3 lg:gap-5 mb-4 lg:mb-6">
-              <div className="relative w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg border-2 border-white/10 shrink-0">
-                <SettingsIcon sx={{ fontSize: { xs: 24, lg: 28 }, color: 'white' }} />
+            <div className="flex items-center gap-3 sm:gap-5 mb-4 sm:mb-6">
+              <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg border-2 border-white/10 shrink-0">
+                <SettingsIcon sx={{ fontSize: { xs: 20, sm: 28 }, color: 'white' }} />
               </div>
               
               <div>
-                <Typography variant="h5" className="text-white font-bold leading-tight text-lg lg:text-xl">
+                <Typography variant="h5" className="text-white font-bold leading-tight text-lg sm:text-xl">
                   Settings
                 </Typography>
-                <Typography className="text-gray-400 text-[11px] lg:text-xs">
+                <Typography className="text-gray-400 text-[10px] sm:text-xs">
                   Authentication & Security
                 </Typography>
               </div>

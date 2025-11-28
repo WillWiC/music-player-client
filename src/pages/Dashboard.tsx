@@ -11,7 +11,7 @@ import PlaylistMenu from '../components/PlaylistMenu';
 import NavigationButton from '../components/NavigationButton';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Box, CircularProgress, Fade, Grow, Skeleton, IconButton } from '@mui/material';
+import { Box, CircularProgress, Fade, Grow, Skeleton, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { useToast } from '../context/toast';
 import '../index.css';
 
@@ -20,6 +20,13 @@ const Dashboard: React.FC = () => {
   const { play, pause, currentTrack, isPlaying, deviceId } = usePlayer();
   const navigate = useNavigate();
   const toast = useToast();
+  const theme = useTheme();
+  
+  // Responsive card count based on screen size
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));  // < 600px
+  const isSm = useMediaQuery(theme.breakpoints.between('sm', 'md')); // 600-900px
+  const isMd = useMediaQuery(theme.breakpoints.between('md', 'lg')); // 900-1200px
+  const visibleCount = isXs ? 3 : isSm ? 4 : isMd ? 5 : 6;
   
   // State management
   const [user, setUser] = React.useState<User | null>(null);
@@ -34,7 +41,7 @@ const Dashboard: React.FC = () => {
   // Recently played
   const [recentlyPlayed, setRecentlyPlayed] = React.useState<RecentlyPlayedItem[]>([]);
   const [recentlyStartIndex, setRecentlyStartIndex] = React.useState(0);
-  const recentlyPerView = 6;
+  const recentlyPerView = visibleCount;
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [loadingRecently, setLoadingRecently] = React.useState(false);
 
@@ -51,7 +58,7 @@ const Dashboard: React.FC = () => {
 
   // Playlists pagination
   const [playlistsStartIndex, setPlaylistsStartIndex] = React.useState(0);
-  const playlistsPerView = 6;
+  const playlistsPerView = visibleCount;
   const [isAnimatingPlaylists, setIsAnimatingPlaylists] = React.useState(false);
 
   // Animation flags used for subtle transitions
@@ -536,24 +543,24 @@ const Dashboard: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      {/* Main Content - Always has left margin for sidebar (desktop-only app) */}
-      {/* pb-28 for player height */}
-      <div className="flex-1 ml-72 pb-28 pt-20 transition-all duration-300">
+      {/* Main Content - Has left margin on xl+ for permanent sidebar (320px = ml-80) */}
+      {/* pb for player height */}
+      <div className="flex-1 xl:ml-80 pb-28 pt-16 sm:pt-20 transition-all duration-300">
         
-        {/* Content Container - Responsive padding for different screen sizes */}
-        <div className="relative w-full py-6 lg:py-8 xl:py-10 px-4 lg:px-8 xl:px-12 space-y-6 lg:space-y-8 xl:space-y-10">
+        {/* Content Container - Full width on all screen sizes */}
+        <div className="relative w-full py-6 sm:py-10 px-3 sm:px-6 lg:px-12 space-y-6 sm:space-y-10">
           {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}
-<div className="relative overflow-hidden mb-6 lg:mb-8 max-h-[85vh] min-h-[280px] lg:min-h-[300px] xl:min-h-[340px] flex items-center justify-center">
+<div className="relative overflow-hidden mb-6 sm:mb-8 max-h-[85vh] min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
   {/* Glassmorphism background */}
-  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-white/10"></div>
-  <div className="relative p-4 lg:p-6 xl:p-8 space-y-3 lg:space-y-4 w-full overflow-y-auto max-h-[85vh]">
+  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/10"></div>
+  <div className="relative p-3 sm:p-6 md:p-8 space-y-3 sm:space-y-4 w-full overflow-y-auto max-h-[85vh]">
     {/* Top Status Bar */}
-    <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-2">
-      <div className="flex flex-wrap items-center gap-1.5 lg:gap-2">
-        <div className="flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-1 lg:py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-[10px] lg:text-xs">
-          <div className="w-1.5 lg:w-2 h-1.5 lg:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-[10px] sm:text-xs">
+          <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
           <span className="text-green-300 font-semibold">Live Dashboard</span>
         </div>
         
@@ -680,8 +687,8 @@ const Dashboard: React.FC = () => {
             
             {/* Playlists Section */}
             {loadingPlaylists ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+                {Array.from({ length: visibleCount }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 50}>
                     <div className="space-y-2">
                       <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
@@ -694,7 +701,7 @@ const Dashboard: React.FC = () => {
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
-              <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+              <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {playlists.slice(playlistsStartIndex, playlistsStartIndex + playlistsPerView).map((playlist, index) => (
                   <Grow in timeout={400 + index * 50} key={`${playlist.id}-${playlistsStartIndex}`}>
                     <div 
@@ -759,10 +766,10 @@ const Dashboard: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="p-2">
+                      <div className="p-2 sm:p-3">
                         <div className="flex items-center justify-between gap-1">
                           <h3 
-                            className="text-white font-medium text-xs truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
+                            className="text-white font-medium text-xs sm:text-sm truncate group-hover:text-purple-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               openPlaylist(playlist.id);
@@ -785,7 +792,7 @@ const Dashboard: React.FC = () => {
                             <MoreVertIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </div>
-                        <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
+                        <p className="text-gray-400 text-[10px] sm:text-xs truncate mt-0.5 leading-tight">
                           {playlist.description ? decodeHtmlEntities(playlist.description) : `${playlist.tracks.total} tracks`}
                         </p>
                       </div>
@@ -851,8 +858,8 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+                {Array.from({ length: visibleCount }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 100}>
                     <div className="space-y-2">
                       <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
@@ -865,7 +872,7 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-                <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
                   <Grow in timeout={300 + index * 50} key={`${item.track.id}-${recentlyStartIndex}`}>
                     <div 
@@ -918,10 +925,10 @@ const Dashboard: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="p-2">
+                      <div className="p-2 sm:p-3">
                         <div className="flex items-center justify-between gap-1">
                           <h4 
-                            className="text-white font-medium text-xs truncate group-hover:text-green-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
+                            className="text-white font-medium text-xs sm:text-sm truncate group-hover:text-green-400 transition-colors leading-tight cursor-pointer hover:underline flex-1"
                             onClick={(e) => handleTrackNameClick(e, item.track.album?.id || '')}
                           >
                             {item.track.name}
@@ -941,7 +948,7 @@ const Dashboard: React.FC = () => {
                             <MoreVertIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </div>
-                        <p className="text-gray-400 text-xs truncate mt-0.5 leading-tight">
+                        <p className="text-gray-400 text-[10px] sm:text-xs truncate mt-0.5 leading-tight">
                           <Box
                             component="span"
                             tabIndex={0}

@@ -129,10 +129,11 @@ const Player: React.FC = () => {
     setRepeat(nextMode);
   };
 
-  // Get repeat icon based on current mode
-  const getRepeatIcon = () => {
-    if (repeatMode === 'track') return <RepeatOne />;
-    return <Repeat />;
+  // Get repeat icon based on current mode (accepts optional size in pixels)
+  const getRepeatIcon = (size?: number) => {
+    const fontSize = size ? { fontSize: size } : undefined;
+    if (repeatMode === 'track') return <RepeatOne sx={fontSize} />;
+    return <Repeat sx={fontSize} />;
   };
 
   // Handle progress bar change
@@ -163,7 +164,7 @@ const Player: React.FC = () => {
     <Box
       sx={{
         position: 'fixed',
-        // Desktop-only app - always position at bottom
+        // Player always at bottom of screen
         bottom: 0,
         left: 0,
         right: 0,
@@ -204,48 +205,57 @@ const Player: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
-        {/* Mobile Layout (xs and sm) */}
+        {/* Mobile/Tablet Layout (below md: 900px) */}
         <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-          {/* Mobile Progress Bar - Top */}
-          <Box sx={{ px: 0.5, mb: 1 }}>
+          {/* Progress Bar - Thin line at top */}
+          <Box sx={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            bgcolor: 'rgba(255, 255, 255, 0.1)',
+          }}>
+            <Box sx={{
+              height: '100%',
+              width: duration > 0 ? `${(position / duration) * 100}%` : '0%',
+              background: isRemotePlaying
+                ? 'linear-gradient(90deg, #fb923c 0%, #f97316 100%)'
+                : 'linear-gradient(90deg, #1db954 0%, #1ed760 100%)',
+              transition: 'width 0.1s linear',
+            }} />
+            {/* Clickable overlay for seeking */}
             <Slider
               value={duration > 0 ? position : 0}
               max={duration}
               onChange={handleProgressChange}
               disabled={!isTrackLoaded}
               sx={{
-                height: 3,
+                position: 'absolute',
+                top: -6,
+                left: 0,
+                right: 0,
+                height: 16,
                 p: 0,
                 '& .MuiSlider-thumb': {
                   width: 0,
                   height: 0,
                   '&:hover, &.Mui-focusVisible, &.Mui-active': {
-                    width: 12,
-                    height: 12,
-                    boxShadow: isRemotePlaying
-                      ? '0px 0px 0px 6px rgba(251, 146, 60, 0.12)'
-                      : '0px 0px 0px 6px rgba(29, 185, 84, 0.12)',
+                    width: 10,
+                    height: 10,
+                    backgroundColor: isRemotePlaying ? '#fb923c' : '#1db954',
                   },
-                  backgroundColor: isRemotePlaying ? '#fb923c' : '#1db954',
                 },
-                '& .MuiSlider-rail': {
-                  opacity: 0.3,
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                },
-                '& .MuiSlider-track': {
-                  background: isRemotePlaying
-                    ? 'linear-gradient(90deg, #fb923c 0%, #f97316 100%)'
-                    : 'linear-gradient(90deg, #1db954 0%, #1ed760 100%)',
-                  border: 'none',
-                },
+                '& .MuiSlider-rail': { opacity: 0 },
+                '& .MuiSlider-track': { opacity: 0, border: 'none' },
               }}
             />
           </Box>
           
-          {/* Mobile Main Controls Row */}
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {/* Track Info - Mobile */}
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+          {/* Main Row - Track info + Controls */}
+          <Stack direction="row" alignItems="center" gap={1.5}>
+            {/* Track Info - Left side */}
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
               {isTrackLoaded ? (
                 <CardMedia
                   component="img"
@@ -253,8 +263,8 @@ const Player: React.FC = () => {
                   alt={`${trackName} cover`}
                   onClick={handleTrackClick}
                   sx={{
-                    width: 48,
-                    height: 48,
+                    width: 44,
+                    height: 44,
                     borderRadius: 1,
                     flexShrink: 0,
                     cursor: 'pointer',
@@ -262,7 +272,7 @@ const Player: React.FC = () => {
                   }}
                 />
               ) : (
-                <Avatar sx={{ width: 48, height: 48, borderRadius: 1, bgcolor: 'rgba(255, 255, 255, 0.05)' }}>
+                <Avatar sx={{ width: 44, height: 44, borderRadius: 1, bgcolor: 'rgba(255, 255, 255, 0.05)' }}>
                   <MusicNote />
                 </Avatar>
               )}
@@ -273,11 +283,12 @@ const Player: React.FC = () => {
                   sx={{ 
                     color: '#ffffff',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     cursor: isTrackLoaded ? 'pointer' : 'default',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
                   }}
                 >
                   {trackName}
@@ -286,11 +297,12 @@ const Player: React.FC = () => {
                   variant="caption" 
                   sx={{ 
                     color: '#b3b3b3',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     display: 'block',
+                    lineHeight: 1.3,
                   }}
                 >
                   {artistNames}
@@ -298,15 +310,30 @@ const Player: React.FC = () => {
               </Box>
             </Stack>
             
-            {/* Mobile Controls - Compact for narrow screens */}
+            {/* Controls - Right side */}
             <Stack direction="row" alignItems="center" spacing={0} sx={{ flexShrink: 0 }}>
+              <IconButton 
+                onClick={toggleShuffle}
+                size="small"
+                sx={{ 
+                  color: isShuffled 
+                    ? (isRemotePlaying ? 'warning.main' : 'primary.main')
+                    : 'text.secondary',
+                  p: 0.5,
+                }}
+              >
+                <Shuffle sx={{ fontSize: 16 }} />
+              </IconButton>
+
               <IconButton 
                 onClick={previousTrack}
                 disabled={!isTrackLoaded}
+                size="small"
                 sx={{ color: 'text.secondary', p: 0.5 }}
               >
-                <SkipPrevious sx={{ fontSize: 20 }} />
+                <SkipPrevious sx={{ fontSize: 22 }} />
               </IconButton>
+              
               <IconButton 
                 onClick={isTrackLoaded ? togglePlay : undefined}
                 disabled={!isTrackLoaded}
@@ -315,20 +342,35 @@ const Player: React.FC = () => {
                     ? (isRemotePlaying ? '#fb923c' : '#1db954')
                     : 'rgba(255, 255, 255, 0.1)',
                   color: '#ffffff',
-                  width: 36,
-                  height: 36,
-                  mx: 0.5,
+                  width: 38,
+                  height: 38,
+                  mx: 0.25,
                   '&:hover': { background: isRemotePlaying ? '#f97316' : '#1ed760' },
                 }}
               >
                 {isPlaying ? <Pause sx={{ fontSize: 22 }} /> : <PlayArrow sx={{ fontSize: 22 }} />}
               </IconButton>
+              
               <IconButton 
                 onClick={nextTrack}
                 disabled={!isTrackLoaded}
+                size="small"
                 sx={{ color: 'text.secondary', p: 0.5 }}
               >
-                <SkipNext sx={{ fontSize: 20 }} />
+                <SkipNext sx={{ fontSize: 22 }} />
+              </IconButton>
+
+              <IconButton 
+                onClick={handleRepeatToggle}
+                size="small"
+                sx={{ 
+                  color: repeatMode !== 'off' 
+                    ? (isRemotePlaying ? 'warning.main' : 'primary.main')
+                    : 'text.secondary',
+                  p: 0.5,
+                }}
+              >
+                {getRepeatIcon(16)}
               </IconButton>
             </Stack>
           </Stack>

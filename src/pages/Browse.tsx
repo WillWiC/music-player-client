@@ -35,14 +35,14 @@ const Browse: React.FC = () => {
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-        <main className="flex-1 ml-72 pb-28 pt-20">
-          <div className="relative max-w-6xl mx-auto py-12 lg:py-16 xl:py-20 px-4 lg:px-8 xl:px-12">
+        <main className="flex-1 xl:ml-80 pb-28 pt-16 sm:pt-20">
+          <div className="relative max-w-6xl mx-auto py-12 sm:py-20 px-4 sm:px-6 lg:px-12">
             <div className="text-center">
-              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-4 lg:mb-6">Browse Music Categories</h1>
-              <p className="text-gray-400 mb-6 lg:mb-8 text-base lg:text-lg px-4">Sign in to explore music categories and discover new genres</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-4 sm:mb-6">Browse Music Categories</h1>
+              <p className="text-gray-400 mb-6 sm:mb-8 text-base sm:text-lg px-4">Sign in to explore music categories and discover new genres</p>
               <button 
                 onClick={() => navigate('/login')}
-                className="px-6 lg:px-8 py-2.5 lg:py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105 active:scale-95 text-sm lg:text-base"
+                className="px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105 active:scale-95 text-sm sm:text-base"
               >
                 Sign In to Browse
               </button>
@@ -58,21 +58,21 @@ const Browse: React.FC = () => {
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
       
-      <main className="flex-1 ml-72 pb-28 pt-20 px-4 lg:px-8 xl:px-12">
+      <main className="flex-1 xl:ml-80 pb-28 pt-16 sm:pt-20 px-3 sm:px-6 lg:px-12">
         
         {/* Header */}
-        <div className="mb-6 lg:mb-10">
+        <div className="mb-6 sm:mb-10">
             <Fade in timeout={600}>
                 <div>
-                    <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-1 lg:mb-2">Browse</h1>
-                    <p className="text-gray-400 text-sm lg:text-lg">Explore by genre, mood, and culture</p>
+                    <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2">Browse</h1>
+                    <p className="text-gray-400 text-sm sm:text-lg">Explore by genre, mood, and culture</p>
                 </div>
             </Fade>
         </div>
 
         {/* Loading State */}
         {loading && (
-            <div className="space-y-6 lg:space-y-8">
+            <div className="space-y-6 sm:space-y-8">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                     {[1, 2, 3, 4].map((i) => (
                         <Skeleton key={i} variant="rectangular" height={120} sx={{ bgcolor: '#242424', borderRadius: 2 }} />

@@ -51,23 +51,23 @@ const Account: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      <div className="flex-1 flex flex-col ml-72 relative">
+      <div className="flex-1 flex flex-col xl:ml-80 relative">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 pb-28 pt-20 lg:pt-24 px-4 lg:px-8">
+        <main className="flex-1 pb-28 pt-20 sm:pt-24 px-3 sm:px-6 lg:px-8">
           <Container maxWidth="lg">
             {/* Profile Header */}
-            <div className="flex flex-col items-center gap-4 lg:gap-8 mb-8 lg:mb-12 lg:flex-row lg:items-center">
+            <div className="flex flex-col items-center gap-4 sm:gap-8 mb-8 sm:mb-12 md:flex-row md:items-center">
               <Avatar 
                 src={user?.images?.[0]?.url} 
-                sx={{ width: { xs: 140, lg: 160, xl: 180 }, height: { xs: 140, lg: 160, xl: 180 } }}
+                sx={{ width: { xs: 120, sm: 150, md: 180 }, height: { xs: 120, sm: 150, md: 180 } }}
                 className="border-4 border-white/10 shadow-2xl"
               >
                 {user?.display_name?.[0] || 'U'}
               </Avatar>
               
-              <div className="text-center lg:text-left flex-1">
-                <Typography variant="overline" className="text-green-500 font-bold tracking-wider text-xs lg:text-sm">
+              <div className="text-center md:text-left flex-1">
+                <Typography variant="overline" className="text-green-500 font-bold tracking-wider text-xs sm:text-sm">
                   Profile
                 </Typography>
                 <Typography variant="h2" className="text-white font-bold mb-2 text-2xl sm:text-3xl md:text-4xl lg:text-5xl">
@@ -115,7 +115,7 @@ const Account: React.FC = () => {
                 </div>
                 
                 <div className="divide-y divide-white/5">
-                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="p-2 sm:p-3 bg-white/5 rounded-full text-gray-400">
                         <Star fontSize="small" />
@@ -125,8 +125,8 @@ const Account: React.FC = () => {
                         <Typography className="text-gray-500 text-xs sm:text-sm">Unique identifier for your account</Typography>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 bg-black/20 px-3 sm:px-4 py-2 rounded-full border border-white/5">
-                      <Typography className="text-white font-mono text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                    <div className="flex items-center gap-2 sm:gap-3 bg-black/20 px-3 sm:px-4 py-2 rounded-full border border-white/5 self-start sm:self-auto">
+                      <Typography className="text-white font-mono text-xs sm:text-sm truncate max-w-[150px] sm:max-w-none">
                         {user?.id}
                       </Typography>
                       <Tooltip title="Copy ID">
@@ -137,7 +137,7 @@ const Account: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="p-2 sm:p-3 bg-white/5 rounded-full text-gray-400">
                         <Public fontSize="small" />
@@ -147,12 +147,12 @@ const Account: React.FC = () => {
                         <Typography className="text-gray-500 text-xs sm:text-sm">Account registration location</Typography>
                       </div>
                     </div>
-                    <Typography className="text-white font-medium text-sm sm:text-base">
+                    <Typography className="text-white font-medium text-sm sm:text-base self-start sm:self-auto pl-12 sm:pl-0">
                       {user?.country || 'Unknown'}
                     </Typography>
                   </div>
 
-                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="p-2 sm:p-3 bg-white/5 rounded-full text-gray-400">
                         <Email fontSize="small" />
@@ -162,12 +162,12 @@ const Account: React.FC = () => {
                         <Typography className="text-gray-500 text-xs sm:text-sm">Associated Spotify email</Typography>
                       </div>
                     </div>
-                    <Typography className="text-white font-medium text-sm sm:text-base truncate max-w-[180px] sm:max-w-none">
+                    <Typography className="text-white font-medium text-sm sm:text-base truncate max-w-[200px] sm:max-w-none self-start sm:self-auto pl-12 sm:pl-0">
                       {user?.email}
                     </Typography>
                   </div>
 
-                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+                  <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="p-2 sm:p-3 bg-white/5 rounded-full text-gray-400">
                         <OpenInNew fontSize="small" />
@@ -177,6 +177,7 @@ const Account: React.FC = () => {
                         <Typography className="text-gray-500 text-xs sm:text-sm">View your public profile on Spotify</Typography>
                       </div>
                     </div>
+                    <div className="self-start sm:self-auto pl-12 sm:pl-0">
                     {user?.external_urls?.spotify ? (
                       <Button
                         variant="text"
@@ -184,6 +185,7 @@ const Account: React.FC = () => {
                         href={user.external_urls.spotify}
                         target="_blank"
                         className="text-green-500 hover:text-green-400"
+                        size="small"
                       >
                         Open Spotify
                       </Button>
@@ -193,10 +195,12 @@ const Account: React.FC = () => {
                         endIcon={<OpenInNew />}
                         disabled
                         className="text-green-500/50"
+                        size="small"
                       >
                         Open Spotify
                       </Button>
                     )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
