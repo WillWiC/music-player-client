@@ -207,7 +207,7 @@ const Library: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white">
+    <div className="bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white" style={{ minHeight: '100dvh' }}>
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => {}} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
@@ -220,40 +220,40 @@ const Library: React.FC = () => {
           }}
         />
 
-        <div className="relative z-10 pb-24 pt-24 px-8 lg:px-12">
+        <div className="relative z-10 pb-40 lg:pb-28 pt-16 sm:pt-20 px-3 sm:px-6 lg:px-12">
           {/* Header Section */}
           <Fade in timeout={600}>
-            <div className="flex flex-col md:flex-row items-end gap-8 mb-10">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-8 mb-6 sm:mb-10 pt-4">
               <div 
-                className="w-40 h-40 shadow-2xl flex items-center justify-center text-7xl bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg border border-white/10"
+                className="w-24 h-24 sm:w-40 sm:h-40 shadow-2xl flex items-center justify-center text-4xl sm:text-7xl bg-gradient-to-br from-violet-600 to-indigo-600 rounded-lg border border-white/10 flex-shrink-0"
               >
                 <span className="filter drop-shadow-lg">📚</span>
               </div>
-              <div className="flex-1 mb-2">
-                <Typography variant="overline" className="font-bold tracking-wider opacity-80">
+              <div className="flex-1 text-center sm:text-left mb-2">
+                <Typography variant="overline" className="font-bold tracking-wider opacity-80 text-xs sm:text-sm">
                   Personal Collection
                 </Typography>
                 <Typography variant="h1" sx={{ 
                   fontWeight: 900, 
-                  fontSize: { xs: '3rem', md: '5rem' },
+                  fontSize: { xs: '2rem', sm: '3rem', md: '5rem' },
                   lineHeight: 1,
-                  mb: 2,
+                  mb: { xs: 1, sm: 2 },
                   textShadow: '0 4px 24px rgba(0,0,0,0.5)'
                 }}>
                   Your Library
                 </Typography>
                 
-                <div className="flex items-center gap-6 text-sm font-medium text-gray-300">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500"/>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-6 text-xs sm:text-sm font-medium text-gray-300">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"/>
                     {playlists.length} Playlists
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"/>
-                    {tracks.length} Liked Songs
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500"/>
+                    {tracks.length} Liked
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500"/>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500"/>
                     {albums.length} Albums
                   </div>
                 </div>
@@ -262,11 +262,11 @@ const Library: React.FC = () => {
           </Fade>
 
           {/* Custom Tabs */}
-          <div className="sticky top-[64px] z-30 backdrop-blur-xl mb-8 -mx-8 lg:-mx-12 px-8 lg:px-12 py-4">
-            <div className="flex gap-4 overflow-x-auto no-scrollbar">
+          <div className="sticky top-[56px] sm:top-[64px] z-30 backdrop-blur-xl mb-4 sm:mb-8 -mx-3 sm:-mx-6 lg:-mx-12 px-3 sm:px-6 lg:px-12 py-3 sm:py-4">
+            <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar hide-scrollbar pb-1">
               {[
                 { label: 'Playlists', count: playlists.length },
-                { label: 'Liked Songs', count: tracks.length },
+                { label: 'Liked', count: tracks.length },
                 { label: 'Albums', count: albums.length },
                 { label: 'Artists', count: artists.length }
               ].map((item, index) => (
@@ -274,7 +274,7 @@ const Library: React.FC = () => {
                   key={index}
                   onClick={() => setTab(index)}
                   className={`
-                    px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap
+                    px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink-0 active:scale-95
                     ${tab === index 
                       ? 'bg-white text-black scale-105 shadow-lg shadow-white/10' 
                       : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}
@@ -287,12 +287,12 @@ const Library: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <div key={i} className="bg-white/5 rounded-lg p-4 space-y-4 animate-pulse">
+                <div key={i} className="bg-white/5 rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 animate-pulse">
                   <div className="aspect-square bg-white/10 rounded-md" />
-                  <div className="h-4 bg-white/10 rounded w-3/4" />
-                  <div className="h-3 bg-white/10 rounded w-1/2" />
+                  <div className="h-3 sm:h-4 bg-white/10 rounded w-3/4" />
+                  <div className="h-2 sm:h-3 bg-white/10 rounded w-1/2" />
                 </div>
               ))}
             </div>

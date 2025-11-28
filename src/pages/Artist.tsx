@@ -216,7 +216,7 @@ const Artist: React.FC = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center safe-area-bottom">
         <CircularProgress size={60} sx={{ color: '#22c55e' }} />
       </div>
     );
@@ -224,13 +224,13 @@ const Artist: React.FC = () => {
 
   if (error || !artist) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center p-6">
-        <div className="text-center bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white mb-4">Artist Not Found</h1>
-          <p className="text-gray-300 mb-6">{error || 'The artist you\'re looking for doesn\'t exist.'}</p>
+      <div className="min-h-[100dvh] bg-gradient-to-br from-purple-900 via-black to-gray-900 flex items-center justify-center p-4 sm:p-6 safe-area-bottom">
+        <div className="text-center bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-8 backdrop-blur-sm max-w-md w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Artist Not Found</h1>
+          <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base">{error || 'The artist you\'re looking for doesn\'t exist.'}</p>
           <button
             onClick={() => navigate('/search')}
-            className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg"
+            className="px-4 sm:px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg text-sm sm:text-base touch-target"
           >
             Search for Artists
           </button>
@@ -246,7 +246,7 @@ const Artist: React.FC = () => {
   const isTopTrackPlaying = !!(topTrack && currentTrack?.id === topTrack.id && isPlaying);
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+    <div className="flex min-h-[100dvh] bg-gradient-to-br from-black via-gray-900 to-black text-white safe-area-bottom">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -257,21 +257,21 @@ const Artist: React.FC = () => {
       <main className="flex-1 lg:ml-72 relative z-0">
         {/* Dynamic Background Gradient Overlay */}
         <div 
-          className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+          className="absolute top-0 left-0 w-full h-[30vh] sm:h-[50vh] opacity-20 pointer-events-none z-0"
           style={{ 
             background: `linear-gradient(to bottom, ${artist.images?.[0]?.url ? 'var(--dominant-color, #7c3aed)' : '#7c3aed'}, transparent)` 
           }}
         />
 
-        <div className="relative z-10 pb-24 pt-32 px-8 lg:px-12">
+        <div className="relative z-10 pb-36 sm:pb-32 pt-20 sm:pt-32 px-3 sm:px-6 lg:px-12">
           
           {/* Artist Header */}
           <Fade in timeout={600}>
-            <div className="flex flex-col md:flex-row items-end gap-8 mb-10">
+            <div className="flex flex-col items-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-10 md:flex-row md:items-end">
               
               {/* Artist Image */}
               <div className="relative flex-shrink-0">
-                <div className="w-52 h-52 lg:w-60 lg:h-60 rounded-full overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)] border-4 border-white/10">
+                <div className="w-32 h-32 sm:w-44 sm:h-44 lg:w-60 lg:h-60 rounded-full overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)] border-2 sm:border-4 border-white/10">
                   {artist.images?.[0] ? (
                     <img
                       src={artist.images[0].url}
@@ -280,7 +280,7 @@ const Artist: React.FC = () => {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                      <svg className="w-24 h-24 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-16 h-16 sm:w-24 sm:h-24 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
@@ -290,30 +290,31 @@ const Artist: React.FC = () => {
 
               {/* Artist Info */}
               <div className="flex-1 text-center md:text-left mb-2">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                  <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider rounded-full">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
+                  <span className="px-2 sm:px-3 py-1 bg-white/10 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full">
                     Artist
                   </span>
                   {(artist.popularity ?? 0) >= 50 && (
-                    <span className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-500/20">
-                      <VerifiedIcon sx={{ fontSize: 14 }} />
-                      Verified Artist
+                    <span className="flex items-center gap-1 px-2 sm:px-3 py-1 bg-blue-500/20 text-blue-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-blue-500/20">
+                      <VerifiedIcon sx={{ fontSize: { xs: 12, sm: 14 } }} />
+                      <span className="hidden xs:inline">Verified Artist</span>
+                      <span className="xs:hidden">Verified</span>
                     </span>
                   )}
                 </div>
                 
-                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tight leading-none">
+                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-8xl font-black mb-3 sm:mb-6 tracking-tight leading-none">
                   {artist.name}
                 </h1>
                 
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-gray-300 font-medium">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-4 lg:gap-6 text-gray-300 font-medium text-xs sm:text-sm lg:text-base">
                   {artist.followers && (
                     <span>{formatCount(artist.followers.total)} followers</span>
                   )}
                   {artist.genres && artist.genres.length > 0 && (
                     <>
-                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
-                      <span className="capitalize">{artist.genres.slice(0, 3).join(', ')}</span>
+                      <span className="w-1 h-1 bg-gray-500 rounded-full hidden sm:block"></span>
+                      <span className="capitalize">{artist.genres.slice(0, 2).join(', ')}</span>
                     </>
                   )}
                 </div>
@@ -322,13 +323,13 @@ const Artist: React.FC = () => {
           </Fade>
 
           {/* Action Bar */}
-          <div className="flex items-center gap-6 mb-10">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-10">
             {topTrack && (
               <button
                 onClick={() => handleTrackPlay(topTrack)}
-                className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-whie hover:scale-105 hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
+                className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-green-500 text-whie hover:scale-105 hover:bg-green-400 transition-all shadow-lg shadow-green-500/20 touch-target"
               >
-                {isTopTrackPlaying ? <PauseIcon sx={{ fontSize: 32 }} /> : <PlayArrowIcon sx={{ fontSize: 32 }} />}
+                {isTopTrackPlaying ? <PauseIcon sx={{ fontSize: { xs: 24, sm: 32 } }} /> : <PlayArrowIcon sx={{ fontSize: { xs: 24, sm: 32 } }} />}
               </button>
             )}
             
@@ -336,7 +337,7 @@ const Artist: React.FC = () => {
             <button
               onClick={handleFollowToggle}
               className={`
-                px-8 py-2 rounded-full text-sm font-bold border transition-all uppercase tracking-wider
+                px-4 sm:px-8 py-2 rounded-full text-xs sm:text-sm font-bold border transition-all uppercase tracking-wider touch-target
                 ${isFollowing 
                   ? 'bg-transparent border-white/30 text-white hover:border-white' 
                   : 'bg-transparent border-white/30 text-white hover:border-white'}

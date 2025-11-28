@@ -12,6 +12,31 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  
+  /* Safe area insets for notched phones */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+  
+  /* CSS custom properties for responsive spacing */
+  --header-height: 64px;
+  --player-height: 90px;
+  --mobile-nav-height: 64px;
+  --sidebar-width: 288px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: 72px;
+    --player-height: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --mobile-nav-height: 0px;
+  }
 }
 
 * {
@@ -25,22 +50,22 @@ body {
   min-width: 320px;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   background: #000000;
   color: #ffffff;
-  /* Reserve vertical scrollbar space to avoid layout shift when modals/menus toggle page scroll */
   overflow-x: hidden;
   overflow-y: scroll;
-  /* Hide scrollbar for Firefox */
   scrollbar-width: none;
-  /* Prevent MUI from causing layout shifts when managing scroll */
   scrollbar-gutter: stable;
-  /* Mobile viewport fix */
   -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: contain;
 }
 
 /* Fix for mobile viewport height */
 html {
   height: -webkit-fill-available;
+  height: 100dvh;
 }
 
 /* NOTE: Previously we forced body[style*="overflow: hidden"] to keep scrollbars visible
@@ -52,6 +77,7 @@ html {
 #root {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Custom Scrollbar - Hidden */
@@ -367,6 +393,67 @@ html {
   }
 }
 
+/* Extra small screens (phones in portrait) */
+@media (max-width: 375px) {
+  .grid-auto-fit {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .grid-auto-fill {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  
+  .grid-auto-fill {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Touch device specific styles */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger tap targets for touch */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* Disable hover effects on touch devices */
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Active state for touch feedback */
+  .touch-feedback:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --header-height: 48px;
+    --player-height: 64px;
+    --mobile-nav-height: 48px;
+  }
+  
+  .landscape-compact {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
 /* Safe area padding for notched phones */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .safe-area-bottom {
@@ -376,15 +463,137 @@ html {
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
+  
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-y {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-all {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
 }
 
 /* Player bottom spacing for content */
 .player-visible {
-  padding-bottom: 90px;
+  padding-bottom: calc(var(--player-height) + var(--mobile-nav-height) + 16px);
+}
+
+@media (min-width: 1024px) {
+  .player-visible {
+    padding-bottom: calc(var(--player-height) + 16px);
+  }
+}
+
+/* Mobile content spacing */
+.mobile-content-spacing {
+  padding-bottom: calc(var(--player-height) + var(--mobile-nav-height) + env(safe-area-inset-bottom) + 16px);
+}
+
+@media (min-width: 1024px) {
+  .mobile-content-spacing {
+    padding-bottom: calc(var(--player-height) + 16px);
+  }
+}
+
+/* Responsive text utilities */
+.text-responsive-xs {
+  font-size: clamp(0.625rem, 2vw, 0.75rem);
+}
+
+.text-responsive-sm {
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+}
+
+.text-responsive-base {
+  font-size: clamp(0.875rem, 3vw, 1rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1rem, 3.5vw, 1.125rem);
+}
+
+.text-responsive-xl {
+  font-size: clamp(1.125rem, 4vw, 1.25rem);
+}
+
+.text-responsive-2xl {
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
+}
+
+.text-responsive-3xl {
+  font-size: clamp(1.5rem, 6vw, 1.875rem);
+}
+
+.text-responsive-4xl {
+  font-size: clamp(1.875rem, 7vw, 2.25rem);
+}
+
+/* Swipeable card container for mobile */
+.swipe-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.swipe-container::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Responsive card sizes */
+.card-responsive {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 375px) {
+  .card-responsive {
+    width: calc(50% - 0.375rem);
+  }
+}
+
+@media (min-width: 640px) {
+  .card-responsive {
+    width: calc(33.333% - 0.5rem);
+  }
 }
 
 @media (min-width: 768px) {
-  .player-visible {
-    padding-bottom: 100px;
+  .card-responsive {
+    width: calc(25% - 0.75rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-responsive {
+    width: calc(20% - 0.8rem);
+  }
+}
+
+@media (min-width: 1280px) {
+  .card-responsive {
+    width: calc(16.666% - 0.833rem);
   }
 }

@@ -396,3 +396,88 @@ export const getUserPlaylists = async (token: string, limit = 50): Promise<any[]
     return [];
   }
 };
+
+/**
+ * Create a new playlist
+ */
+export const createPlaylist = async (
+  token: string,
+  userId: string,
+  name: string,
+  description?: string,
+  isPublic: boolean = false
+): Promise<{ id: string; name: string } | null> => {
+  if (!token || !userId || !name) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/users/${userId}/playlists`,
+      {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          name,
+          description: description || '',
+          public: isPublic
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      console.error('Failed to create playlist:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    return { id: data.id, name: data.name };
+  } catch (error) {
+    console.error('Error creating playlist:', error);
+    return null;
+  }
+};
+
+/**
+ * Add multiple tracks to a playlist
+ */
+export const addTracksToPlaylist = async (
+  token: string, 
+  playlistId: string, 
+  trackUris: string[]
+): Promise<boolean> => {
+  if (!token || !playlistId || trackUris.length === 0) return false;
+  
+  try {
+    // Spotify API allows max 100 tracks per request
+    const chunks = [];
+    for (let i = 0; i < trackUris.length; i += 100) {
+      chunks.push(trackUris.slice(i, i + 100));
+    }
+    
+    for (const chunk of chunks) {
+      const response = await fetch(
+        `${SPOTIFY_API_BASE}/playlists/${playlistId}/tracks`,
+        {
+          method: 'POST',
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uris: chunk })
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('Failed to add tracks to playlist:', response.status);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding tracks to playlist:', error);
+    return false;
+  }
+};

@@ -503,13 +503,13 @@ const Dashboard: React.FC = () => {
   // Guest experience removed - always render the normal dashboard below
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+    <div className="bg-gradient-to-br from-black via-gray-900 to-black flex" style={{ minHeight: '100dvh' }}>
       {/* Show loading screen while auth is in progress */}
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="text-center">
-            <CircularProgress size={60} sx={{ color: '#22c55e', mb: 2 }} />
-            <div className="text-white text-xl">Connecting to Spotify...</div>
+          <div className="text-center px-4">
+            <CircularProgress size={48} sx={{ color: '#22c55e', mb: 2 }} />
+            <div className="text-white text-lg sm:text-xl">Connecting to Spotify...</div>
           </div>
         </div>
       )}
@@ -536,132 +536,134 @@ const Dashboard: React.FC = () => {
       />
       
       {/* Main Content - Always has left margin on desktop for permanent sidebar */}
-      <div className="flex-1 lg:ml-72 pb-24 pt-20 transition-all duration-300">
+      {/* Mobile: pb for player (90px) + mobile nav (64px) + safe area */}
+      {/* Desktop: pb for player only */}
+      <div className="flex-1 lg:ml-72 pb-40 lg:pb-28 pt-16 sm:pt-20 transition-all duration-300">
         
         {/* Content Container - Full width on all screen sizes */}
-        <div className="relative w-full py-10 px-2 sm:px-8 lg:px-12 space-y-10">
+        <div className="relative w-full py-6 sm:py-10 px-3 sm:px-6 lg:px-12 space-y-6 sm:space-y-10">
           {/* Device Status moved to top status bar */}
             
 {/* Modern Welcome Header */}
-<div className="relative overflow-hidden mb-8 max-h-[90vh] min-h-[340px] flex items-center justify-center">
+<div className="relative overflow-hidden mb-6 sm:mb-8 max-h-[85vh] min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
   {/* Glassmorphism background */}
-  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-3xl border border-white/10"></div>
-  <div className="relative p-4 sm:p-6 md:p-8 space-y-4 w-full overflow-y-auto max-h-[90vh]">
+  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/10"></div>
+  <div className="relative p-3 sm:p-6 md:p-8 space-y-3 sm:space-y-4 w-full overflow-y-auto max-h-[85vh]">
     {/* Top Status Bar */}
-    <div className="flex flex-wrap items-center gap-2 mb-2">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-xs">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-green-500/20 rounded-full border border-green-500/30 backdrop-blur-sm text-[10px] sm:text-xs">
+          <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
           <span className="text-green-300 font-semibold">Live Dashboard</span>
         </div>
         
-        {/* Device Status Indicator */}
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm text-xs ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
-          <div className={`w-2 h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
-          <span className={`${deviceId ? 'text-yellow-200' : 'text-red-200'} font-semibold`}>
-            Device: {deviceId ? `Connected (${deviceId.slice(0, 8)}...)` : 'No device'}
+        {/* Device Status Indicator - Hidden on very small screens */}
+        <div className={`hidden xs:flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border backdrop-blur-sm text-[10px] sm:text-xs ${deviceId ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-red-400/10 border-red-400/30'}`}>
+          <div className={`w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full ${deviceId ? 'bg-green-400 animate-pulse' : 'bg-red-400'} shadow-lg`}></div>
+          <span className={`${deviceId ? 'text-yellow-200' : 'text-red-200'} font-semibold truncate max-w-[120px] sm:max-w-none`}>
+            Device: {deviceId ? `Connected` : 'No device'}
           </span>
         </div>
-        <div className="text-xs font-semibold text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+        <div className="hidden sm:block text-xs font-semibold text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
           {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
         </div>
       </div>
     </div>
     {/* Main Greeting Section */}
     <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
-      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
+      <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-black mb-2">
         <span className="bg-gradient-to-r from-green-400 via-green-300 to-green-400 bg-clip-text text-transparent">
           {token ? greeting : 'Welcome to Flowbeats'}
         </span>
       </h1>
       {!token ? (
-        <div className="mb-4">
-          <p className="text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
+        <div className="mb-3 sm:mb-4">
+          <p className="text-sm sm:text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
             Explore the catalog, preview playlists, and try the discovery tools. Sign in to enable playback controls and save playlists.
           </p>
         </div>
       ) : user?.display_name && (
-        <div className="mb-4">
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-200 mb-2">
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-200 mb-1 sm:mb-2">
             Welcome back, <span className="text-white">{formatDisplayName(user.display_name)}</span>!
           </h2>
-          <p className="text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
+          <p className="text-sm sm:text-base text-gray-400 max-w-xl mx-auto lg:mx-0">
             Ready to discover your next favorite song? Let's dive into your personalized music universe.
           </p>
         </div>
       )}
     </div>
     {/* Quick Actions: balanced 4-up grid */}
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
       <button
         onClick={() => scrollToSection('playlists')}
         aria-label="Playlists"
-        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+        className="group p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-1.5 sm:gap-2 active:scale-[0.98]"
       >
-        <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
-          <span className="text-lg font-bold text-purple-400">♫</span>
+        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors duration-300">
+          <span className="text-base sm:text-lg font-bold text-purple-400">♫</span>
         </div>
-        <div className="text-sm font-semibold text-white">Playlists</div>
-        <div className="text-xs text-gray-400">Your collections</div>
+        <div className="text-xs sm:text-sm font-semibold text-white">Playlists</div>
+        <div className="text-[10px] sm:text-xs text-gray-400 hidden xs:block">Your collections</div>
       </button>
 
       <button
         onClick={() => scrollToSection('recently')}
         aria-label="Recent Plays"
-        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+        className="group p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 hover:bg-white/10 hover:border-green-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-1.5 sm:gap-2 active:scale-[0.98]"
       >
-        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
-          <span className="text-lg font-bold text-green-400">♪</span>
+        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors duration-300">
+          <span className="text-base sm:text-lg font-bold text-green-400">♪</span>
         </div>
-        <div className="text-sm font-semibold text-white">Recent Plays</div>
-        <div className="text-xs text-gray-400">Recently Played Tracks</div>
+        <div className="text-xs sm:text-sm font-semibold text-white">Recent Plays</div>
+        <div className="text-[10px] sm:text-xs text-gray-400 hidden xs:block">Recently Played</div>
       </button>
 
       <button
         onClick={() => scrollToSection('top')}
         aria-label="Top Tracks"
-        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+        className="group p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 hover:bg-white/10 hover:border-yellow-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-1.5 sm:gap-2 active:scale-[0.98]"
       >
-        <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
-          <span className="text-lg font-bold text-yellow-400">★</span>
+        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-500/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/30 transition-colors duration-300">
+          <span className="text-base sm:text-lg font-bold text-yellow-400">★</span>
         </div>
-        <div className="text-sm font-semibold text-white">Top Tracks</div>
-        <div className="text-xs text-gray-400">Your most played</div>
+        <div className="text-xs sm:text-sm font-semibold text-white">Top Tracks</div>
+        <div className="text-[10px] sm:text-xs text-gray-400 hidden xs:block">Your most played</div>
       </button>
 
       <button
         onClick={() => navigate('/browse')}
         aria-label="Browse Categories"
-        className="group p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-2"
+        className="group p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer backdrop-blur-sm flex flex-col items-start gap-1.5 sm:gap-2 active:scale-[0.98]"
       >
-        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
-          <span className="text-lg font-bold text-blue-400">◆</span>
+        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors duration-300">
+          <span className="text-base sm:text-lg font-bold text-blue-400">◆</span>
         </div>
-        <div className="text-sm font-semibold text-white">Browse</div>
-        <div className="text-xs text-gray-400">Music categories</div>
+        <div className="text-xs sm:text-sm font-semibold text-white">Browse</div>
+        <div className="text-[10px] sm:text-xs text-gray-400 hidden xs:block">Music categories</div>
       </button>
     </div>
             </div>
           </div>
           {/* Your Playlists Section */}
-          <section id="playlists" className="space-y-4">
+          <section id="playlists" className="space-y-3 sm:space-y-4">
             {/* Section Title */}
             <Fade in timeout={600}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">Your Playlists</h2>
-                  <p className="text-gray-400 text-sm">Your personal music collections</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">Your Playlists</h2>
+                  <p className="text-gray-400 text-xs sm:text-sm">Your personal music collections</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Navigation Arrows */}
                   {playlists.length > playlistsPerView && (
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={handlePrevPlaylists}
                         disabled={!canGoPrevPlaylists || isAnimatingPlaylists}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
                           canGoPrevPlaylists && !isAnimatingPlaylists
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40 active:scale-95' 
                             : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                         }`}
                         title="Previous playlists"
@@ -673,9 +675,9 @@ const Dashboard: React.FC = () => {
                       <button 
                         onClick={handleNextPlaylists}
                         disabled={!canGoNextPlaylists || isAnimatingPlaylists}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
                           canGoNextPlaylists && !isAnimatingPlaylists
-                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40 active:scale-95' 
                             : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
                         }`}
                         title="Next playlists"
@@ -692,8 +694,8 @@ const Dashboard: React.FC = () => {
             
             {/* Playlists Section */}
             {loadingPlaylists ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {Array.from({ length: 12 }).map((_, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 50}>
                     <div className="space-y-2">
                       <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
@@ -706,7 +708,7 @@ const Dashboard: React.FC = () => {
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
-              <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+              <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {playlists.slice(playlistsStartIndex, playlistsStartIndex + playlistsPerView).map((playlist, index) => (
                   <Grow in timeout={400 + index * 50} key={`${playlist.id}-${playlistsStartIndex}`}>
                     <div 
@@ -834,17 +836,17 @@ const Dashboard: React.FC = () => {
             <Fade in timeout={600}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">Recently Played Tracks</h2>
-                  <p className="text-gray-400 text-sm">Pick up where you left off</p>
+                  <h2 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">Recently Played Tracks</h2>
+                  <p className="text-gray-400 text-xs sm:text-sm">Pick up where you left off</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Navigation Arrows */}
                   {recentlyPlayed.length > recentlyPerView && (
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={handlePrevRecently}
                         disabled={!canGoPrevRecently || isAnimatingRecently}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
                           canGoPrevRecently && !isAnimatingRecently
                             ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                             : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
@@ -877,8 +879,8 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-6 gap-4">
-                {Array.from({ length: recentlyPerView }).map((_, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 100}>
                     <div className="space-y-2">
                       <Skeleton variant="rectangular" width="100%" sx={{ aspectRatio: '1/1', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.05)' }} />
@@ -891,7 +893,7 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-                <div className={`grid grid-cols-6 gap-4 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
                   <Grow in timeout={300 + index * 50} key={`${item.track.id}-${recentlyStartIndex}`}>
                     <div 
@@ -1016,17 +1018,17 @@ const Dashboard: React.FC = () => {
             <Fade in timeout={600}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">Your Top 10 Tracks</h2>
-                  <p className="text-gray-400 text-sm">Your most played songs this month</p>
+                  <h2 className="text-lg sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">Your Top 10 Tracks</h2>
+                  <p className="text-gray-400 text-xs sm:text-sm">Your most played songs this month</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Navigation Arrows */}
                   {topTracks.length > tracksPerView && (
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={handlePrevTracks}
                         disabled={!canGoPrev || isAnimatingTracks}
-                        className={`p-1.5 rounded-lg border transition-all duration-300 ${
+                        className={`p-1.5 rounded-lg border transition-all duration-300 touch-target ${
                           canGoPrev && !isAnimatingTracks
                             ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
                             : 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'

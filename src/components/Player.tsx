@@ -163,16 +163,18 @@ const Player: React.FC = () => {
     <Box
       sx={{
         position: 'fixed',
-        bottom: 0,
+        // On mobile, position above the bottom nav (64px) + safe area
+        // On desktop (lg+), position at bottom
+        bottom: { xs: 'calc(64px + env(safe-area-inset-bottom))', lg: 0 },
         left: 0,
         right: 0,
-        background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.72) 0%, rgba(18, 18, 18, 0.78) 100%)',
+        background: 'linear-gradient(180deg, rgba(24, 24, 24, 0.92) 0%, rgba(18, 18, 18, 0.95) 100%)',
         backdropFilter: 'blur(32px) saturate(180%)',
         borderTop: isRemotePlaying 
           ? '2px solid rgba(251, 146, 60, 0.35)' 
           : '1px solid rgba(255, 255, 255, 0.06)',
         p: { xs: 1, sm: 1.5, md: 2 },
-        pb: { xs: 'calc(8px + env(safe-area-inset-bottom))', sm: 1.5, md: 2 },
+        pb: { xs: 1, sm: 1.5, lg: 2 },
         zIndex: (theme) => theme.zIndex.drawer + 10,
         isolation: 'isolate',
         transform: 'translateZ(0)',
@@ -298,13 +300,25 @@ const Player: React.FC = () => {
             </Stack>
             
             {/* Mobile Controls */}
-            <Stack direction="row" alignItems="center" spacing={0}>
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              {/* Shuffle button */}
+              <IconButton 
+                onClick={handleShuffleToggle}
+                disabled={!isTrackLoaded}
+                sx={{ 
+                  color: isShuffled ? '#1db954' : 'text.secondary', 
+                  p: 0.5,
+                  '&:hover': { color: isShuffled ? '#1ed760' : 'white' }
+                }}
+              >
+                <Shuffle sx={{ fontSize: 16 }} />
+              </IconButton>
               <IconButton 
                 onClick={previousTrack}
                 disabled={!isTrackLoaded}
-                sx={{ color: 'text.secondary', p: 1 }}
+                sx={{ color: 'text.secondary', p: 0.5 }}
               >
-                <SkipPrevious sx={{ fontSize: 24 }} />
+                <SkipPrevious sx={{ fontSize: 20 }} />
               </IconButton>
               <IconButton 
                 onClick={isTrackLoaded ? togglePlay : undefined}
@@ -314,19 +328,31 @@ const Player: React.FC = () => {
                     ? (isRemotePlaying ? '#fb923c' : '#1db954')
                     : 'rgba(255, 255, 255, 0.1)',
                   color: '#ffffff',
-                  width: 44,
-                  height: 44,
+                  width: 36,
+                  height: 36,
                   '&:hover': { background: isRemotePlaying ? '#f97316' : '#1ed760' },
                 }}
               >
-                {isPlaying ? <Pause sx={{ fontSize: 26 }} /> : <PlayArrow sx={{ fontSize: 26 }} />}
+                {isPlaying ? <Pause sx={{ fontSize: 22 }} /> : <PlayArrow sx={{ fontSize: 22 }} />}
               </IconButton>
               <IconButton 
                 onClick={nextTrack}
                 disabled={!isTrackLoaded}
-                sx={{ color: 'text.secondary', p: 1 }}
+                sx={{ color: 'text.secondary', p: 0.5 }}
               >
-                <SkipNext sx={{ fontSize: 24 }} />
+                <SkipNext sx={{ fontSize: 20 }} />
+              </IconButton>
+              {/* Repeat button */}
+              <IconButton 
+                onClick={handleRepeatToggle}
+                disabled={!isTrackLoaded}
+                sx={{ 
+                  color: repeatMode !== 'off' ? '#1db954' : 'text.secondary', 
+                  p: 0.5,
+                  '&:hover': { color: repeatMode !== 'off' ? '#1ed760' : 'white' }
+                }}
+              >
+                {getRepeatIcon()}
               </IconButton>
             </Stack>
           </Stack>

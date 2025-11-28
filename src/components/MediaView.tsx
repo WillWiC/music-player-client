@@ -644,10 +644,10 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
       )}
 
       {/* Tracks List */}
-      <div className="px-8 mt-4">
-        <div className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-4 py-2 text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
+      <div className="px-3 sm:px-6 md:px-8 mt-4">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-2 sm:gap-3 md:gap-4 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white/50 border-b border-white/10 mb-4 uppercase tracking-wider">
           <div 
-            className="w-8 text-center cursor-pointer hover:text-white flex items-center justify-center"
+            className="w-6 sm:w-8 text-center cursor-pointer hover:text-white flex items-center justify-center"
             onClick={() => handleSort('default')}
           >
             #
@@ -675,13 +675,13 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
             <SortIndicator field="dateAdded" />
           </div>
           <div 
-            className="w-12 flex justify-center items-center cursor-pointer hover:text-white"
+            className="w-10 sm:w-12 flex justify-center items-center cursor-pointer hover:text-white"
             onClick={() => handleSort('duration')}
           >
             <AccessTime sx={{ fontSize: 16 }} />
             <SortIndicator field="duration" />
           </div>
-          <div className="w-10"></div>
+          <div className="w-8 sm:w-10"></div>
         </div>
 
         <div className="flex flex-col">
@@ -698,13 +698,13 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
               <div 
                 key={track.id}
                 className={`
-                  group grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-4 py-3 rounded-md items-center
+                  group grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-2 sm:gap-3 md:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-md items-center
                   hover:bg-white/10 transition-colors cursor-pointer
                   ${isCurrentTrack ? 'bg-white/10' : ''}
                 `}
                 onClick={() => handleTrackPlay(track, originalIndex)}
               >
-                <div className="w-8 text-center flex justify-center items-center text-white/50 font-medium">
+                <div className="w-6 sm:w-8 text-center flex justify-center items-center text-white/50 font-medium text-xs sm:text-sm">
                   <span className="group-hover:hidden">
                     {isCurrentlyPlaying ? (
                       <img 
@@ -721,19 +721,19 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
                   {track.album?.images?.[0]?.url && (
                     <img 
                       src={track.album.images[0].url} 
                       alt="" 
-                      className="w-10 h-10 rounded shadow-sm object-cover"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded shadow-sm object-cover flex-shrink-0"
                     />
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className={`truncate font-medium ${isCurrentTrack ? 'text-green-500' : 'text-white'}`}>
+                    <span className={`truncate font-medium text-sm sm:text-base ${isCurrentTrack ? 'text-green-500' : 'text-white'}`}>
                       {track.name}
                     </span>
-                    <span className="text-sm text-white/50 truncate group-hover:text-white/70 transition-colors">
+                    <span className="text-xs sm:text-sm text-white/50 truncate group-hover:text-white/70 transition-colors">
                       {track.artists?.map((a: any, i: number) => (
                         <React.Fragment key={a.id || i}>
                           <span 
@@ -766,12 +766,12 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
                   {formatDateAdded(getDateAdded(item))}
                 </div>
 
-                <div className="w-12 text-center text-sm text-white/50 font-variant-numeric tabular-nums">
+                <div className="w-10 sm:w-12 text-center text-xs sm:text-sm text-white/50 font-variant-numeric tabular-nums">
                   {formatDuration(track.duration_ms)}
                 </div>
 
                 {/* More Options Button */}
-                <div className="w-10 flex justify-center">
+                <div className="w-8 sm:w-10 flex justify-center">
                   <button
                     onClick={(e) => handleTrackMenuOpen(e, track)}
                     className="opacity-0 group-hover:opacity-100 p-1 text-white/50 hover:text-white transition-all"

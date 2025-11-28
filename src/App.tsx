@@ -123,7 +123,7 @@ const AppContent: React.FC = () => {
   const { token } = useAuth();
   
   return (
-    <div className="App">
+    <div className="App" style={{ minHeight: '100dvh' }}>
       <Routes>
         <Route path="/about" element={<About />} />
         <Route path="/" element={<Dashboard />} />

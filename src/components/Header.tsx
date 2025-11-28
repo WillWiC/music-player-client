@@ -33,7 +33,8 @@ import {
   Logout,
   Close,
   Settings,
-  InfoOutlined
+  InfoOutlined,
+  ArrowBack
 } from '@mui/icons-material';
 import { OpenInNew } from '@mui/icons-material';
 import SpotifyIcon from './SpotifyIcon';
@@ -255,25 +256,52 @@ const Header: React.FC<HeaderProps> = ({
           left: { xs: 0, lg: '288px' },
           width: { xs: '100%', lg: 'calc(100% - 288px)' },
           bgcolor: '#0a0a0a',
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%)',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.75) 100%)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: 'none'
+          boxShadow: 'none',
+          // Safe area for notched phones
+          pt: 'env(safe-area-inset-top)',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+        <Toolbar sx={{ 
+          justifyContent: 'space-between', 
+          px: { xs: 1.5, sm: 2, md: 3 }, 
+          py: { xs: 1, sm: 1.5, md: 2 },
+          minHeight: { xs: 56, sm: 64 },
+        }}>
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center">
             {/* Sidebar toggle button - only visible on mobile */}
             <IconButton
               onClick={onMobileMenuToggle}
-              sx={{ display: { xs: 'flex', lg: 'none' }, bgcolor: 'rgba(255,255,255,0.03)' }}
+              sx={{ 
+                display: { xs: 'flex', lg: 'none' }, 
+                bgcolor: 'rgba(255,255,255,0.03)',
+                p: { xs: 1, sm: 1.5 },
+              }}
               title="Toggle sidebar"
             >
-              <MenuIcon sx={{ color: 'white' }} />
+              <MenuIcon sx={{ color: 'white', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </IconButton>
+            
+            {/* Back button - visible on mobile when not on dashboard */}
+            {location.pathname !== '/dashboard' && location.pathname !== '/' && (
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{ 
+                  display: { xs: 'flex', lg: 'none' }, 
+                  bgcolor: 'rgba(255,255,255,0.05)',
+                  p: { xs: 0.75, sm: 1 },
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                }}
+                title="Go back"
+              >
+                <ArrowBack sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+              </IconButton>
+            )}
           </Stack>
 
-          <Box sx={{ flex: 1, maxWidth: 560, mx: { xs: 1.5, sm: 3 }, position: 'relative' }} ref={containerRef} className="search-container">
+          <Box sx={{ flex: 1, maxWidth: { xs: 400, sm: 480, md: 560 }, mx: { xs: 1, sm: 2, md: 3 }, position: 'relative' }} ref={containerRef} className="search-container">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -289,7 +317,7 @@ const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder={searchPlaceholder}
+                placeholder={location.pathname === '/search' ? 'Search...' : searchPlaceholder}
                 variant="outlined"
                 size="small"
                 InputProps={{
@@ -298,25 +326,33 @@ const Header: React.FC<HeaderProps> = ({
                     role: 'combobox',
                     'aria-expanded': showSearchDropdown,
                     'aria-controls': 'search-results',
-                    'aria-activedescendant': activeIndex >= 0 ? `search-result-${activeIndex}` : undefined
+                    'aria-activedescendant': activeIndex >= 0 ? `search-result-${activeIndex}` : undefined,
+                    style: { fontSize: '0.875rem' },
                   },
                   startAdornment: (
                     <InputAdornment position="start">
-                      {isSearching ? <CircularProgress size={18} sx={{ color: 'primary.main' }} /> : <Search sx={{ color: 'text.secondary' }} />}
+                      {isSearching ? <CircularProgress size={16} sx={{ color: 'primary.main' }} /> : <Search sx={{ color: 'text.secondary', fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />}
                     </InputAdornment>
                   ),
                   endAdornment: searchQuery ? (
                     <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => { setSearchQuery(''); setSearchResults([]); setShowSearchDropdown(false); }} sx={{ color: 'text.secondary' }}>
-                        <Close />
+                      <IconButton 
+                        size="small" 
+                        onClick={() => { setSearchQuery(''); setSearchResults([]); setShowSearchDropdown(false); }} 
+                        sx={{ color: 'text.secondary', p: { xs: 0.5, sm: 1 } }}
+                      >
+                        <Close sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                       </IconButton>
                     </InputAdornment>
                   ) : undefined,
                   sx: {
                     bgcolor: 'rgba(255,255,255,0.04)',
-                    borderRadius: 3,
+                    borderRadius: { xs: 2, sm: 3 },
                     '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.08)' },
-                    color: 'white'
+                    color: 'white',
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    py: { xs: 0.25, sm: 0.5 },
+                    minHeight: { xs: 40, sm: 44 },
                   }
                 }}
               />
@@ -407,14 +443,43 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Box>
 
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mr: { xs: 1, sm: 2, md: 4 } }}>
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1, md: 2 }} alignItems="center" sx={{ mr: { xs: 0, sm: 1, md: 2 }, flexShrink: 0 }}>
             {user ? (
-              <Box display="flex" alignItems="center" gap={1}>
-                <Button id="profile-button" onClick={handleProfileOpen} sx={{ textTransform: 'none', color: 'white' }}>
-                  <Avatar src={user.images?.[0]?.url} sx={{ width: 32, height: 32, mr: 1 }}>
+              <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }}>
+                <Button 
+                  id="profile-button" 
+                  onClick={handleProfileOpen} 
+                  sx={{ 
+                    textTransform: 'none', 
+                    color: 'white',
+                    minWidth: 'auto',
+                    px: { xs: 0.5, sm: 1 },
+                  }}
+                >
+                  <Avatar 
+                    src={user.images?.[0]?.url} 
+                    sx={{ 
+                      width: { xs: 28, sm: 32 }, 
+                      height: { xs: 28, sm: 32 }, 
+                      mr: { xs: 0, sm: 1 } 
+                    }}
+                  >
                     <AccountCircle />
                   </Avatar>
-                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>{user.display_name || 'Profile'}</Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: 'white', 
+                      fontWeight: 600,
+                      display: { xs: 'none', md: 'block' },
+                      maxWidth: 100,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {user.display_name || 'Profile'}
+                  </Typography>
                 </Button>
 
                 <Menu
@@ -426,7 +491,7 @@ const Header: React.FC<HeaderProps> = ({
                   onClose={handleProfileClose}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                   transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                  PaperProps={{ sx: { bgcolor: '#000', border: '1px solid rgba(255,255,255,0.06)' } }}
+                  PaperProps={{ sx: { bgcolor: '#000', border: '1px solid rgba(255,255,255,0.06)', minWidth: 180 } }}
                 >
                     <MenuItem
                       onClick={() => { handleProfileClose(); navigate('/account'); }}
@@ -434,7 +499,7 @@ const Header: React.FC<HeaderProps> = ({
                         fontWeight: 600,
                         color: '#e6e6e6',
                         px: 2.5,
-                        py: 1,
+                        py: 1.5,
                         borderRadius: 1,
                         transition: 'all 160ms ease',
                         '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
@@ -450,7 +515,7 @@ const Header: React.FC<HeaderProps> = ({
                         fontWeight: 600,
                         color: '#e6e6e6',
                         px: 2.5,
-                        py: 1,
+                        py: 1.5,
                         borderRadius: 1,
                         transition: 'all 160ms ease',
                         '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
@@ -466,7 +531,7 @@ const Header: React.FC<HeaderProps> = ({
                         fontWeight: 600,
                         color: '#e6e6e6',
                         px: 2.5,
-                        py: 1,
+                        py: 1.5,
                         borderRadius: 1,
                         transition: 'all 160ms ease',
                         '&:hover': { color: '#ffffff', bgcolor: 'rgba(34,197,94,0.09)', transform: 'translateX(6px)' },
@@ -482,7 +547,7 @@ const Header: React.FC<HeaderProps> = ({
                       fontWeight: 600,
                       color: '#e6e6e6',
                       px: 2.5,
-                      py: 1,
+                      py: 1.5,
                       borderRadius: 1,
                       transition: 'all 160ms ease',
                       '&:hover': { color: '#ffffff', bgcolor: 'rgba(229,62,62,0.08)', transform: 'translateX(6px)' },
@@ -495,9 +560,27 @@ const Header: React.FC<HeaderProps> = ({
                 </Menu>
               </Box>
             ) : (
-              <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.light' }, borderRadius: 3, textTransform: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <SpotifyIcon size={18} />
-                <span style={{ fontWeight: 800 }}>Sign in with Spotify</span>
+              <Button 
+                onClick={() => navigate('/login')} 
+                variant="contained" 
+                sx={{ 
+                  bgcolor: 'primary.main', 
+                  '&:hover': { bgcolor: 'primary.light' }, 
+                  borderRadius: { xs: 2, sm: 3 }, 
+                  textTransform: 'none', 
+                  fontWeight: 700, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: { xs: 0.5, sm: 1 },
+                  px: { xs: 1.5, sm: 2 },
+                  py: { xs: 0.75, sm: 1 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  minHeight: { xs: 36, sm: 40 },
+                }}
+              >
+                <SpotifyIcon size={16} />
+                <span style={{ fontWeight: 800 }} className="hidden xs:inline sm:inline">Sign in</span>
+                <span style={{ fontWeight: 800 }} className="hidden sm:inline"> with Spotify</span>
               </Button>
             )}
             <IconButton

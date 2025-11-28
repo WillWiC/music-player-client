@@ -12,7 +12,13 @@ import {
   Divider,
   Typography,
   CircularProgress,
-  Box
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button
 } from '@mui/material';
 import {
   Favorite,
@@ -20,7 +26,8 @@ import {
   PlaylistAdd,
   PlaylistRemove,
   QueueMusic,
-  OpenInNew
+  OpenInNew,
+  Add
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
@@ -31,7 +38,8 @@ import {
   removeTrack,
   addTrackToPlaylist,
   removeTrackFromPlaylist,
-  getUserPlaylists
+  getUserPlaylists,
+  createPlaylist
 } from '../services/libraryService';
 
 interface TrackMenuProps {
@@ -61,6 +69,11 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
   const [userPlaylists, setUserPlaylists] = React.useState<Playlist[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = React.useState(false);
   const [playlistAnchorEl, setPlaylistAnchorEl] = React.useState<HTMLElement | null>(null);
+  
+  // Create playlist dialog state
+  const [showCreateDialog, setShowCreateDialog] = React.useState(false);
+  const [newPlaylistName, setNewPlaylistName] = React.useState('');
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = React.useState(false);
 
   // Check if track is liked when menu opens
   React.useEffect(() => {
@@ -189,6 +202,52 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
     setPlaylistAnchorEl(null);
   };
 
+  const handleOpenCreateDialog = () => {
+    setShowPlaylistSubmenu(false);
+    setShowCreateDialog(true);
+    setNewPlaylistName('');
+  };
+
+  const handleCloseCreateDialog = () => {
+    setShowCreateDialog(false);
+    setNewPlaylistName('');
+  };
+
+  const handleCreatePlaylistAndAdd = async () => {
+    if (!track || !token || !user?.id || !newPlaylistName.trim() || isCreatingPlaylist) return;
+    
+    setIsCreatingPlaylist(true);
+    try {
+      // Create the new playlist
+      const newPlaylist = await createPlaylist(token, user.id, newPlaylistName.trim());
+      
+      if (newPlaylist) {
+        // Add the track to the new playlist
+        const success = await addTrackToPlaylist(token, newPlaylist.id, track.uri);
+        
+        if (success) {
+          toast.showToast(`Created "${newPlaylist.name}" and added "${track.name}"`, 'success');
+          // Refresh playlists list
+          const playlists = await getUserPlaylists(token);
+          const ownPlaylists = playlists.filter((p: any) => p.owner?.id === user.id);
+          setUserPlaylists(ownPlaylists);
+        } else {
+          toast.showToast(`Created "${newPlaylist.name}" but failed to add track`, 'warning');
+        }
+      } else {
+        toast.showToast('Failed to create playlist', 'error');
+      }
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      toast.showToast('An error occurred', 'error');
+    } finally {
+      setIsCreatingPlaylist(false);
+      setShowCreateDialog(false);
+      setNewPlaylistName('');
+      onClose();
+    }
+  };
+
   if (!track) return null;
 
   return (
@@ -202,7 +261,8 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
             bgcolor: '#1a1a1a',
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: 1.5,
-            minWidth: 180,
+            width: 220,
+            maxWidth: 220,
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             py: 0.5
           }
@@ -211,11 +271,33 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         {/* Track info header */}
-        <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <Typography variant="body2" sx={{ color: 'white', fontWeight: 600, fontSize: '0.8rem' }} noWrap>
+        <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)', maxWidth: '100%', overflow: 'hidden' }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'white', 
+              fontWeight: 600, 
+              fontSize: '0.8rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '100%'
+            }}
+          >
             {track.name}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }} noWrap>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary', 
+              fontSize: '0.7rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'block',
+              maxWidth: '100%'
+            }}
+          >
             {track.artists?.map(a => a.name).join(', ')}
           </Typography>
         </Box>
@@ -295,8 +377,9 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
             bgcolor: '#1a1a1a',
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: 1.5,
-            minWidth: 180,
-            maxHeight: 280,
+            width: 200,
+            maxWidth: 200,
+            maxHeight: 320,
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             py: 0.5
           }
@@ -309,6 +392,29 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
             Add to Playlist
           </Typography>
         </Box>
+
+        {/* Create new playlist option */}
+        <MenuItem
+          onClick={handleOpenCreateDialog}
+          sx={{ 
+            color: 'white', 
+            py: 0.75, px: 1.5, minHeight: 32,
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            '&:hover': { bgcolor: 'rgba(34,197,94,0.1)' }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <Add sx={{ color: 'rgb(34,197,94)', fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Create New Playlist" 
+            primaryTypographyProps={{ 
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: 'rgb(34,197,94)'
+            }} 
+          />
+        </MenuItem>
         
         {loadingPlaylists ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
@@ -347,6 +453,91 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
           ))
         )}
       </Menu>
+
+      {/* Create Playlist Dialog */}
+      <Dialog
+        open={showCreateDialog}
+        onClose={handleCloseCreateDialog}
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+            width: 300,
+            maxWidth: '90vw'
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: 'white', pb: 1, fontSize: '1rem' }}>
+          Create New Playlist
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            placeholder="Playlist name"
+            value={newPlaylistName}
+            onChange={(e) => setNewPlaylistName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newPlaylistName.trim()) {
+                handleCreatePlaylistAndAdd();
+              }
+            }}
+            size="small"
+            sx={{
+              mt: 1,
+              '& .MuiOutlinedInput-root': {
+                color: 'white',
+                '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                '&.Mui-focused fieldset': { borderColor: 'rgb(34,197,94)' }
+              },
+              '& .MuiInputBase-input::placeholder': {
+                color: 'rgba(255,255,255,0.5)'
+              }
+            }}
+          />
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary', 
+              mt: 1, 
+              display: 'block',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            "{track?.name?.length > 30 ? track.name.slice(0, 30) + '...' : track?.name}" will be added
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button 
+            onClick={handleCloseCreateDialog}
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreatePlaylistAndAdd}
+            disabled={!newPlaylistName.trim() || isCreatingPlaylist}
+            variant="contained"
+            size="small"
+            sx={{
+              bgcolor: 'rgb(34,197,94)',
+              '&:hover': { bgcolor: 'rgb(22,163,74)' },
+              '&.Mui-disabled': { bgcolor: 'rgba(34,197,94,0.3)' }
+            }}
+          >
+            {isCreatingPlaylist ? (
+              <CircularProgress size={18} sx={{ color: 'white' }} />
+            ) : (
+              'Create'
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

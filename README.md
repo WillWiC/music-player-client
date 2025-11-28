@@ -16,10 +16,11 @@ This is a university capstone project that utilizes the Spotify API to build an 
 ### 🎵 Core Music Experience
 - **OAuth PKCE Authentication** - Secure Spotify login flow with automatic token refresh
 - **Unified Search System** - Header and page search with recent search history
-- **Advanced Search** - Tracks, albums, artists with inline play controls
-- **Personalized Dashboard** - Recently played, new releases, and top tracks
+- **Advanced Search** - Tracks, albums, artists, and playlists with inline play controls
+- **Personalized Dashboard** - Recently played tracks, your playlists, and top tracks
 - **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
-- **Web Playback SDK** - Full in-browser playback control
+- **Web Playback SDK** - Full in-browser playback with shuffle, repeat, and progress control
+- **Browse Categories** - Spotify-style rectangular category cards for genre exploration
 
 ### 🧠 AI-Powered Music Intelligence
 - **Smart Genre Detection** - Pattern matching for 12+ music categories
@@ -30,9 +31,11 @@ This is a university capstone project that utilizes the Spotify API to build an 
 
 ### 🎨 Modern UI/UX
 - **Dark Theme** - Spotify-inspired design with glassmorphism effects
-- **Responsive Design** - Optimized for desktop and mobile
-- **Smooth Animations** - Transitions and hover effects
+- **Responsive Layout** - Collapsible sidebar with smooth transitions
+- **Smooth Animations** - Fade, grow, and hover effects throughout
 - **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
+- **Paginated Sections** - Navigation arrows for playlists and tracks
+- **Grid Layouts** - 6-card grids on Dashboard, 4-column Browse categories
 
 ---
 
@@ -42,20 +45,29 @@ This is a university capstone project that utilizes the Spotify API to build an 
 music-player-client/
 ├── src/
 │   ├── components/          # Reusable UI components
-│   │   ├── Header.tsx       # Navigation header with search
-│   │   ├── Sidebar.tsx      # Navigation sidebar
+│   │   ├── Header.tsx       # Navigation header with search & back button
+│   │   ├── Sidebar.tsx      # Navigation sidebar (collapsible)
 │   │   ├── Player.tsx       # Music player controls
 │   │   ├── MediaView.tsx    # Album/Playlist detail view
+│   │   ├── TrackMenu.tsx    # Track context menu
+│   │   ├── PlaylistMenu.tsx # Playlist context menu
+│   │   ├── AlbumMenu.tsx    # Album context menu
+│   │   ├── ArtistMenu.tsx   # Artist context menu
+│   │   ├── SpotifyIcon.tsx  # Spotify branding component
 │   │   └── PlaylistRecommendations.tsx  # AI recommendations widget
 │   │
 │   ├── pages/               # Route pages
-│   │   ├── Dashboard.tsx    # Main landing page
-│   │   ├── Search.tsx       # Search results page
-│   │   ├── Browse.tsx       # Browse categories
+│   │   ├── Dashboard.tsx    # Main landing page with 6-card grids
+│   │   ├── Search.tsx       # Search results with tab filtering
+│   │   ├── Browse.tsx       # Spotify-style category cards
+│   │   ├── Category.tsx     # Category detail with pagination
 │   │   ├── Library.tsx      # User's music library
 │   │   ├── Recommendations.tsx  # Full recommendations page
 │   │   ├── Artist.tsx       # Artist detail page
+│   │   ├── Profile.tsx      # User profile page
 │   │   ├── Account.tsx      # User account settings
+│   │   ├── Settings.tsx     # App settings
+│   │   ├── About.tsx        # About page
 │   │   └── Login.tsx        # Authentication page
 │   │
 │   ├── context/             # React Context providers
@@ -67,11 +79,14 @@ music-player-client/
 │   │
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useMusicIntelligence.ts  # AI recommendations hook
+│   │   ├── useLocalAnalysis.ts      # Local music analysis
 │   │   └── useSpotifyApi.ts         # API request hook with auto-refresh
 │   │
 │   ├── services/            # Business logic & API services
 │   │   ├── musicIntelligenceService.ts  # AI recommendation engine
 │   │   ├── audioFeaturesService.ts      # Audio analysis
+│   │   ├── libraryService.ts            # Library management
+│   │   ├── localAnalysisService.ts      # Local analysis
 │   │   └── recommendationEngine.ts      # Recommendation algorithms
 │   │
 │   ├── utils/               # Utility functions
@@ -80,23 +95,22 @@ music-player-client/
 │   │   └── numberFormat.ts      # Number formatting (K, M)
 │   │
 │   ├── types/               # TypeScript type definitions
-│   │   └── spotify.ts       # Spotify API types
+│   │   ├── spotify.ts               # Spotify API types
+│   │   └── spotify-web-playback.d.ts # Web Playback SDK types
 │   │
-│   ├── store/               # Redux store (if needed)
+│   ├── store/               # Redux store
+│   │   ├── index.ts         # Store configuration
+│   │   ├── hooks.ts         # Typed Redux hooks
 │   │   └── playerSlice.ts   # Player state slice
 │   │
 │   ├── App.tsx              # Main application component
 │   ├── main.tsx             # Application entry point
-│   └── index.css            # Global styles
+│   └── index.css            # Global styles with Tailwind
 │
 ├── server/                  # Backend auth server
 │   └── index.ts             # Token refresh endpoint
 │
-├── additional_readme/       # Extended documentation
-│   ├── AUTHENTICATION.md    # Auth flow details
-│   ├── SEARCH.md            # Search implementation
-│   ├── CATEGORIES.md        # Category system
-│   └── ANIMATIONS.md        # Animation system
+├── public/                  # Static assets
 │
 └── package.json             # Dependencies & scripts
 ```
@@ -156,6 +170,29 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard
+- Personalized greeting with time-based messages
+- Your Playlists section with navigation arrows (6 cards)
+- Recently Played Tracks grid (6 cards)
+- Top 10 Tracks list
+
+### Browse
+- Spotify-style rectangular category cards (aspect 2:1)
+- 4-column grid layout with hover effects
+- Category icons with rotation animation
+
+### Category
+- Popular Artists carousel with navigation arrows
+- Popular Songs list with album art
+- Related Playlists with pagination controls
+
+### Search
+- Tab-based filtering (All, Songs, Artists, Albums, Playlists)
+- Top result highlighting
+- Inline play controls
+
 ---
 
 ## 🔑 Spotify API Scopes
@@ -166,11 +203,14 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 | `user-read-email` | Access user profile |
 | `user-read-private` | Access account details |
 | `user-library-read` | Read saved tracks/albums |
+| `user-library-modify` | Save/remove tracks/albums |
 | `user-follow-read` | Read followed artists |
 | `user-read-recently-played` | Access listening history |
 | `user-top-read` | Access top artists/tracks |
 | `playlist-read-private` | Read private playlists |
 | `playlist-read-collaborative` | Read collaborative playlists |
+| `playlist-modify-public` | Modify public playlists |
+| `playlist-modify-private` | Modify private playlists |
 
 ---
 
@@ -182,6 +222,7 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 | **Empty library** | Re-authorize the app (logout → login) |
 | **Auth errors** | Check redirect URI matches Spotify Dashboard |
 | **No recommendations** | Need 20+ tracks in listening history |
+| **Player controls missing** | Ensure Web Playback SDK is loaded |
 
 ---
 
@@ -205,6 +246,7 @@ This project is for personal use and educational purposes only. Not intended for
 
 - [Spotify](https://developer.spotify.com/) - Web API & Web Playback SDK
 - [Material-UI](https://mui.com/) - React component library
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [Vite](https://vitejs.dev/) - Next-gen frontend tooling
 - [React](https://react.dev/) - UI framework
 

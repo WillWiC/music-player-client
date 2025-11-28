@@ -68,6 +68,10 @@ const Category: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [error, setError] = React.useState<string>('');
   const isLoadingRef = React.useRef(false);
+  
+  // Playlist pagination state
+  const [playlistStart, setPlaylistStart] = React.useState(0);
+  const [playlistVisibleCount, setPlaylistVisibleCount] = React.useState(5);
 
   // Track menu state
   const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -111,22 +115,41 @@ const Category: React.FC = () => {
   React.useEffect(() => {
     const onResize = () => {
       const width = window.innerWidth;
-      if (width >= 1536) setVisibleCount(7); // 2xl
-      else if (width >= 1280) setVisibleCount(6); // xl
-      else if (width >= 1024) setVisibleCount(5); // lg
-      else if (width >= 768) setVisibleCount(4); // md
-      else setVisibleCount(3); // sm
+      if (width >= 1536) {
+        setVisibleCount(8); // 2xl
+        setPlaylistVisibleCount(6);
+      } else if (width >= 1280) {
+        setVisibleCount(7); // xl
+        setPlaylistVisibleCount(5);
+      } else if (width >= 1024) {
+        setVisibleCount(6); // lg
+        setPlaylistVisibleCount(5);
+      } else if (width >= 768) {
+        setVisibleCount(5); // md
+        setPlaylistVisibleCount(4);
+      } else if (width >= 640) {
+        setVisibleCount(5); // sm
+        setPlaylistVisibleCount(3);
+      } else {
+        setVisibleCount(4); // xs
+        setPlaylistVisibleCount(2);
+      }
       
       setArtistStart(prev => Math.min(prev, Math.max(0, artists.length - visibleCount)));
+      setPlaylistStart(prev => Math.min(prev, Math.max(0, playlists.length - playlistVisibleCount)));
     };
     onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [artists.length]);
+  }, [artists.length, playlists.length]);
 
   const maxArtistStart = React.useMemo(() => {
     return Math.max(0, artists.length - visibleCount);
   }, [artists.length, visibleCount]);
+
+  const maxPlaylistStart = React.useMemo(() => {
+    return Math.max(0, playlists.length - playlistVisibleCount);
+  }, [playlists.length, playlistVisibleCount]);
 
   // Fetch artists and playlists for the category using the new Spotify API hook
   const fetchCategoryContent = React.useCallback(async () => {
@@ -765,18 +788,18 @@ const Category: React.FC = () => {
   // Guest experience
   if (!token && !isLoading) {
     return (
-      <div className="min-h-screen bg-black flex">
+      <div className="min-h-[100dvh] bg-black flex safe-area-bottom">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-        <main className="flex-1 lg:ml-72 pb-24 pt-20">
-          <div className="relative max-w-6xl mx-auto py-20 px-6 sm:px-8 lg:px-12">
+        <main className="flex-1 lg:ml-72 pb-36 sm:pb-32 pt-20">
+          <div className="relative max-w-6xl mx-auto py-12 sm:py-20 px-4 sm:px-6 lg:px-12">
             <div className="text-center">
-              <h1 className="text-4xl font-bold text-white mb-6">Music Category</h1>
-              <p className="text-gray-400 mb-8 text-lg">Sign in to explore this music category</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-4 sm:mb-6">Music Category</h1>
+              <p className="text-gray-400 mb-6 sm:mb-8 text-base sm:text-lg">Sign in to explore this music category</p>
               <button 
                 onClick={() => navigate('/login')}
-                className="px-8 py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105"
+                className="px-6 sm:px-8 py-2.5 sm:py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full transition-transform hover:scale-105 touch-target text-sm sm:text-base"
               >
                 Sign In to Browse
               </button>
@@ -788,7 +811,7 @@ const Category: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-black via-gray-900 to-black flex font-sans text-white safe-area-bottom">
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
       
@@ -796,21 +819,21 @@ const Category: React.FC = () => {
         {/* Dynamic Background Gradient Overlay */}
         {category && (
           <div 
-            className="absolute top-0 left-0 w-full h-[50vh] opacity-20 pointer-events-none z-0"
+            className="absolute top-0 left-0 w-full h-[30vh] sm:h-[50vh] opacity-20 pointer-events-none z-0"
             style={{ 
               background: `linear-gradient(to bottom, ${category.color}, transparent)` 
             }}
           />
         )}
 
-        <div className="relative z-10 pb-24">
+        <div className="relative z-10 pb-36 sm:pb-32">
           {/* Header Section */}
-          <div className="pt-24 px-10 md:px-12 pb-8">
+          <div className="pt-20 sm:pt-24 px-4 sm:px-8 md:px-12 pb-6 sm:pb-8">
             {category ? (
               <Fade in timeout={600}>
-                <div className="flex flex-col md:flex-row items-end gap-8">
+                <div className="flex flex-col items-center text-center md:flex-row md:items-end md:text-left gap-4 sm:gap-6 md:gap-8">
                   <div 
-                    className="w-32 h-32 md:w-40 md:h-40 shadow-2xl flex items-center justify-center text-6xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10"
+                    className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 shadow-2xl flex items-center justify-center text-4xl sm:text-5xl md:text-6xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10"
                     style={{ boxShadow: `0 20px 50px -12px ${category.color}50` }}
                   >
                     <span className="filter drop-shadow-lg transform scale-110">
@@ -818,24 +841,24 @@ const Category: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex-1 mb-2">
-                    <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-2 sm:mb-4 tracking-tight">
                       {category.name}
                     </h1>
-                    <p className="text-gray-300 text-lg max-w-2xl mb-6 font-medium">
+                    <p className="text-gray-300 text-sm sm:text-base lg:text-lg max-w-2xl mb-4 sm:mb-6 font-medium">
                       {category.description || `Discover the best music in ${category.name}`}
                     </p>
                     
-                    <div className="flex items-center gap-6 text-sm font-semibold text-gray-300">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-6 text-xs sm:text-sm font-semibold text-gray-300">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"/>
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"/>
                         {loadingPlaylists ? '...' : artists.length} Artists
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
                         {loadingPlaylists ? '...' : tracks.length} Songs
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"/>
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"/>
                         {loadingPlaylists ? '...' : playlists.length} Playlists
                       </div>
                     </div>
@@ -905,14 +928,14 @@ const Category: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-6">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
                         {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
                             <Grow in timeout={300 + index * 50} key={artist.id}>
                                 <div 
                                     className="group/card flex flex-col items-center cursor-pointer"
                                     onClick={() => handleArtistPlay(artist)}
                                 >
-                                    <div className="relative w-full aspect-square mb-4 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
+                                    <div className="relative w-full aspect-square mb-2 sm:mb-4 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
                                         <img 
                                             src={artist.images?.[0]?.url || '/vite.svg'} 
                                             alt={artist.name}
@@ -925,7 +948,7 @@ const Category: React.FC = () => {
                                         </div>
                                     </div>
                                     <h3 
-                                        className="text-white font-bold text-center truncate w-full hover:text-green-400 hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] transition-all cursor-pointer z-10"
+                                        className="text-white font-bold text-center truncate w-full hover:text-green-400 hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] transition-all cursor-pointer z-10 text-xs sm:text-sm"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(`/artist/${artist.id}`);
@@ -933,7 +956,7 @@ const Category: React.FC = () => {
                                     >
                                         {artist.name}
                                     </h3>
-                                    <p className="text-gray-400 text-sm">Artist</p>
+                                    <p className="text-gray-400 text-xs hidden sm:block">Artist</p>
                                 </div>
                             </Grow>
                         ))}
@@ -944,25 +967,25 @@ const Category: React.FC = () => {
                 {/* Songs Section */}
                 {tracks.length > 0 && (
                   <section>
-                    <h2 className="text-2xl font-bold text-white mb-6">Popular Songs</h2>
-                    <div className="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Popular Songs</h2>
+                    <div className="bg-white/5 rounded-xl sm:rounded-2xl overflow-hidden border border-white/5">
                       {/* Table Header */}
-                      <div className="grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 border-b border-white/10 text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
-                        <div className="w-8 text-center">#</div>
+                      <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-4 border-b border-white/10 text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
+                        <div className="w-6 sm:w-8 text-center">#</div>
                         <div>Title</div>
                         <div className="hidden md:block">Album</div>
-                        <div className="text-right"><AccessTime fontSize="small" /></div>
-                        <div className="w-8"></div>
+                        <div className="text-right hidden sm:block"><AccessTime fontSize="small" /></div>
+                        <div className="w-6 sm:w-8"></div>
                       </div>
                       
                       {/* Rows */}
                       {tracks.map((track, index) => (
                         <div 
                           key={track.id}
-                          className="group grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
+                          className="group grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
                           onClick={() => handleTrackPlay(track)}
                         >
-                          <div className="w-8 text-center flex justify-center items-center text-gray-400 font-medium">
+                          <div className="w-6 sm:w-8 text-center flex justify-center items-center text-gray-400 font-medium text-xs sm:text-sm">
                             <span className="group-hover:hidden">
                               {currentTrack?.id === track.id && isPlaying ? (
                                 <img 
@@ -975,20 +998,20 @@ const Category: React.FC = () => {
                               )}
                             </span>
                             <button className="hidden group-hover:block text-white">
-                              {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                              {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 14 }} /> : <PlayArrow sx={{ fontSize: 14 }} />}
                             </button>
                           </div>
-                          <div className="flex items-center gap-4 overflow-hidden">
+                          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
                             <img 
                               src={track.album?.images?.[0]?.url} 
                               alt="" 
-                              className="w-12 h-12 rounded shadow-md group-hover:shadow-lg transition-shadow"
+                              className="w-8 h-8 sm:w-12 sm:h-12 rounded shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0"
                             />
-                            <div className="min-w-0">
-                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-base">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-sm sm:text-base">
                                 {track.name}
                               </div>
-                              <div className="text-sm text-gray-400 truncate group-hover:text-gray-300">
+                              <div className="text-xs sm:text-sm text-gray-400 truncate group-hover:text-gray-300">
                                 {track.artists.map(a => a.name).join(', ')}
                               </div>
                             </div>
@@ -996,15 +1019,15 @@ const Category: React.FC = () => {
                           <div className="hidden md:block text-sm text-gray-400 truncate group-hover:text-gray-300">
                             {track.album.name}
                           </div>
-                          <div className="text-sm text-gray-400 font-mono text-right group-hover:text-gray-300">
+                          <div className="text-xs sm:text-sm text-gray-400 font-mono text-right group-hover:text-gray-300 hidden sm:block">
                             {Math.floor(track.duration_ms / 60000)}:
                             {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                           </div>
                           <button
                             onClick={(e) => handleTrackMenuOpen(e, track)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all w-8"
+                            className="opacity-0 group-hover:opacity-100 p-0.5 sm:p-1 text-gray-400 hover:text-white transition-all w-6 sm:w-8"
                           >
-                            <MoreVert sx={{ fontSize: 18 }} />
+                            <MoreVert sx={{ fontSize: 16 }} />
                           </button>
                         </div>
                       ))}
@@ -1014,29 +1037,47 @@ const Category: React.FC = () => {
 
                 {/* Playlists Section */}
                 {playlists.length > 0 && (
-                  <section>
-                    <h2 className="text-2xl font-bold text-white mb-6">Related Playlists</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                      {playlists.map((playlist, index) => (
+                  <section className="relative group/section">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold text-white">Related Playlists</h2>
+                      <div className="flex gap-2">
+                        <IconButton 
+                            disabled={playlistStart <= 0}
+                            onClick={() => setPlaylistStart(s => Math.max(0, s - playlistVisibleCount))}
+                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
+                        >
+                            <ChevronLeft />
+                        </IconButton>
+                        <IconButton 
+                            disabled={playlistStart >= maxPlaylistStart}
+                            onClick={() => setPlaylistStart(s => Math.min(s + playlistVisibleCount, maxPlaylistStart))}
+                            sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.05)', '&:disabled': { opacity: 0.3 } }}
+                        >
+                            <ChevronRight />
+                        </IconButton>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                      {playlists.slice(playlistStart, playlistStart + playlistVisibleCount).map((playlist, index) => (
                         <Grow in timeout={300 + (index % 10) * 50} key={playlist.id}>
                             <div 
-                            className="group p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
+                            className="group p-3 sm:p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
                             onClick={() => handlePlaylistPlay(playlist)}
                             >
-                            <div className="relative aspect-square mb-4 rounded-lg overflow-hidden shadow-lg">
+                            <div className="relative aspect-square mb-3 sm:mb-4 rounded-lg overflow-hidden shadow-lg">
                                 <img 
                                 src={playlist.images?.[0]?.url || '/vite.svg'} 
                                 alt={playlist.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 translate-y-2 group-hover:translate-y-0 duration-300">
-                                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
-                                        <PlayArrow sx={{ fontSize: 28, color: 'white' }} />
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                                        <PlayArrow sx={{ fontSize: { xs: 22, sm: 28 }, color: 'white' }} />
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                              <h3 className="font-bold text-white truncate mb-1 group-hover:text-green-400 transition-colors flex-1">
+                              <h3 className="font-bold text-white text-sm sm:text-base truncate mb-1 group-hover:text-green-400 transition-colors flex-1">
                                   {playlist.name}
                               </h3>
                               <button
@@ -1046,7 +1087,7 @@ const Category: React.FC = () => {
                                 <MoreVert sx={{ fontSize: 18 }} />
                               </button>
                             </div>
-                            <p className="text-sm text-gray-400 truncate line-clamp-2">
+                            <p className="text-xs sm:text-sm text-gray-400 truncate line-clamp-2">
                                 By {playlist.owner.display_name}
                             </p>
                             </div>

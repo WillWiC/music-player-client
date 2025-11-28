@@ -209,25 +209,25 @@ const SearchPage: React.FC = () => {
   const topResult = getTopResult();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex">
+    <div className="bg-gradient-to-br from-black via-gray-900 to-black flex" style={{ minHeight: '100dvh' }}>
       <Header onMobileMenuToggle={() => setSidebarOpen(true)} onTrackPlayed={() => { /* no-op - header search handles it */ }} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onHomeClick={() => navigate('/dashboard')} />
 
-      <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-24 pt-20 overflow-y-auto">
-        <div className="relative w-full py-8 px-6 sm:px-8 lg:px-12">
+      <main ref={scrollContainerRef} className="flex-1 lg:ml-72 pb-40 lg:pb-28 pt-16 sm:pt-20 overflow-y-auto">
+        <div className="relative w-full py-4 sm:py-8 px-3 sm:px-6 lg:px-12">
           
           {/* Search Header (Only when searching) */}
           {query && (
             <Fade in timeout={600}>
-              <div className="flex items-end gap-6 mb-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center">
-                  <SearchIcon sx={{ fontSize: 32, color: 'white' }} />
+              <div className="flex items-end gap-3 sm:gap-6 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg shadow-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <SearchIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'white' }} />
                 </div>
-                <div>
-                  <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-2">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight mb-1 sm:mb-2 truncate">
                     {query}
                   </h2>
-                  <p className="text-gray-400 font-medium">
+                  <p className="text-gray-400 font-medium text-sm sm:text-base">
                     Search results
                   </p>
                 </div>
@@ -237,16 +237,16 @@ const SearchPage: React.FC = () => {
 
           {/* Browse View (When not searching) */}
           {!query && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               {/* Hero Section */}
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full mb-6">
-                  <SearchIcon sx={{ fontSize: 40, color: '#22c55e' }} />
+              <div className="text-center py-8 sm:py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full mb-4 sm:mb-6">
+                  <SearchIcon sx={{ fontSize: { xs: 32, sm: 40 }, color: '#22c55e' }} />
                 </div>
-                <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 tracking-tight">
                   Find Your Music
                 </h1>
-                <p className="text-gray-400 max-w-lg mx-auto">
+                <p className="text-gray-400 max-w-lg mx-auto text-sm sm:text-base px-4">
                   Search for artists, songs, albums, and playlists.
                 </p>
               </div>
@@ -254,8 +254,8 @@ const SearchPage: React.FC = () => {
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
                 <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, fontSize: { xs: '1.125rem', sm: '1.5rem' } }}>
                       Recent Searches
                     </Typography>
                     <IconButton 
@@ -269,22 +269,22 @@ const SearchPage: React.FC = () => {
                       <Clear fontSize="small" />
                     </IconButton>
                   </div>
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     {recentSearches.map((s, index) => (
                       <Grow in key={s} timeout={300 + index * 50}>
                         <div 
-                          className="group flex items-center gap-2 bg-[#181818] hover:bg-[#282828] border border-white/5 rounded-full pl-4 pr-2 py-2 transition-all duration-200 cursor-pointer"
+                          className="group flex items-center gap-1.5 sm:gap-2 bg-[#181818] hover:bg-[#282828] border border-white/5 rounded-full pl-3 sm:pl-4 pr-1.5 sm:pr-2 py-1.5 sm:py-2 transition-all duration-200 cursor-pointer active:scale-95"
                           onClick={() => handleRunRecent(s)}
                         >
-                          <span className="text-sm font-medium text-white">{s}</span>
+                          <span className="text-xs sm:text-sm font-medium text-white">{s}</span>
                           <div 
-                            className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                            className="p-0.5 sm:p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               removeRecentSearch(s);
                             }}
                           >
-                            <Clear sx={{ fontSize: 16 }} />
+                            <Clear sx={{ fontSize: { xs: 14, sm: 16 } }} />
                           </div>
                         </div>
                       </Grow>
@@ -317,13 +317,13 @@ const SearchPage: React.FC = () => {
           {/* Results Section */}
           {query && !isSearching && (
             <Box>
-              <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex items-center gap-2 sm:gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                 {['All', 'Songs', 'Artists', 'Albums', 'Playlists'].map((label, index) => (
                   <button
                     key={label}
                     onClick={() => setActiveTab(index)}
                     className={`
-                      px-6 py-2 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap
+                      px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex-shrink-0
                       ${activeTab === index 
                         ? 'bg-white text-black scale-105' 
                         : 'bg-white/10 text-white hover:bg-white/20'}

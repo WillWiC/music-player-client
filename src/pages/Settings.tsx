@@ -138,7 +138,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="h-screen app-background flex overflow-hidden">
+    <div className="min-h-[100dvh] app-background flex overflow-hidden safe-area-bottom">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -148,19 +148,19 @@ const Settings: React.FC = () => {
       <div className="flex-1 flex flex-col lg:ml-72 relative h-full">
         <Header onMobileMenuToggle={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 flex flex-col justify-center p-6 overflow-y-auto">
+        <main className="flex-1 flex flex-col justify-center p-3 sm:p-6 overflow-y-auto pb-36 sm:pb-32 pt-20 sm:pt-24">
           <Container maxWidth="md">
             {/* Header Section - Compact */}
-            <div className="flex items-center gap-5 mb-6">
-              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg border-2 border-white/10 shrink-0">
-                <SettingsIcon sx={{ fontSize: 28, color: 'white' }} />
+            <div className="flex items-center gap-3 sm:gap-5 mb-4 sm:mb-6">
+              <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg border-2 border-white/10 shrink-0">
+                <SettingsIcon sx={{ fontSize: { xs: 20, sm: 28 }, color: 'white' }} />
               </div>
               
               <div>
-                <Typography variant="h5" className="text-white font-bold leading-tight">
+                <Typography variant="h5" className="text-white font-bold leading-tight text-lg sm:text-xl">
                   Settings
                 </Typography>
-                <Typography className="text-gray-400 text-xs">
+                <Typography className="text-gray-400 text-[10px] sm:text-xs">
                   Authentication & Security
                 </Typography>
               </div>
@@ -168,37 +168,37 @@ const Settings: React.FC = () => {
 
             <Card className="bg-white/5 border border-white/10 backdrop-blur-md">
               <CardContent className="p-0">
-                <div className="px-5 py-3 border-b border-white/10 flex items-center gap-2 bg-black/20">
+                <div className="px-3 sm:px-5 py-2 sm:py-3 border-b border-white/10 flex items-center gap-2 bg-black/20">
                   <Security className="text-green-500" fontSize="small" />
-                  <Typography variant="subtitle2" className="text-white font-bold">
+                  <Typography variant="subtitle2" className="text-white font-bold text-xs sm:text-sm">
                     System Status
                   </Typography>
                 </div>
 
-                <div className="p-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="p-3 sm:p-5">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 mb-3 sm:mb-4 sm:grid-cols-2">
                     
                     {/* Session Status Box */}
-                    <div className="relative overflow-hidden bg-black/20 p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300">
-                      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Timer sx={{ fontSize: 60 }} />
+                    <div className="relative overflow-hidden bg-black/20 p-3 sm:p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300">
+                      <div className="absolute top-0 right-0 p-2 sm:p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Timer sx={{ fontSize: { xs: 40, sm: 60 } }} />
                       </div>
                       
                       <div className="relative z-10">
-                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1 sm:mb-2">
                           Session Status
                         </Typography>
                         
-                        <div className="flex items-center gap-3 mb-3">
-                           <div className={`px-3 py-1 rounded-full flex items-center gap-2 border ${timeRemaining !== 'Expired' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${timeRemaining !== 'Expired' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                              <span className="font-bold text-xs">{timeRemaining !== 'Expired' ? 'Active' : 'Expired'}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                           <div className={`px-2 sm:px-3 py-1 rounded-full flex items-center gap-1 sm:gap-2 border ${timeRemaining !== 'Expired' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                              <div className={`w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full ${timeRemaining !== 'Expired' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                              <span className="font-bold text-[10px] sm:text-xs">{timeRemaining !== 'Expired' ? 'Active' : 'Expired'}</span>
                            </div>
                         </div>
 
                         <div className="flex flex-col">
                             <Typography className="text-gray-500 text-[10px] mb-0.5">Time Remaining</Typography>
-                            <Typography className="text-white font-mono font-bold text-xl tracking-tight">
+                            <Typography className="text-white font-mono font-bold text-lg sm:text-xl tracking-tight">
                               {timeRemaining}
                             </Typography>
                         </div>
@@ -206,16 +206,16 @@ const Settings: React.FC = () => {
                     </div>
 
                     {/* Refresh Token Box */}
-                    <div className="relative overflow-hidden bg-black/20 p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300 flex flex-col justify-between">
-                       <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <CloudSync sx={{ fontSize: 60 }} />
+                    <div className="relative overflow-hidden bg-black/20 p-3 sm:p-4 rounded-xl border border-white/5 group hover:border-white/10 transition-all duration-300 flex flex-col justify-between">
+                       <div className="absolute top-0 right-0 p-2 sm:p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <CloudSync sx={{ fontSize: { xs: 40, sm: 60 } }} />
                       </div>
 
                       <div className="relative z-10">
-                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+                        <Typography className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1 sm:mb-2">
                           Refresh Token
                         </Typography>
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3">
                           {hasRefreshToken ? (
                             <div className="flex items-center gap-2 text-green-400">
                               <CheckCircle fontSize="small" />
