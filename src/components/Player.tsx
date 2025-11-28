@@ -372,6 +372,18 @@ const Player: React.FC = () => {
               >
                 {getRepeatIcon(16)}
               </IconButton>
+
+              {/* Device picker button for mobile */}
+              <IconButton 
+                onClick={handleDeviceMenuClick}
+                size="small"
+                sx={{ 
+                  color: isRemotePlaying ? 'warning.main' : 'text.secondary',
+                  p: 0.5,
+                }}
+              >
+                <Devices sx={{ fontSize: 16 }} />
+              </IconButton>
             </Stack>
           </Stack>
         </Box>

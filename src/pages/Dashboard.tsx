@@ -687,7 +687,7 @@ const Dashboard: React.FC = () => {
             
             {/* Playlists Section */}
             {loadingPlaylists ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1.5 sm:gap-3">
                 {Array.from({ length: visibleCount }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 50}>
                     <div className="space-y-2">
@@ -701,7 +701,7 @@ const Dashboard: React.FC = () => {
             ) : errors.playlists ? (
               <ErrorMessage message={errors.playlists} />
             ) : playlists.length > 0 ? (
-              <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+              <div className={`grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1.5 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingPlaylists ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {playlists.slice(playlistsStartIndex, playlistsStartIndex + playlistsPerView).map((playlist, index) => (
                   <Grow in timeout={400 + index * 50} key={`${playlist.id}-${playlistsStartIndex}`}>
                     <div 
@@ -858,7 +858,7 @@ const Dashboard: React.FC = () => {
             
             {/* Recently Played Section */}
             {loadingRecently ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1.5 sm:gap-3">
                 {Array.from({ length: visibleCount }).map((_, i) => (
                   <Grow in key={i} timeout={300 + i * 100}>
                     <div className="space-y-2">
@@ -872,7 +872,7 @@ const Dashboard: React.FC = () => {
             ) : errors.recently ? (
               <ErrorMessage message={errors.recently} />
             ) : recentlyPlayed.length > 0 ? (
-                <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+                <div className={`grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1.5 sm:gap-3 transition-all duration-300 ease-in-out ${isAnimatingRecently ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
                 {recentlyPlayed.slice(recentlyStartIndex, recentlyStartIndex + recentlyPerView).map((item, index) => (
                   <Grow in timeout={300 + index * 50} key={`${item.track.id}-${recentlyStartIndex}`}>
                     <div 

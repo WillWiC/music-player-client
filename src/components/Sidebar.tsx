@@ -361,7 +361,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
           overflow: 'auto', 
           flexGrow: 1,
           minHeight: 0, // Important for flex child to enable scrolling
-          pb: isMobile ? 20 : 12, // Bottom padding to clear player
+          pb: isMobile ? 12 : 8, // Bottom padding to clear player
           '&::-webkit-scrollbar': {
             display: 'none'
           },

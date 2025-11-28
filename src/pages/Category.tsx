@@ -927,14 +927,14 @@ const Category: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2 sm:gap-4 md:gap-6">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 md:gap-4">
                         {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
                             <Grow in timeout={300 + index * 50} key={artist.id}>
                                 <div 
                                     className="group/card flex flex-col items-center cursor-pointer"
                                     onClick={() => handleArtistPlay(artist)}
                                 >
-                                    <div className="relative w-full aspect-square mb-1 sm:mb-3 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
+                                    <div className="relative w-full aspect-square mb-1 sm:mb-2 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
                                         <img 
                                             src={artist.images?.[0]?.url || '/vite.svg'} 
                                             alt={artist.name}
@@ -967,69 +967,89 @@ const Category: React.FC = () => {
                 {tracks.length > 0 && (
                   <section>
                     <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Popular Songs</h2>
-                    <div className="bg-white/5 rounded-xl sm:rounded-2xl overflow-hidden border border-white/5">
+                    <div className="px-0 sm:px-2">
                       {/* Table Header */}
-                      <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-4 border-b border-white/10 text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider bg-white/5">
+                      <div className="grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-3 md:gap-4 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white/50 border-b border-white/10 mb-2 uppercase tracking-wider">
                         <div className="w-6 sm:w-8 text-center">#</div>
                         <div>Title</div>
                         <div className="hidden md:block">Album</div>
-                        <div className="text-right hidden sm:block"><AccessTime fontSize="small" /></div>
-                        <div className="w-6 sm:w-8"></div>
+                        <div className="w-10 sm:w-12 flex justify-center"><AccessTime sx={{ fontSize: 16 }} /></div>
+                        <div className="w-8 sm:w-10"></div>
                       </div>
                       
                       {/* Rows */}
-                      {tracks.map((track, index) => (
-                        <div 
-                          key={track.id}
-                          className="group grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 hover:bg-white/10 items-center transition-colors cursor-pointer border-b border-white/5 last:border-0"
-                          onClick={() => handleTrackPlay(track)}
-                        >
-                          <div className="w-6 sm:w-8 text-center flex justify-center items-center text-gray-400 font-medium text-xs sm:text-sm">
-                            <span className="group-hover:hidden">
-                              {currentTrack?.id === track.id && isPlaying ? (
-                                <img 
-                                  src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
-                                  alt="playing" 
-                                  className="w-3 h-3"
-                                />
-                              ) : (
-                                <span className={currentTrack?.id === track.id ? 'text-green-500' : ''}>{index + 1}</span>
-                              )}
-                            </span>
-                            <button className="hidden group-hover:block text-white">
-                              {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 14 }} /> : <PlayArrow sx={{ fontSize: 14 }} />}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden min-w-0">
-                            <img 
-                              src={track.album?.images?.[0]?.url} 
-                              alt="" 
-                              className="w-10 h-10 sm:w-12 sm:h-12 rounded shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0"
-                            />
-                            <div className="min-w-0 flex-1 overflow-hidden">
-                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-xs sm:text-sm">
-                                {track.name}
+                      <div className="flex flex-col">
+                        {tracks.map((track, index) => {
+                          const isCurrentTrack = currentTrack?.id === track.id;
+                          const isCurrentlyPlaying = isCurrentTrack && isPlaying;
+                          
+                          return (
+                            <div 
+                              key={track.id}
+                              className={`group grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-3 md:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-md items-center hover:bg-white/10 transition-colors cursor-pointer ${isCurrentTrack ? 'bg-white/10' : ''}`}
+                              onClick={() => handleTrackPlay(track)}
+                            >
+                              <div className="w-6 sm:w-8 text-center flex justify-center items-center text-white/50 font-medium text-xs sm:text-sm">
+                                <span className="group-hover:hidden">
+                                  {isCurrentlyPlaying ? (
+                                    <img 
+                                      src="https://open.spotifycdn.com/cdn/images/equaliser-animated-green.f93a2ef4.gif" 
+                                      alt="playing" 
+                                      className="w-3 h-3"
+                                    />
+                                  ) : (
+                                    <span className={isCurrentTrack ? 'text-green-500' : ''}>{index + 1}</span>
+                                  )}
+                                </span>
+                                <button className="hidden group-hover:block text-white">
+                                  {isCurrentlyPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                                </button>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-gray-400 truncate group-hover:text-gray-300">
-                                {track.artists.map(a => a.name).join(', ')}
+
+                              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
+                                {track.album?.images?.[0]?.url && (
+                                  <img 
+                                    src={track.album.images[0].url} 
+                                    alt="" 
+                                    className="w-8 h-8 sm:w-10 sm:h-10 rounded shadow-sm object-cover flex-shrink-0"
+                                  />
+                                )}
+                                <div className="flex flex-col min-w-0">
+                                  <span className={`truncate font-medium text-sm sm:text-base ${isCurrentTrack ? 'text-green-500' : 'text-white'}`}>
+                                    {track.name}
+                                  </span>
+                                  <span className="text-xs sm:text-sm text-white/50 truncate group-hover:text-white/70 transition-colors">
+                                    {track.artists?.map((a: any) => a.name).join(', ')}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div 
+                                className="hidden md:block text-sm text-white/50 truncate hover:text-white transition-colors cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (track.album?.id) navigate(`/album/${track.album.id}`);
+                                }}
+                              >
+                                {track.album?.name}
+                              </div>
+
+                              <div className="w-10 sm:w-12 text-center text-xs sm:text-sm text-white/50 font-variant-numeric tabular-nums">
+                                {Math.floor(track.duration_ms / 60000)}:{String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
+                              </div>
+
+                              <div className="w-8 sm:w-10 flex justify-center">
+                                <button
+                                  onClick={(e) => handleTrackMenuOpen(e, track)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-white/50 hover:text-white transition-all"
+                                >
+                                  <MoreVert sx={{ fontSize: 20 }} />
+                                </button>
                               </div>
                             </div>
-                          </div>
-                          <div className="hidden md:block text-sm text-gray-400 truncate group-hover:text-gray-300">
-                            {track.album.name}
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-400 font-mono text-right group-hover:text-gray-300 hidden sm:block">
-                            {Math.floor(track.duration_ms / 60000)}:
-                            {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
-                          </div>
-                          <button
-                            onClick={(e) => handleTrackMenuOpen(e, track)}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 sm:p-1 text-gray-400 hover:text-white transition-all w-6 sm:w-8"
-                          >
-                            <MoreVert sx={{ fontSize: 16 }} />
-                          </button>
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
                     </div>
                   </section>
                 )}
@@ -1054,27 +1074,27 @@ const Category: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3">
                       {playlists.slice(playlistStart, playlistStart + playlistVisibleCount).map((playlist, index) => (
                         <Grow in timeout={300 + (index % 10) * 50} key={playlist.id}>
                             <div 
-                            className="group p-2 sm:p-3 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
+                            className="group p-1.5 sm:p-2 rounded-md bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
                             onClick={() => handlePlaylistPlay(playlist)}
                             >
-                            <div className="relative aspect-square mb-3 sm:mb-4 rounded-lg overflow-hidden shadow-lg">
+                            <div className="relative aspect-square mb-1.5 sm:mb-2 rounded-md overflow-hidden shadow-lg">
                                 <img 
                                 src={playlist.images?.[0]?.url || '/vite.svg'} 
                                 alt={playlist.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 translate-y-2 group-hover:translate-y-0 duration-300">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
-                                        <PlayArrow sx={{ fontSize: { xs: 22, sm: 28 }, color: 'white' }} />
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                                        <PlayArrow sx={{ fontSize: { xs: 18, sm: 24 }, color: 'white' }} />
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                              <h3 className="font-bold text-white text-sm sm:text-base truncate mb-1 group-hover:text-green-400 transition-colors flex-1">
+                              <h3 className="font-bold text-white text-xs sm:text-sm truncate mb-0.5 group-hover:text-green-400 transition-colors flex-1 leading-tight">
                                   {playlist.name}
                               </h3>
                               <button
@@ -1084,7 +1104,7 @@ const Category: React.FC = () => {
                                 <MoreVert sx={{ fontSize: 18 }} />
                               </button>
                             </div>
-                            <p className="text-xs sm:text-sm text-gray-400 truncate line-clamp-2">
+                            <p className="text-[10px] sm:text-xs text-gray-400 truncate leading-tight">
                                 By {playlist.owner.display_name}
                             </p>
                             </div>
