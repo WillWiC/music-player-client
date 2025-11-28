@@ -1,6 +1,6 @@
 # 🎵 FlowBeats - Intelligent Music Player
 
-> A modern Spotify-style web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence and personalized recommendations.
+> A modern Spotify-style web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence and personalized recommendations. **Desktop only.**
 
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
@@ -30,7 +30,8 @@ This is a university capstone project that utilizes the Spotify API to build an 
 
 ### 🎨 Modern UI/UX
 - **Dark Theme** - Spotify-inspired design with glassmorphism effects
-- **Responsive Layout** - Collapsible sidebar with smooth transitions
+- **Desktop Optimized** - Designed for desktop browsers (1024px+)
+- **Collapsible Sidebar** - Smooth transitions with responsive layout
 - **Smooth Animations** - Fade, grow, and hover effects throughout
 - **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
 - **Paginated Sections** - Navigation arrows for playlists and tracks
@@ -131,6 +132,11 @@ music-player-client/
 
 ## 📋 Requirements
 
+### Device Requirements
+- **Desktop Only** - Minimum screen width of 1024px
+- **Modern Browser** - Chrome, Firefox, Safari, or Edge (latest versions)
+
+### Development Requirements
 - **Node.js** 18+ and npm
 - **Spotify Account** (Premium required for playback)
 - **Spotify Developer App** - Register at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
