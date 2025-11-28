@@ -301,14 +301,14 @@ const Library: React.FC = () => {
               
               {/* Playlists Tab */}
               {tab === 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
                   {playlists.map((pl, index) => (
                     <Grow in timeout={250 + index * 30} key={pl.id}>
                       <div 
-                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        className="group p-2 sm:p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
                         onClick={() => navigate(`/playlist/${pl.id}`)}
                       >
-                        <div className="relative aspect-square mb-3 rounded-md overflow-hidden shadow-md">
+                        <div className="relative aspect-square mb-2 sm:mb-3 rounded-md overflow-hidden shadow-md">
                           <img 
                             src={pl.images?.[0]?.url || '/vite.svg'} 
                             alt={pl.name}
@@ -341,21 +341,21 @@ const Library: React.FC = () => {
               {/* Liked Songs Tab */}
               {tab === 1 && (
                 <div className="bg-white/5 rounded-xl overflow-hidden">
-                  <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 border-b border-white/10 text-sm text-gray-400 uppercase tracking-wider">
-                    <div className="w-8 text-center">#</div>
+                  <div className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 border-b border-white/10 text-[10px] sm:text-sm text-gray-400 uppercase tracking-wider">
+                    <div className="w-6 sm:w-8 text-center">#</div>
                     <div>Title</div>
                     <div className="hidden md:block">Album</div>
-                    <div className="text-right">Duration</div>
-                    <div className="w-8"></div>
+                    <div className="text-right hidden sm:block">Duration</div>
+                    <div className="w-6 sm:w-8"></div>
                   </div>
                   
                   {tracks.map((track, index) => (
                     <div 
                       key={track.id}
-                      className="group grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-3 hover:bg-white/10 items-center transition-colors cursor-pointer"
+                      className="group grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_1fr_auto_auto] gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 hover:bg-white/10 items-center transition-colors cursor-pointer"
                       onClick={() => handlePlay(track)}
                     >
-                      <div className="w-8 text-center flex justify-center items-center text-gray-400 font-medium">
+                      <div className="w-6 sm:w-8 text-center flex justify-center items-center text-gray-400 font-medium text-xs sm:text-base">
                         <span className="group-hover:hidden">
                           {currentTrack?.id === track.id && isPlaying ? (
                             <img 
@@ -368,20 +368,20 @@ const Library: React.FC = () => {
                           )}
                         </span>
                         <button className="hidden group-hover:block text-white">
-                          {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 16 }} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                          {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: { xs: 14, sm: 16 } }} /> : <PlayArrow sx={{ fontSize: { xs: 14, sm: 16 } }} />}
                         </button>
                       </div>
-                      <div className="flex items-center gap-4 overflow-hidden">
+                      <div className="flex items-center gap-2 sm:gap-4 overflow-hidden min-w-0">
                         <img 
                           src={track.album?.images?.[0]?.url || '/vite.svg'} 
                           alt="" 
-                          className="w-10 h-10 rounded shadow-sm"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded shadow-sm flex-shrink-0"
                         />
-                        <div className="min-w-0">
-                          <div className="font-medium text-white truncate group-hover:text-green-400 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-white truncate group-hover:text-green-400 transition-colors text-xs sm:text-sm">
                             {track.name}
                           </div>
-                          <div className="text-sm text-gray-400 truncate">
+                          <div className="text-[10px] sm:text-sm text-gray-400 truncate">
                             {track.artists?.map((a:any) => a.name).join(', ')}
                           </div>
                         </div>
@@ -389,15 +389,15 @@ const Library: React.FC = () => {
                       <div className="hidden md:block text-sm text-gray-400 truncate">
                         {track.album?.name}
                       </div>
-                      <div className="text-sm text-gray-400 font-mono text-right">
+                      <div className="text-[10px] sm:text-sm text-gray-400 font-mono text-right hidden sm:block">
                         {Math.floor(track.duration_ms / 60000)}:
                         {String(Math.floor((track.duration_ms % 60000) / 1000)).padStart(2, '0')}
                       </div>
                       <button
                         onClick={(e) => handleTrackMenuOpen(e, track)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all w-8"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all w-6 sm:w-8"
                       >
-                        <MoreVert sx={{ fontSize: 18 }} />
+                        <MoreVert sx={{ fontSize: { xs: 16, sm: 18 } }} />
                       </button>
                     </div>
                   ))}
@@ -406,14 +406,14 @@ const Library: React.FC = () => {
 
               {/* Albums Tab */}
               {tab === 2 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
                   {albums.map((al, index) => (
                     <Grow in timeout={250 + index * 30} key={al.id}>
                       <div 
-                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        className="group p-2 sm:p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
                         onClick={() => navigate(`/album/${al.id}`)}
                       >
-                        <div className="relative aspect-square mb-3 rounded-md overflow-hidden shadow-md">
+                        <div className="relative aspect-square mb-2 sm:mb-3 rounded-md overflow-hidden shadow-md">
                           <img 
                             src={al.images?.[0]?.url || '/vite.svg'} 
                             alt={al.name}
@@ -445,14 +445,14 @@ const Library: React.FC = () => {
 
               {/* Artists Tab */}
               {tab === 3 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4">
                   {artists.map((artist, index) => (
                     <Grow in timeout={250 + index * 30} key={artist.id}>
                       <div 
-                        className="group p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                        className="group p-2 sm:p-3 rounded-md bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
                         onClick={() => navigate(`/artist/${artist.id}`)}
                       >
-                        <div className="relative aspect-square mb-3 rounded-full overflow-hidden shadow-md">
+                        <div className="relative aspect-square mb-2 sm:mb-3 rounded-full overflow-hidden shadow-md">
                           <img 
                             src={artist.images?.[0]?.url || '/vite.svg'} 
                             alt={artist.name}

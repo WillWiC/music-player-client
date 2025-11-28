@@ -927,14 +927,14 @@ const Category: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 sm:grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3 sm:gap-4 md:gap-6">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2 sm:gap-4 md:gap-6">
                         {artists.slice(artistStart, artistStart + visibleCount).map((artist, index) => (
                             <Grow in timeout={300 + index * 50} key={artist.id}>
                                 <div 
                                     className="group/card flex flex-col items-center cursor-pointer"
                                     onClick={() => handleArtistPlay(artist)}
                                 >
-                                    <div className="relative w-full aspect-square mb-2 sm:mb-4 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
+                                    <div className="relative w-full aspect-square mb-1 sm:mb-3 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
                                         <img 
                                             src={artist.images?.[0]?.url || '/vite.svg'} 
                                             alt={artist.name}
@@ -1000,17 +1000,17 @@ const Category: React.FC = () => {
                               {currentTrack?.id === track.id && isPlaying ? <Pause sx={{ fontSize: 14 }} /> : <PlayArrow sx={{ fontSize: 14 }} />}
                             </button>
                           </div>
-                          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+                          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden min-w-0">
                             <img 
                               src={track.album?.images?.[0]?.url} 
                               alt="" 
-                              className="w-8 h-8 sm:w-12 sm:h-12 rounded shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0"
+                              className="w-10 h-10 sm:w-12 sm:h-12 rounded shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0"
                             />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-sm sm:text-base">
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <div className="font-semibold text-white truncate group-hover:text-green-400 transition-colors text-xs sm:text-sm">
                                 {track.name}
                               </div>
-                              <div className="text-xs sm:text-sm text-gray-400 truncate group-hover:text-gray-300">
+                              <div className="text-[10px] sm:text-xs text-gray-400 truncate group-hover:text-gray-300">
                                 {track.artists.map(a => a.name).join(', ')}
                               </div>
                             </div>
@@ -1054,11 +1054,11 @@ const Category: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 sm:gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
                       {playlists.slice(playlistStart, playlistStart + playlistVisibleCount).map((playlist, index) => (
                         <Grow in timeout={300 + (index % 10) * 50} key={playlist.id}>
                             <div 
-                            className="group p-2 sm:p-4 rounded-xl bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
+                            className="group p-2 sm:p-3 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl relative"
                             onClick={() => handlePlaylistPlay(playlist)}
                             >
                             <div className="relative aspect-square mb-3 sm:mb-4 rounded-lg overflow-hidden shadow-lg">
