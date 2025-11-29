@@ -238,7 +238,7 @@ music-player-client/
 
 ### Development Requirements
 - **Node.js** 18+ and npm
-- **Spotify Account** (Premium required for playback)
+- **Spotify Account** (Premium required)
 - **Spotify Developer App** - Register at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 - **Redirect URI** - Must match your app URL (e.g., `http://localhost:5173`)
 
