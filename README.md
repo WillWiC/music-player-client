@@ -1,6 +1,6 @@
 # 🎵 FlowBeats - Intelligent Music Player
 
-> A modern Spotify-style web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence and personalized recommendations. **Desktop only.**
+> A modern Spotify-powered web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence, personalized recommendations, and a fully responsive design for all devices.
 
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
@@ -15,27 +15,123 @@ This is a university capstone project that utilizes the Spotify API to build an 
 
 ### 🎵 Core Music Experience
 - **OAuth PKCE Authentication** - Secure Spotify login flow with automatic token refresh
-- **Unified Search System** - Header and page search with recent search history
-- **Advanced Search** - Tracks, albums, artists, and playlists with inline play controls
-- **Personalized Dashboard** - Recently played tracks, your playlists, and top tracks
-- **Comprehensive Library** - Playlists, saved tracks, albums, and followed artists
-- **Web Playback SDK** - Full in-browser playback with shuffle, repeat, and progress control
-- **Browse Categories** - Spotify-style rectangular category cards for genre exploration
+- **Full Playback Controls** - Play, pause, skip, previous, shuffle, repeat modes (off/all/one)
+- **Cross-Device Playback** - Transfer playback between devices with device picker
+- **Volume Control** - Adjustable volume with mute toggle
+- **Progress Seeking** - Click or drag to seek within tracks
+- **Queue Management** - View and control upcoming tracks
+
+### 🔍 Search & Discovery
+- **Unified Search System** - Header search bar with instant results
+- **Recent Search History** - Quick access to previous searches
+- **Tabbed Search Results** - Filter by All, Songs, Artists, Albums, or Playlists
+- **Top Result Highlighting** - Featured result with quick play action
+- **Inline Play Controls** - Play any result directly from search
+
+### 📚 Library Management
+- **Playlists Tab** - View all your playlists with cover art
+- **Liked Songs Tab** - Full tracklist with MediaView-style layout
+- **Albums Tab** - Saved albums with artist info
+- **Artists Tab** - Followed artists with follower counts
+- **Context Menus** - Right-click actions for tracks, playlists, albums, and artists
+
+### 🎨 Browse & Categories
+- **Spotify-Style Categories** - Rectangular cards with gradient backgrounds
+- **Category Detail Pages** - Popular artists, songs, and related playlists
+- **Navigation Arrows** - Paginated browsing for large collections
+- **Genre Exploration** - Discover music by genre and mood
 
 ### 🧠 AI-Powered Music Intelligence
-- **Smart Genre Detection** - Pattern matching for 12+ music categories
-- **Personalized Recommendations** - AI-driven playlist suggestions
-- **Music Profile Analysis** - Insights into your listening preferences
-- **Performance Optimized** - Smart caching with sub-100ms load times
+- **Smart Playlist Recommendations** - AI-driven suggestions based on listening habits
+- **Match Score System** - Percentage-based relevance scoring
+- **Music Profile Analysis** - Insights into top genres and discovery rate
+- **Performance Optimized** - Smart caching with fast load times
+
+### 👤 User Profile & Settings
+- **Profile Page** - View your Spotify profile information
+- **Account Details** - Subscription status, country, and account info
+- **Settings Page** - App configuration options
+- **About Page** - Application information and credits
+
+### 📱 Responsive Design
+- **Mobile Optimized** - Full functionality on phones (320px+)
+- **Tablet Support** - Adapted layouts for medium screens
+- **Desktop Experience** - Rich interface for large screens
+- **Adaptive Grids** - Auto-adjusting card layouts per screen size
+- **Touch Friendly** - Mobile-optimized controls and interactions
 
 ### 🎨 Modern UI/UX
 - **Dark Theme** - Spotify-inspired design with glassmorphism effects
-- **Desktop Optimized** - Designed for desktop browsers (1024px+)
-- **Collapsible Sidebar** - Smooth transitions with responsive layout
-- **Smooth Animations** - Fade, grow, and hover effects throughout
-- **Hidden Scrollbars** - Clean aesthetic with maintained scroll functionality
-- **Paginated Sections** - Navigation arrows for playlists and tracks
-- **Grid Layouts** - 6-card grids on Dashboard, 4-column Browse categories
+- **Smooth Animations** - Fade, grow, scale, and hover transitions
+- **Collapsible Sidebar** - Navigation with Your Library section
+- **Hidden Scrollbars** - Clean aesthetic with scroll functionality
+- **Active Track Highlighting** - Visual indicators for currently playing
+- **Hover States** - Interactive feedback throughout the app
+- **Toast Notifications** - User feedback for actions and errors
+
+### 🎛️ Player Features
+- **Persistent Player Bar** - Always-visible controls at bottom
+- **Mobile Player** - Compact layout with essential controls
+- **Desktop Player** - Full-featured with volume and progress
+- **Now Playing Info** - Album art, track name, and artist
+- **Remote Playback Indicator** - Shows when playing on external device
+- **Track Context Menu** - Quick actions from player
+
+---
+
+## 📱 Page Features
+
+### Dashboard
+- Time-based personalized greeting
+- Quick action buttons (Playlists, Recent, Top Tracks, Browse)
+- Your Playlists section with pagination
+- Recently Played grid with navigation
+- Top Tracks list
+- AI-powered playlist recommendations widget
+
+### Search
+- Real-time search with debouncing
+- Tab-based result filtering
+- Infinite scroll for results
+- Track, album, artist, and playlist results
+- Quick play actions on hover
+
+### Browse
+- Category grid with Spotify-style cards
+- Hover animations and gradients
+- Click to explore category content
+
+### Category
+- Popular Artists carousel (single row, paginated)
+- Popular Songs list (MediaView-style tracklist)
+- Related Playlists grid (paginated)
+- Play any artist, track, or playlist
+
+### Library
+- Tab navigation (Playlists, Liked, Albums, Artists)
+- Responsive card grids
+- Full tracklist for liked songs
+- Clickable artist names navigate to artist page
+- Album names link to album page
+
+### Artist
+- Artist header with image and stats
+- Top tracks list
+- Albums and singles
+- Related artists
+
+### MediaView (Album/Playlist)
+- Large cover art with play button
+- Track list with sorting options
+- Duration and date added columns
+- Shuffle and repeat controls
+- Playlist/album context menu
+
+### Recommendations
+- Full music profile analysis
+- Top genres breakdown
+- Discovery rate statistics
+- Curated playlist suggestions
 
 ---
 
@@ -45,10 +141,11 @@ This is a university capstone project that utilizes the Spotify API to build an 
 music-player-client/
 ├── src/
 │   ├── components/          # Reusable UI components
-│   │   ├── Header.tsx       # Navigation header with search & back button
-│   │   ├── Sidebar.tsx      # Navigation sidebar (collapsible)
-│   │   ├── Player.tsx       # Music player controls
+│   │   ├── Header.tsx       # Navigation header with search
+│   │   ├── Sidebar.tsx      # Collapsible sidebar with library
+│   │   ├── Player.tsx       # Music player (mobile + desktop)
 │   │   ├── MediaView.tsx    # Album/Playlist detail view
+│   │   ├── NavigationButton.tsx  # Pagination arrows
 │   │   ├── TrackMenu.tsx    # Track context menu
 │   │   ├── PlaylistMenu.tsx # Playlist context menu
 │   │   ├── AlbumMenu.tsx    # Album context menu
@@ -57,22 +154,22 @@ music-player-client/
 │   │   └── PlaylistRecommendations.tsx  # AI recommendations widget
 │   │
 │   ├── pages/               # Route pages
-│   │   ├── Dashboard.tsx    # Main landing page with 6-card grids
-│   │   ├── Search.tsx       # Search results with tab filtering
-│   │   ├── Browse.tsx       # Spotify-style category cards
-│   │   ├── Category.tsx     # Category detail with pagination
+│   │   ├── Dashboard.tsx    # Main landing with grids
+│   │   ├── Search.tsx       # Search results with tabs
+│   │   ├── Browse.tsx       # Category cards grid
+│   │   ├── Category.tsx     # Category detail page
 │   │   ├── Library.tsx      # User's music library
 │   │   ├── Recommendations.tsx  # Full recommendations page
 │   │   ├── Artist.tsx       # Artist detail page
 │   │   ├── Profile.tsx      # User profile page
-│   │   ├── Account.tsx      # User account settings
+│   │   ├── Account.tsx      # Account settings
 │   │   ├── Settings.tsx     # App settings
 │   │   ├── About.tsx        # About page
 │   │   └── Login.tsx        # Authentication page
 │   │
 │   ├── context/             # React Context providers
 │   │   ├── auth.tsx         # Authentication state & token refresh
-│   │   ├── player.tsx       # Music player state
+│   │   ├── player.tsx       # Music player state & controls
 │   │   ├── playlists.tsx    # Playlist management
 │   │   ├── search.tsx       # Search state & history
 │   │   └── toast.tsx        # Notification system
@@ -80,7 +177,7 @@ music-player-client/
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useMusicIntelligence.ts  # AI recommendations hook
 │   │   ├── useLocalAnalysis.ts      # Local music analysis
-│   │   └── useSpotifyApi.ts         # API request hook with auto-refresh
+│   │   └── useSpotifyApi.ts         # API requests with auto-refresh
 │   │
 │   ├── services/            # Business logic & API services
 │   │   ├── musicIntelligenceService.ts  # AI recommendation engine
@@ -122,18 +219,21 @@ music-player-client/
 | Category | Technologies |
 |----------|-------------|
 | **Frontend** | React 19, TypeScript 5.6, Vite 6 |
-| **UI Framework** | Material-UI (MUI) v7, Tailwind CSS |
+| **UI Framework** | Material-UI (MUI) v7, Tailwind CSS 3.4 |
 | **State Management** | React Context, Redux Toolkit |
 | **Routing** | React Router v7 |
 | **API Integration** | Spotify Web API, Web Playback SDK |
 | **Authentication** | OAuth 2.0 PKCE Flow |
+| **Deployment** | Vercel (with SPA routing support) |
 
 ---
 
 ## 📋 Requirements
 
 ### Device Requirements
-- **Desktop Only** - Minimum screen width of 1024px
+- **Mobile** - 320px minimum width (iOS Safari, Chrome Mobile)
+- **Tablet** - Full functionality on 600px+ screens
+- **Desktop** - Optimized experience on 1024px+ screens
 - **Modern Browser** - Chrome, Firefox, Safari, or Edge (latest versions)
 
 ### Development Requirements
@@ -175,28 +275,57 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 
 ---
 
+## 🚀 Deployment
+
+### Vercel Deployment
+The project includes `vercel.json` for proper SPA routing:
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard:
+   - `VITE_SPOTIFY_CLIENT_ID`
+   - `VITE_SPOTIFY_REDIRECT_URI` (your Vercel URL)
+   - `VITE_AUTH_SERVER_URL`
+3. Add the Vercel URL to your Spotify app's redirect URIs
+4. Deploy!
+
+---
+
 ## 📸 Screenshots
 
 ### Dashboard
 - Personalized greeting with time-based messages
-- Your Playlists section with navigation arrows (6 cards)
-- Recently Played Tracks grid (6 cards)
+- Quick action buttons (Playlists, Recent, Top, Browse)
+- Your Playlists section with navigation arrows
+- Recently Played Tracks grid (responsive)
 - Top 10 Tracks list
+- AI-powered playlist recommendations
 
 ### Browse
-- Spotify-style rectangular category cards (aspect 2:1)
-- 4-column grid layout with hover effects
+- Spotify-style rectangular category cards
+- Responsive grid layout with hover effects
 - Category icons with rotation animation
 
 ### Category
-- Popular Artists carousel with navigation arrows
-- Popular Songs list with album art
+- Popular Artists carousel (single row, paginated)
+- Popular Songs list (MediaView-style tracklist)
 - Related Playlists with pagination controls
+
+### Library
+- Tab navigation (Playlists, Liked, Albums, Artists)
+- Responsive card grids
+- Full tracklist for liked songs
+- Clickable artist names
 
 ### Search
 - Tab-based filtering (All, Songs, Artists, Albums, Playlists)
 - Top result highlighting
 - Inline play controls
+- Recent search history
+
+### Player
+- Mobile: Compact layout with essential controls
+- Desktop: Full controls with volume and progress
+- Device picker for cross-device playback
 
 ---
 
@@ -216,6 +345,8 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 | `playlist-read-collaborative` | Read collaborative playlists |
 | `playlist-modify-public` | Modify public playlists |
 | `playlist-modify-private` | Modify private playlists |
+| `user-read-playback-state` | Read playback state |
+| `user-modify-playback-state` | Control playback |
 
 ---
 
@@ -228,6 +359,19 @@ Navigate to `http://localhost:5173` and click "Continue with Spotify"
 | **Auth errors** | Check redirect URI matches Spotify Dashboard |
 | **No recommendations** | Need 20+ tracks in listening history |
 | **Player controls missing** | Ensure Web Playback SDK is loaded |
+| **404 on refresh (Vercel)** | Ensure `vercel.json` is present with rewrites |
+| **Mobile controls not showing** | Check viewport meta tag is set correctly |
+
+---
+
+## 🎯 Responsive Breakpoints
+
+| Breakpoint | Width | Description |
+|------------|-------|-------------|
+| **xs** | < 600px | Mobile phones |
+| **sm** | 600-900px | Large phones, small tablets |
+| **md** | 900-1200px | Tablets, small laptops |
+| **lg** | 1200px+ | Desktops and larger screens |
 
 ---
 
