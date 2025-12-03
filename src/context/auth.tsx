@@ -276,12 +276,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'user-read-currently-playing',
       'user-read-recently-played',
       'user-top-read',
-      // needed to read user's saved tracks and albums
+      // needed to read/modify user's saved tracks and albums
       'user-library-read',
-      // needed to read followed artists
+      'user-library-modify',
+      // needed to read/modify followed artists
       'user-follow-read',
+      'user-follow-modify',
+      // needed to read/modify playlists
       'playlist-read-private',
       'playlist-read-collaborative',
+      'playlist-modify-public',
+      'playlist-modify-private',
       'streaming'
     ].join(' ');
 
