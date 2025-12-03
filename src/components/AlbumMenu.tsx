@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
+import { useLibrary } from '../context/library';
 import type { Album } from '../types/spotify';
 import {
   checkSavedAlbums,
@@ -49,6 +50,7 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
 }) => {
   const { token } = useAuth();
   const toast = useToast();
+  const { addAlbumOptimistic, removeAlbumOptimistic, refreshAlbums } = useLibrary();
   
   const [isSaved, setIsSaved] = React.useState(false);
   const [isCheckingSaved, setIsCheckingSaved] = React.useState(false);
@@ -82,8 +84,12 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
         const success = await removeAlbum(token, album.id);
         if (success) {
           setIsSaved(false);
+          // Optimistically update library cache
+          removeAlbumOptimistic(album.id);
           toast.showToast(`Removed "${album.name}" from Your Library`, 'success');
           onAlbumSaveChanged?.(false);
+          // Refresh from API to ensure sync
+          refreshAlbums();
         } else {
           toast.showToast('Failed to remove from library', 'error');
         }
@@ -91,8 +97,12 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
         const success = await saveAlbum(token, album.id);
         if (success) {
           setIsSaved(true);
+          // Optimistically update library cache
+          addAlbumOptimistic(album);
           toast.showToast(`Added "${album.name}" to Your Library`, 'success');
           onAlbumSaveChanged?.(true);
+          // Refresh from API to ensure sync
+          refreshAlbums();
         } else {
           toast.showToast('Failed to add to library', 'error');
         }

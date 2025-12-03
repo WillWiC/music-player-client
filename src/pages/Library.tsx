@@ -9,6 +9,7 @@ import ArtistMenu from '../components/ArtistMenu';
 import { formatCount } from '../utils/numberFormat';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
+import { useLibrary } from '../context/library';
 import {
   Fade,
   Grow,
@@ -23,6 +24,16 @@ const Library: React.FC = () => {
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Use centralized library context for cached data and sync
+  const { 
+    playlists, 
+    tracks, 
+    albums, 
+    artists, 
+    isLoading: loading,
+    refreshAll 
+  } = useLibrary();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [tab, setTab] = React.useState(0);
@@ -64,13 +75,6 @@ const Library: React.FC = () => {
     const id = setTimeout(() => setTabHighlight(false), 700);
     return () => clearTimeout(id);
   }, [tabHighlight]);
-
-  const [playlists, setPlaylists] = React.useState<any[]>([]);
-  const [albums, setAlbums] = React.useState<any[]>([]);
-  const [tracks, setTracks] = React.useState<any[]>([]);
-  const [artists, setArtists] = React.useState<any[]>([]);
-
-  const [loading, setLoading] = React.useState(true);
 
   // Track menu state
   const [trackMenuAnchor, setTrackMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -131,65 +135,9 @@ const Library: React.FC = () => {
     setArtistMenuAnchor(null);
     setSelectedArtist(null);
   };
-  React.useEffect(() => {
-    // If no token, show guest prompt and skip loading library data
-    if (!token) {
-      console.log('Library loaded without token - guest mode');
-      setLoading(false);
-      return;
-    }
 
-    /**
-     * Fetches all items from a paginated Spotify endpoint
-     * @param url - Initial API endpoint URL
-     * @param dataKey - Key to extract items from response (e.g., 'items', 'artists')
-     * @returns Array of all items across all pages
-     */
-    const fetchAllPages = async (url: string, dataKey: string = 'items'): Promise<any[]> => {
-      const allItems: any[] = [];
-      let nextUrl: string | null = url;
-
-      while (nextUrl) {
-        const res: Response = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) break;
-        
-        const data: any = await res.json();
-        const items = dataKey === 'artists' ? data.artists?.items : data.items;
-        if (items) allItems.push(...items);
-        
-        nextUrl = data.next || (dataKey === 'artists' ? data.artists?.next : null);
-      }
-
-      return allItems;
-    };
-
-    const loadAll = async () => {
-      setLoading(true);
-      try {
-        // Load ALL data with pagination for complete library
-        const [playlistItems, albumItems, trackItems, artistItems] = await Promise.all([
-          fetchAllPages('https://api.spotify.com/v1/me/playlists?limit=50'),
-          fetchAllPages('https://api.spotify.com/v1/me/albums?limit=50'),
-          fetchAllPages('https://api.spotify.com/v1/me/tracks?limit=50'),
-          fetchAllPages('https://api.spotify.com/v1/me/following?type=artist&limit=50', 'artists')
-        ]);
-
-        // Update all state at once
-        setPlaylists(playlistItems);
-        setAlbums(albumItems.map((i: any) => i.album));
-        setTracks(trackItems.map((i: any) => i.track));
-        setArtists(artistItems);
-        
-        console.log(`Loaded library: ${playlistItems.length} playlists, ${albumItems.length} albums, ${trackItems.length} tracks, ${artistItems.length} artists`);
-      } catch (err) {
-        console.error('Failed to load library:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAll();
-  }, [token, navigate]);
+  // Refresh library data when navigating to this page (handled by LibraryContext)
+  // The LibraryContext already manages caching and auto-refresh
 
   const toast = useToast();
 

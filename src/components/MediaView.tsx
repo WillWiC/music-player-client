@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../context/player';
 import { useAuth } from '../context/auth';
+import { useLibrary } from '../context/library';
 import TrackMenu from './TrackMenu';
 import PlaylistMenu from './PlaylistMenu';
 import { 
@@ -35,6 +36,7 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
   const navigate = useNavigate();
   const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying, toggleShuffle, isShuffled, repeatMode, setRepeat } = usePlayer();
+  const { refreshPlaylists, removePlaylistOptimistic } = useLibrary();
   const [mediaData, setMediaData] = useState<AlbumType | PlaylistType | null>(null);
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,9 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
       
       if (response.ok || response.status === 200) {
         toast.showToast(`Deleted "${mediaData.name}"`, 'success');
+        // Optimistically update library cache and sync
+        removePlaylistOptimistic(id);
+        refreshPlaylists();
         onBack(); // Go back after deletion
       } else {
         toast.showToast('Failed to delete playlist', 'error');

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { usePlaylists } from '../context/playlists';
+import { useLibrary } from '../context/library';
 import {
   Drawer,
   Box,
@@ -50,42 +51,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   
   // Use global playlists context instead of local state
   const { playlists, isLoadingPlaylists } = usePlaylists();
-  const [albums, setAlbums] = useState<any[]>([]);
   
-  // Fetch albums
-  useEffect(() => {
-    if (!token || isGuest) {
-      setAlbums([]);
-      return;
-    }
-
-    const fetchAlbums = async () => {
-      try {
-        let allAlbums: any[] = [];
-        let nextUrl = 'https://api.spotify.com/v1/me/albums?limit=50';
-        
-        while (nextUrl) {
-          const res = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
-          if (!res.ok) break;
-          const data = await res.json();
-          const items = data.items.map((item: any) => ({ ...item.album, type: 'album' }));
-          allAlbums = [...allAlbums, ...items];
-          nextUrl = data.next;
-        }
-        setAlbums(allAlbums);
-      } catch (e) {
-        console.error('Failed to fetch albums', e);
-      }
-    };
-    
-    fetchAlbums();
-  }, [token, isGuest]);
+  // Use global library context for albums (synced with Library page)
+  const { albums: libraryAlbums, isLoadingAlbums } = useLibrary();
   
   // Local UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
-  // Combine and filter items
+  // Combine and filter items - use albums from library context
+  const albums = libraryAlbums.map(a => ({ ...a, type: 'album' }));
   const libraryItems = [
     ...playlists.map(p => ({ ...p, type: 'playlist' })),
     ...albums

@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
+import { useLibrary } from '../context/library';
 import type { Artist } from '../types/spotify';
 import {
   checkFollowingArtists,
@@ -49,6 +50,7 @@ const ArtistMenu: React.FC<ArtistMenuProps> = ({
 }) => {
   const { token } = useAuth();
   const toast = useToast();
+  const { addArtistOptimistic, removeArtistOptimistic, refreshArtists } = useLibrary();
   
   const [isFollowing, setIsFollowing] = React.useState(false);
   const [isCheckingFollow, setIsCheckingFollow] = React.useState(false);
@@ -82,8 +84,12 @@ const ArtistMenu: React.FC<ArtistMenuProps> = ({
         const success = await unfollowArtist(token, artist.id);
         if (success) {
           setIsFollowing(false);
+          // Optimistically update library cache
+          removeArtistOptimistic(artist.id);
           toast.showToast(`Unfollowed "${artist.name}"`, 'success');
           onArtistFollowChanged?.(false);
+          // Refresh from API to ensure sync
+          refreshArtists();
         } else {
           toast.showToast('Failed to unfollow artist', 'error');
         }
@@ -91,8 +97,12 @@ const ArtistMenu: React.FC<ArtistMenuProps> = ({
         const success = await followArtist(token, artist.id);
         if (success) {
           setIsFollowing(true);
+          // Optimistically update library cache
+          addArtistOptimistic(artist);
           toast.showToast(`Following "${artist.name}"`, 'success');
           onArtistFollowChanged?.(true);
+          // Refresh from API to ensure sync
+          refreshArtists();
         } else {
           toast.showToast('Failed to follow artist', 'error');
         }

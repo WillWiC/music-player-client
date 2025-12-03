@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
+import { useLibrary } from '../context/library';
 import type { Track, Playlist } from '../types/spotify';
 import {
   checkSavedTracks,
@@ -61,6 +62,7 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
 }) => {
   const { token, user } = useAuth();
   const toast = useToast();
+  const { addTrackOptimistic, removeTrackOptimistic, refreshTracks, refreshPlaylists } = useLibrary();
   
   const [isLiked, setIsLiked] = React.useState(false);
   const [isCheckingLiked, setIsCheckingLiked] = React.useState(false);
@@ -124,7 +126,11 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         const success = await removeTrack(token, track.id);
         if (success) {
           setIsLiked(false);
+          // Optimistically update library cache and sync
+          removeTrackOptimistic(track.id);
           toast.showToast(`Removed "${track.name}" from Liked Songs`, 'success');
+          // Refresh from API to ensure sync
+          refreshTracks();
         } else {
           toast.showToast('Failed to remove from Liked Songs', 'error');
         }
@@ -132,7 +138,11 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         const success = await saveTrack(token, track.id);
         if (success) {
           setIsLiked(true);
+          // Optimistically update library cache and sync
+          addTrackOptimistic(track);
           toast.showToast(`Added "${track.name}" to Liked Songs`, 'success');
+          // Refresh from API to ensure sync
+          refreshTracks();
         } else {
           toast.showToast('Failed to add to Liked Songs', 'error');
         }
@@ -154,6 +164,8 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
       const success = await addTrackToPlaylist(token, playlistId, track.uri);
       if (success) {
         toast.showToast(`Added "${track.name}" to ${playlistName}`, 'success');
+        // Refresh playlists to sync track counts
+        refreshPlaylists();
       } else {
         toast.showToast('Failed to add to playlist', 'error');
       }
@@ -175,6 +187,8 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
       const success = await removeTrackFromPlaylist(token, currentPlaylistId, track.uri);
       if (success) {
         toast.showToast(`Removed "${track.name}" from playlist`, 'success');
+        // Refresh playlists to sync track counts
+        refreshPlaylists();
         onTrackRemoved?.();
       } else {
         toast.showToast('Failed to remove from playlist', 'error');
@@ -227,12 +241,16 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         
         if (success) {
           toast.showToast(`Created "${newPlaylist.name}" and added "${track.name}"`, 'success');
-          // Refresh playlists list
+          // Refresh playlists list locally and in global cache
           const playlists = await getUserPlaylists(token);
           const ownPlaylists = playlists.filter((p: any) => p.owner?.id === user.id);
           setUserPlaylists(ownPlaylists);
+          // Sync global library cache
+          refreshPlaylists();
         } else {
           toast.showToast(`Created "${newPlaylist.name}" but failed to add track`, 'warning');
+          // Still refresh playlists since one was created
+          refreshPlaylists();
         }
       } else {
         toast.showToast('Failed to create playlist', 'error');

@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/auth';
 import { useToast } from '../context/toast';
+import { useLibrary } from '../context/library';
 import type { Playlist } from '../types/spotify';
 import {
   checkFollowingPlaylists,
@@ -64,6 +65,7 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
 }) => {
   const { token, user } = useAuth();
   const toast = useToast();
+  const { addPlaylistOptimistic, removePlaylistOptimistic, refreshPlaylists } = useLibrary();
   
   const [isFollowing, setIsFollowing] = React.useState(false);
   const [isCheckingFollow, setIsCheckingFollow] = React.useState(false);
@@ -115,8 +117,12 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
         const success = await unfollowPlaylist(token, playlist.id);
         if (success) {
           setIsFollowing(false);
+          // Optimistically update library cache
+          removePlaylistOptimistic(playlist.id);
           toast.showToast(`Removed "${playlist.name}" from Your Library`, 'success');
           onPlaylistFollowChanged?.(false);
+          // Refresh from API to ensure sync
+          refreshPlaylists();
         } else {
           toast.showToast('Failed to remove from library', 'error');
         }
@@ -124,8 +130,12 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
         const success = await followPlaylist(token, playlist.id);
         if (success) {
           setIsFollowing(true);
+          // Optimistically update library cache
+          addPlaylistOptimistic(playlist);
           toast.showToast(`Added "${playlist.name}" to Your Library`, 'success');
           onPlaylistFollowChanged?.(true);
+          // Refresh from API to ensure sync
+          refreshPlaylists();
         } else {
           toast.showToast('Failed to add to library', 'error');
         }
@@ -229,6 +239,8 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
         } else {
           toast.showToast(`Created "${newPlaylist.name}" but couldn't copy tracks`, 'warning');
         }
+        // Sync global library cache
+        refreshPlaylists();
       } else {
         toast.showToast('Failed to create playlist', 'error');
       }
