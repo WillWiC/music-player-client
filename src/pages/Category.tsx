@@ -753,8 +753,8 @@ const Category: React.FC = () => {
     }
   };
 
-  // Handle artist play (play their top track)
-  const handleArtistPlay = async (artist: Artist) => {
+  // Handle artist play (play their top track) - kept for potential future use
+  const _handleArtistPlay = async (artist: Artist) => {
     try {
       const url = buildSpotifyUrl(`artists/${artist.id}/top-tracks`, { market: 'US' });
       const { data, error } = await makeRequest(url);

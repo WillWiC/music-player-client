@@ -7,7 +7,6 @@ import PlaylistMenu from '../components/PlaylistMenu';
 import AlbumMenu from '../components/AlbumMenu';
 import ArtistMenu from '../components/ArtistMenu';
 import { formatCount } from '../utils/numberFormat';
-import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useLibrary } from '../context/library';
 import {
@@ -20,7 +19,6 @@ import { useToast } from '../context/toast';
 import type { Track, Playlist, Album, Artist } from '../types/spotify';
 
 const Library: React.FC = () => {
-  const { token } = useAuth();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,8 +29,7 @@ const Library: React.FC = () => {
     tracks, 
     albums, 
     artists, 
-    isLoading: loading,
-    refreshAll 
+    isLoading: loading
   } = useLibrary();
 
   const [sidebarOpen, setSidebarOpen] = React.useState(false);

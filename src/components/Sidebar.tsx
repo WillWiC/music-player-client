@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { useLibrary } from '../context/library';
@@ -46,14 +46,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const theme = useTheme();
   // Use xl breakpoint (1280px) for permanent sidebar - below that it's temporary/overlay
   const isMobile = useMediaQuery(theme.breakpoints.down('xl'));
-  const { isGuest, token } = useAuth();
+  const { isGuest } = useAuth();
   
   // Use global library context for all data (synced across app)
   const { 
     playlists, 
     albums: libraryAlbums, 
-    isLoadingPlaylists, 
-    isLoadingAlbums 
+    isLoadingPlaylists 
   } = useLibrary();
   
   // Local UI state
