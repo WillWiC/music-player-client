@@ -77,6 +77,12 @@ const STORAGE_KEYS = {
 // Cache expiry time (5 minutes)
 const CACHE_EXPIRY_MS = 5 * 60 * 1000;
 
+// Background sync interval (2 minutes) - to catch updates from other clients
+const BACKGROUND_SYNC_INTERVAL_MS = 2 * 60 * 1000;
+
+// Minimum time before refreshing on visibility change (30 seconds)
+const VISIBILITY_REFRESH_THRESHOLD_MS = 30 * 1000;
+
 export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, isGuest } = useAuth();
   
@@ -138,6 +144,24 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
+  // Utility to detect if two arrays have different items (by ID)
+  const hasChanges = useCallback((currentItems: any[], newItems: any[]): boolean => {
+    // Quick length check
+    if (currentItems.length !== newItems.length) return true;
+    
+    // Create sets of IDs for comparison
+    const currentIds = new Set(currentItems.map(item => item.id));
+    const newIds = new Set(newItems.map(item => item.id));
+    
+    // Check if all IDs match
+    if (currentIds.size !== newIds.size) return true;
+    for (const id of currentIds) {
+      if (!newIds.has(id)) return true;
+    }
+    
+    return false;
+  }, []);
+
   // Helper to fetch all pages from a paginated Spotify endpoint
   const fetchAllPages = useCallback(async (url: string, dataKey: string = 'items'): Promise<any[]> => {
     if (!token) return [];
@@ -177,11 +201,19 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setIsLoadingPlaylists(true);
     try {
-      console.log('Refreshing playlists from Spotify API...');
+      console.log('Checking playlists from Spotify API...');
       const playlistItems = await fetchAllPages('https://api.spotify.com/v1/me/playlists?limit=50');
       
-      setPlaylists(playlistItems);
-      saveToLocalStorage(STORAGE_KEYS.playlists, playlistItems);
+      // Only update if changes detected
+      setPlaylists(prev => {
+        if (!hasChanges(prev, playlistItems)) {
+          console.log('No playlist changes detected, skipping UI update');
+          return prev;
+        }
+        console.log(`Playlist changes detected, updating UI (${playlistItems.length} playlists)`);
+        saveToLocalStorage(STORAGE_KEYS.playlists, playlistItems);
+        return playlistItems;
+      });
       
       const newTimestamp = Date.now();
       setLastUpdated(prev => {
@@ -189,14 +221,12 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveToLocalStorage(STORAGE_KEYS.timestamps, updated);
         return updated;
       });
-      
-      console.log(`Refreshed ${playlistItems.length} playlists`);
     } catch (error) {
       console.error('Error refreshing playlists:', error);
     } finally {
       setIsLoadingPlaylists(false);
     }
-  }, [token, isGuest, fetchAllPages, saveToLocalStorage]);
+  }, [token, isGuest, fetchAllPages, saveToLocalStorage, hasChanges]);
 
   // Refresh tracks (liked songs)
   const refreshTracks = useCallback(async () => {
@@ -208,12 +238,20 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setIsLoadingTracks(true);
     try {
-      console.log('Refreshing liked tracks from Spotify API...');
+      console.log('Checking liked tracks from Spotify API...');
       const trackItems = await fetchAllPages('https://api.spotify.com/v1/me/tracks?limit=50');
       const extractedTracks = trackItems.map((i: any) => i.track);
       
-      setTracks(extractedTracks);
-      saveToLocalStorage(STORAGE_KEYS.tracks, extractedTracks);
+      // Only update if changes detected
+      setTracks(prev => {
+        if (!hasChanges(prev, extractedTracks)) {
+          console.log('No track changes detected, skipping UI update');
+          return prev;
+        }
+        console.log(`Track changes detected, updating UI (${extractedTracks.length} tracks)`);
+        saveToLocalStorage(STORAGE_KEYS.tracks, extractedTracks);
+        return extractedTracks;
+      });
       
       const newTimestamp = Date.now();
       setLastUpdated(prev => {
@@ -221,14 +259,12 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveToLocalStorage(STORAGE_KEYS.timestamps, updated);
         return updated;
       });
-      
-      console.log(`Refreshed ${extractedTracks.length} liked tracks`);
     } catch (error) {
       console.error('Error refreshing tracks:', error);
     } finally {
       setIsLoadingTracks(false);
     }
-  }, [token, isGuest, fetchAllPages, saveToLocalStorage]);
+  }, [token, isGuest, fetchAllPages, saveToLocalStorage, hasChanges]);
 
   // Refresh albums
   const refreshAlbums = useCallback(async () => {
@@ -240,12 +276,20 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setIsLoadingAlbums(true);
     try {
-      console.log('Refreshing albums from Spotify API...');
+      console.log('Checking albums from Spotify API...');
       const albumItems = await fetchAllPages('https://api.spotify.com/v1/me/albums?limit=50');
       const extractedAlbums = albumItems.map((i: any) => i.album);
       
-      setAlbums(extractedAlbums);
-      saveToLocalStorage(STORAGE_KEYS.albums, extractedAlbums);
+      // Only update if changes detected
+      setAlbums(prev => {
+        if (!hasChanges(prev, extractedAlbums)) {
+          console.log('No album changes detected, skipping UI update');
+          return prev;
+        }
+        console.log(`Album changes detected, updating UI (${extractedAlbums.length} albums)`);
+        saveToLocalStorage(STORAGE_KEYS.albums, extractedAlbums);
+        return extractedAlbums;
+      });
       
       const newTimestamp = Date.now();
       setLastUpdated(prev => {
@@ -253,14 +297,12 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveToLocalStorage(STORAGE_KEYS.timestamps, updated);
         return updated;
       });
-      
-      console.log(`Refreshed ${extractedAlbums.length} albums`);
     } catch (error) {
       console.error('Error refreshing albums:', error);
     } finally {
       setIsLoadingAlbums(false);
     }
-  }, [token, isGuest, fetchAllPages, saveToLocalStorage]);
+  }, [token, isGuest, fetchAllPages, saveToLocalStorage, hasChanges]);
 
   // Refresh artists
   const refreshArtists = useCallback(async () => {
@@ -272,14 +314,22 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setIsLoadingArtists(true);
     try {
-      console.log('Refreshing followed artists from Spotify API...');
+      console.log('Checking followed artists from Spotify API...');
       const artistItems = await fetchAllPages(
         'https://api.spotify.com/v1/me/following?type=artist&limit=50',
         'artists'
       );
       
-      setArtists(artistItems);
-      saveToLocalStorage(STORAGE_KEYS.artists, artistItems);
+      // Only update if changes detected
+      setArtists(prev => {
+        if (!hasChanges(prev, artistItems)) {
+          console.log('No artist changes detected, skipping UI update');
+          return prev;
+        }
+        console.log(`Artist changes detected, updating UI (${artistItems.length} artists)`);
+        saveToLocalStorage(STORAGE_KEYS.artists, artistItems);
+        return artistItems;
+      });
       
       const newTimestamp = Date.now();
       setLastUpdated(prev => {
@@ -287,14 +337,12 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveToLocalStorage(STORAGE_KEYS.timestamps, updated);
         return updated;
       });
-      
-      console.log(`Refreshed ${artistItems.length} artists`);
     } catch (error) {
       console.error('Error refreshing artists:', error);
     } finally {
       setIsLoadingArtists(false);
     }
-  }, [token, isGuest, fetchAllPages, saveToLocalStorage]);
+  }, [token, isGuest, fetchAllPages, saveToLocalStorage, hasChanges]);
 
   // Refresh all library data
   const refreshAll = useCallback(async () => {
@@ -431,6 +479,67 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(STORAGE_KEYS.timestamps);
     }
   }, [isGuest, token]);
+
+  // Background periodic sync - catches updates from other clients (Spotify app, web, etc.)
+  useEffect(() => {
+    if (isGuest || !token || token === 'GUEST') return;
+
+    const intervalId = setInterval(() => {
+      console.log('Background sync: refreshing library data...');
+      refreshAll();
+    }, BACKGROUND_SYNC_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [token, isGuest, refreshAll]);
+
+  // Visibility change handler - refresh when user returns to the tab
+  useEffect(() => {
+    if (isGuest || !token || token === 'GUEST') return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Check if enough time has passed since last update
+        const now = Date.now();
+        const oldestUpdate = Math.min(
+          lastUpdated.playlists || 0,
+          lastUpdated.tracks || 0,
+          lastUpdated.albums || 0,
+          lastUpdated.artists || 0
+        );
+        
+        if (now - oldestUpdate > VISIBILITY_REFRESH_THRESHOLD_MS) {
+          console.log('Tab became visible, refreshing library data...');
+          refreshAll();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [token, isGuest, refreshAll, lastUpdated]);
+
+  // Window focus handler - refresh when window regains focus (for multi-window scenarios)
+  useEffect(() => {
+    if (isGuest || !token || token === 'GUEST') return;
+
+    const handleFocus = () => {
+      const now = Date.now();
+      const oldestUpdate = Math.min(
+        lastUpdated.playlists || 0,
+        lastUpdated.tracks || 0,
+        lastUpdated.albums || 0,
+        lastUpdated.artists || 0
+      );
+      
+      if (now - oldestUpdate > VISIBILITY_REFRESH_THRESHOLD_MS) {
+        console.log('Window focused, refreshing library data...');
+        refreshAll();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [token, isGuest, refreshAll, lastUpdated]);
 
   const isLoading = isLoadingPlaylists || isLoadingTracks || isLoadingAlbums || isLoadingArtists;
 

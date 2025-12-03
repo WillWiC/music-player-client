@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth';
 import { usePlayer } from '../context/player';
 import { useToast } from '../context/toast';
+import { useLibrary } from '../context/library';
 import { useSpotifyApi, buildSpotifyUrl } from '../hooks/useSpotifyApi';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -24,6 +25,7 @@ const Artist: React.FC = () => {
   const { makeRequest } = useSpotifyApi();
   const { play, pause, currentTrack, isPlaying } = usePlayer();
   const toast = useToast();
+  const { addArtistOptimistic, removeArtistOptimistic, refreshArtists } = useLibrary();
   
   // State
   const [artist, setArtist] = React.useState<ArtistType | null>(null);
@@ -166,7 +168,7 @@ const Artist: React.FC = () => {
 
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
-    if (!id || loadingFollow) return;
+    if (!id || loadingFollow || !artist) return;
     
     setLoadingFollow(true);
     try {
@@ -180,10 +182,21 @@ const Artist: React.FC = () => {
       
       if (!error) {
         setIsFollowing(!isFollowing);
+        
+        // Optimistically update library cache
+        if (isFollowing) {
+          removeArtistOptimistic(id);
+        } else {
+          addArtistOptimistic(artist);
+        }
+        
         toast.showToast(
           isFollowing ? 'Unfollowed artist' : 'Following artist', 
           'success'
         );
+        
+        // Delay refresh to allow Spotify API to propagate the change
+        setTimeout(() => refreshArtists(), 1500);
       } else {
         throw new Error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} artist`);
       }

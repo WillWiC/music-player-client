@@ -5,6 +5,7 @@ import { useAuth } from '../context/auth';
 import { useLibrary } from '../context/library';
 import TrackMenu from './TrackMenu';
 import PlaylistMenu from './PlaylistMenu';
+import AlbumMenu from './AlbumMenu';
 import { 
   Typography, 
   Tooltip
@@ -645,6 +646,17 @@ const MediaView: React.FC<MediaViewProps> = ({ id, type, onBack, onTrackPlay }) 
           onPlay={playAllTracks}
           onEdit={handleEditPlaylist}
           onDelete={handleDeletePlaylist}
+        />
+      )}
+
+      {/* Album Menu for action bar 3-dot button */}
+      {type === 'album' && mediaData && (
+        <AlbumMenu
+          anchorEl={mediaMenuAnchor}
+          open={Boolean(mediaMenuAnchor)}
+          onClose={handleMediaMenuClose}
+          album={mediaData as AlbumType}
+          onPlay={playAllTracks}
         />
       )}
 

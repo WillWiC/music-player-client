@@ -442,7 +442,7 @@ const Library: React.FC = () => {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="relative w-full text-center">
                           <Typography 
                             variant="subtitle2" 
                             fontWeight="bold" 
@@ -460,13 +460,16 @@ const Library: React.FC = () => {
                             {artist.name}
                           </Typography>
                           <button
-                            onClick={(e) => handleArtistMenuOpen(e, artist)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArtistMenuOpen(e, artist);
+                            }}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-white transition-all"
                           >
                             <MoreVert sx={{ fontSize: 18 }} />
                           </button>
                         </div>
-                        <Typography variant="caption" display="block" align="center" color="gray" sx={{ fontSize: '0.75rem' }}>
+                        <Typography variant="caption" display="block" align="center" color="gray" noWrap sx={{ fontSize: '0.75rem' }}>
                           {artist.followers?.total ? `${formatCount(artist.followers.total)} followers` : 'Artist'}
                         </Typography>
                       </div>

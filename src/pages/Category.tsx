@@ -932,7 +932,7 @@ const Category: React.FC = () => {
                             <Grow in timeout={300 + index * 50} key={artist.id}>
                                 <div 
                                     className="group/card flex flex-col items-center cursor-pointer"
-                                    onClick={() => handleArtistPlay(artist)}
+                                    onClick={() => navigate(`/artist/${artist.id}`)}
                                 >
                                     <div className="relative w-full aspect-square mb-1 sm:mb-2 rounded-full overflow-hidden shadow-lg group-hover/card:shadow-2xl transition-all duration-300">
                                         <img 
@@ -940,18 +940,9 @@ const Category: React.FC = () => {
                                             alt={artist.name}
                                             className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500"
                                         />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg transform scale-50 group-hover/card:scale-100 transition-transform duration-300">
-                                                <PlayArrow sx={{ fontSize: 28, color: 'white  ' }} />
-                                            </div>
-                                        </div>
                                     </div>
                                     <h3 
-                                        className="text-white font-bold text-center truncate w-full hover:text-green-400 hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] transition-all cursor-pointer z-10 text-xs sm:text-sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/artist/${artist.id}`);
-                                        }}
+                                        className="text-white font-bold text-center truncate w-full group-hover/card:text-green-400 transition-all text-xs sm:text-sm"
                                     >
                                         {artist.name}
                                     </h3>

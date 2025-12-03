@@ -204,7 +204,7 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
     
     setIsCreatingPlaylist(true);
     try {
-      // Create the new playlist
+      // Create the new playlist (now returns full playlist object)
       const newPlaylist = await createPlaylist(
         token, 
         user.id, 
@@ -213,6 +213,9 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
       );
       
       if (newPlaylist) {
+        // Immediately add to UI cache for instant feedback
+        addPlaylistOptimistic(newPlaylist);
+        
         // Fetch all tracks from the original playlist
         const tracksResponse = await fetch(
           `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?limit=100`,
@@ -239,8 +242,8 @@ const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
         } else {
           toast.showToast(`Created "${newPlaylist.name}" but couldn't copy tracks`, 'warning');
         }
-        // Sync global library cache
-        refreshPlaylists();
+        // Sync global library cache (delay to allow API propagation)
+        setTimeout(() => refreshPlaylists(), 1500);
       } else {
         toast.showToast('Failed to create playlist', 'error');
       }

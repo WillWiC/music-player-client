@@ -62,7 +62,7 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
 }) => {
   const { token, user } = useAuth();
   const toast = useToast();
-  const { addTrackOptimistic, removeTrackOptimistic, refreshTracks, refreshPlaylists } = useLibrary();
+  const { addTrackOptimistic, removeTrackOptimistic, refreshTracks, refreshPlaylists, addPlaylistOptimistic } = useLibrary();
   
   const [isLiked, setIsLiked] = React.useState(false);
   const [isCheckingLiked, setIsCheckingLiked] = React.useState(false);
@@ -126,11 +126,11 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         const success = await removeTrack(token, track.id);
         if (success) {
           setIsLiked(false);
-          // Optimistically update library cache and sync
+          // Optimistically update library cache for immediate UI feedback
           removeTrackOptimistic(track.id);
           toast.showToast(`Removed "${track.name}" from Liked Songs`, 'success');
-          // Refresh from API to ensure sync
-          refreshTracks();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshTracks(), 1500);
         } else {
           toast.showToast('Failed to remove from Liked Songs', 'error');
         }
@@ -138,11 +138,11 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
         const success = await saveTrack(token, track.id);
         if (success) {
           setIsLiked(true);
-          // Optimistically update library cache and sync
+          // Optimistically update library cache for immediate UI feedback
           addTrackOptimistic(track);
           toast.showToast(`Added "${track.name}" to Liked Songs`, 'success');
-          // Refresh from API to ensure sync
-          refreshTracks();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshTracks(), 1500);
         } else {
           toast.showToast('Failed to add to Liked Songs', 'error');
         }
@@ -232,26 +232,29 @@ const TrackMenu: React.FC<TrackMenuProps> = ({
     
     setIsCreatingPlaylist(true);
     try {
-      // Create the new playlist
+      // Create the new playlist (now returns full playlist object)
       const newPlaylist = await createPlaylist(token, user.id, newPlaylistName.trim());
       
       if (newPlaylist) {
+        // Immediately add to UI cache for instant feedback
+        addPlaylistOptimistic(newPlaylist);
+        
         // Add the track to the new playlist
         const success = await addTrackToPlaylist(token, newPlaylist.id, track.uri);
         
         if (success) {
           toast.showToast(`Created "${newPlaylist.name}" and added "${track.name}"`, 'success');
-          // Refresh playlists list locally and in global cache
-          const playlists = await getUserPlaylists(token);
-          const ownPlaylists = playlists.filter((p: any) => p.owner?.id === user.id);
-          setUserPlaylists(ownPlaylists);
-          // Sync global library cache
-          refreshPlaylists();
         } else {
           toast.showToast(`Created "${newPlaylist.name}" but failed to add track`, 'warning');
-          // Still refresh playlists since one was created
-          refreshPlaylists();
         }
+        
+        // Update local playlists list for the submenu
+        const playlists = await getUserPlaylists(token);
+        const ownPlaylists = playlists.filter((p: any) => p.owner?.id === user.id);
+        setUserPlaylists(ownPlaylists);
+        
+        // Delay refresh to allow Spotify API to propagate the change
+        setTimeout(() => refreshPlaylists(), 1500);
       } else {
         toast.showToast('Failed to create playlist', 'error');
       }

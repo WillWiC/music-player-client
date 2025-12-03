@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/auth';
-import { usePlaylists } from '../context/playlists';
 import { useLibrary } from '../context/library';
 import {
   Drawer,
@@ -49,11 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const isMobile = useMediaQuery(theme.breakpoints.down('xl'));
   const { isGuest, token } = useAuth();
   
-  // Use global playlists context instead of local state
-  const { playlists, isLoadingPlaylists } = usePlaylists();
-  
-  // Use global library context for albums (synced with Library page)
-  const { albums: libraryAlbums, isLoadingAlbums } = useLibrary();
+  // Use global library context for all data (synced across app)
+  const { 
+    playlists, 
+    albums: libraryAlbums, 
+    isLoadingPlaylists, 
+    isLoadingAlbums 
+  } = useLibrary();
   
   // Local UI state
   const [searchQuery, setSearchQuery] = useState('');

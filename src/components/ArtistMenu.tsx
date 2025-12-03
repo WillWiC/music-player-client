@@ -88,8 +88,8 @@ const ArtistMenu: React.FC<ArtistMenuProps> = ({
           removeArtistOptimistic(artist.id);
           toast.showToast(`Unfollowed "${artist.name}"`, 'success');
           onArtistFollowChanged?.(false);
-          // Refresh from API to ensure sync
-          refreshArtists();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshArtists(), 1500);
         } else {
           toast.showToast('Failed to unfollow artist', 'error');
         }
@@ -101,8 +101,8 @@ const ArtistMenu: React.FC<ArtistMenuProps> = ({
           addArtistOptimistic(artist);
           toast.showToast(`Following "${artist.name}"`, 'success');
           onArtistFollowChanged?.(true);
-          // Refresh from API to ensure sync
-          refreshArtists();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshArtists(), 1500);
         } else {
           toast.showToast('Failed to follow artist', 'error');
         }

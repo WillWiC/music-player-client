@@ -59,7 +59,7 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
   // Check if album is saved when menu opens
   React.useEffect(() => {
     const checkSaved = async () => {
-      if (!open || !album || !token) return;
+      if (!open || !album?.id || !token) return;
       
       setIsCheckingSaved(true);
       try {
@@ -73,10 +73,10 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
     };
     
     checkSaved();
-  }, [open, album, token]);
+  }, [open, album?.id, token]);
 
   const handleToggleSave = async () => {
-    if (!album || !token || isProcessing) return;
+    if (!album?.id || !token || isProcessing) return;
     
     setIsProcessing(true);
     try {
@@ -88,8 +88,8 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
           removeAlbumOptimistic(album.id);
           toast.showToast(`Removed "${album.name}" from Your Library`, 'success');
           onAlbumSaveChanged?.(false);
-          // Refresh from API to ensure sync
-          refreshAlbums();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshAlbums(), 1500);
         } else {
           toast.showToast('Failed to remove from library', 'error');
         }
@@ -101,8 +101,8 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
           addAlbumOptimistic(album);
           toast.showToast(`Added "${album.name}" to Your Library`, 'success');
           onAlbumSaveChanged?.(true);
-          // Refresh from API to ensure sync
-          refreshAlbums();
+          // Delay refresh to allow Spotify API to propagate the change
+          setTimeout(() => refreshAlbums(), 1500);
         } else {
           toast.showToast('Failed to add to library', 'error');
         }
@@ -154,7 +154,16 @@ const AlbumMenu: React.FC<AlbumMenuProps> = ({
     onClose();
   };
 
-  if (!album) return null;
+  // Don't render menu if no album
+  if (!album) {
+    return (
+      <Menu
+        anchorEl={anchorEl}
+        open={false}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <Menu

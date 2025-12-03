@@ -399,6 +399,7 @@ export const getUserPlaylists = async (token: string, limit = 50): Promise<any[]
 
 /**
  * Create a new playlist
+ * Returns the full playlist object from Spotify API for optimistic updates
  */
 export const createPlaylist = async (
   token: string,
@@ -406,7 +407,7 @@ export const createPlaylist = async (
   name: string,
   description?: string,
   isPublic: boolean = false
-): Promise<{ id: string; name: string } | null> => {
+): Promise<any | null> => {
   if (!token || !userId || !name) return null;
   
   try {
@@ -431,8 +432,9 @@ export const createPlaylist = async (
       return null;
     }
     
+    // Return full playlist object for optimistic updates
     const data = await response.json();
-    return { id: data.id, name: data.name };
+    return data;
   } catch (error) {
     console.error('Error creating playlist:', error);
     return null;
