@@ -753,29 +753,6 @@ const Category: React.FC = () => {
     }
   };
 
-  // Handle artist play (play their top track) - kept for potential future use
-  const _handleArtistPlay = async (artist: Artist) => {
-    try {
-      const url = buildSpotifyUrl(`artists/${artist.id}/top-tracks`, { market: 'US' });
-      const { data, error } = await makeRequest(url);
-      
-      if (error) {
-        toast.showToast('Unable to play artist', 'error');
-        return;
-      }
-      
-      const topTrack = data?.tracks?.[0];
-      if (topTrack) {
-        await play(topTrack);
-      } else {
-        toast.showToast('No tracks found for this artist', 'error');
-      }
-    } catch (err) {
-      console.error('Play artist error:', err);
-      toast.showToast('Unable to play artist. Make sure you have Spotify Premium and the Spotify app is open.', 'error');
-    }
-  };
-
   // Handle track play
   const handleTrackPlay = async (track: Track) => {
     try {
