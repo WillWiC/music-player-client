@@ -359,9 +359,9 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Optimistic update functions for immediate UI feedback
   const addTrackOptimistic = useCallback((track: any) => {
     setTracks(prev => {
-      // Check if already exists
-      if (prev.some(t => t.id === track.id)) return prev;
-      const updated = [track, ...prev];
+      // Remove existing track first (if re-adding after removal), then add to front
+      const filtered = prev.filter(t => t.id !== track.id);
+      const updated = [track, ...filtered];
       saveToLocalStorage(STORAGE_KEYS.tracks, updated);
       return updated;
     });
@@ -377,8 +377,9 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addPlaylistOptimistic = useCallback((playlist: any) => {
     setPlaylists(prev => {
-      if (prev.some(p => p.id === playlist.id)) return prev;
-      const updated = [playlist, ...prev];
+      // Remove existing playlist first (if re-adding after removal), then add to front
+      const filtered = prev.filter(p => p.id !== playlist.id);
+      const updated = [playlist, ...filtered];
       saveToLocalStorage(STORAGE_KEYS.playlists, updated);
       return updated;
     });
@@ -394,8 +395,9 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addAlbumOptimistic = useCallback((album: any) => {
     setAlbums(prev => {
-      if (prev.some(a => a.id === album.id)) return prev;
-      const updated = [album, ...prev];
+      // Remove existing album first (if re-adding after removal), then add to front
+      const filtered = prev.filter(a => a.id !== album.id);
+      const updated = [album, ...filtered];
       saveToLocalStorage(STORAGE_KEYS.albums, updated);
       return updated;
     });
@@ -411,8 +413,9 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addArtistOptimistic = useCallback((artist: any) => {
     setArtists(prev => {
-      if (prev.some(a => a.id === artist.id)) return prev;
-      const updated = [artist, ...prev];
+      // Remove existing artist first (if re-adding after removal), then add to front
+      const filtered = prev.filter(a => a.id !== artist.id);
+      const updated = [artist, ...filtered];
       saveToLocalStorage(STORAGE_KEYS.artists, updated);
       return updated;
     });
