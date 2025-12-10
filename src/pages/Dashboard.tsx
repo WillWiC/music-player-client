@@ -543,9 +543,9 @@ const Dashboard: React.FC = () => {
         onHomeClick={() => navigate('/dashboard')}
       />
       
-      {/* Main Content - Has left margin on xl+ for permanent sidebar (320px = ml-80) */}
+      {/* Main Content - Has left margin on lg+ for permanent sidebar (320px = ml-80) */}
       {/* pb for player height */}
-      <div className="flex-1 xl:ml-80 pb-28 pt-16 sm:pt-20 transition-all duration-300">
+      <div className="flex-1 lg:ml-80 pb-28 pt-16 sm:pt-20 transition-all duration-300">
         
         {/* Content Container - Full width on all screen sizes */}
         <div className="relative w-full py-6 sm:py-10 px-3 sm:px-6 lg:px-12 space-y-6 sm:space-y-10">

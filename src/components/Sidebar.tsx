@@ -44,8 +44,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose, onHomeClick }
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  // Use xl breakpoint (1280px) for permanent sidebar - below that it's temporary/overlay
-  const isMobile = useMediaQuery(theme.breakpoints.down('xl'));
+  // Use lg breakpoint (1024px) for permanent sidebar - below that it's temporary/overlay
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const { isGuest } = useAuth();
   
   // Use global library context for all data (synced across app)
