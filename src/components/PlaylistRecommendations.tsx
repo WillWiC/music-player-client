@@ -173,7 +173,7 @@ const PlaylistRecommendations: React.FC = () => {
         </div>
       </div>
       {/* Cards Row - responsive grid */}
-      <div className={`grid grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 sm:gap-4 transition-all duration-300 ease-in-out ${isAnimating ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
+      <div className={`grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-[repeat(auto-fit,minmax(120px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2 sm:gap-3 md:gap-4 transition-all duration-300 ease-in-out ${isAnimating ? 'opacity-75 transform scale-95' : 'opacity-100 transform scale-100'}`}>
         {recommendations.slice(startIndex, startIndex + visibleCount).map((rec, index) => (
           <Grow in timeout={300 + index * 50} key={`${rec.playlist.id}-${startIndex}`}>
            <div 

@@ -507,7 +507,7 @@ const SearchPage: React.FC = () => {
                             Show all
                           </button>
                         </div>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
+                        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:gap-4 md:gap-6">
                           {results.artists.filter(a => a != null).slice(0, 7).map((artist, index) => (
                             <Grow in key={artist.id} timeout={300 + index * 50}>
                               <div 
@@ -758,7 +758,7 @@ const SearchPage: React.FC = () => {
 
                 {/* ARTISTS TAB - All artists */}
                 {activeTab === 2 && (
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
+                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:gap-4 md:gap-6">
                     {results.artists.length > 0 ? (
                       results.artists.filter(a => a != null).map((artist, index) => (
                         <Grow in key={artist.id} timeout={300 + index * 50}>
