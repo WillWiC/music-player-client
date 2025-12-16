@@ -242,6 +242,9 @@ music-player-client/
 - **Spotify Developer App** - Register at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 - **Redirect URI** - Must match your app URL (e.g., `http://localhost:5173`)
 
+### End-User Requirement
+- **Spotify Account** (Premium Requirement)
+
 ---
 
 ## 🚀 Quick Start
@@ -289,43 +292,6 @@ The project includes `vercel.json` for proper SPA routing:
 4. Deploy!
 
 ---
-
-## 📸 Screenshots
-
-### Dashboard
-- Personalized greeting with time-based messages
-- Quick action buttons (Playlists, Recent, Top, Browse)
-- Your Playlists section with navigation arrows
-- Recently Played Tracks grid (responsive)
-- Top 10 Tracks list
-- AI-powered playlist recommendations
-
-### Browse
-- Spotify-style rectangular category cards
-- Responsive grid layout with hover effects
-- Category icons with rotation animation
-
-### Category
-- Popular Artists carousel (single row, paginated)
-- Popular Songs list (MediaView-style tracklist)
-- Related Playlists with pagination controls
-
-### Library
-- Tab navigation (Playlists, Liked, Albums, Artists)
-- Responsive card grids
-- Full tracklist for liked songs
-- Clickable artist names
-
-### Search
-- Tab-based filtering (All, Songs, Artists, Albums, Playlists)
-- Top result highlighting
-- Inline play controls
-- Recent search history
-
-### Player
-- Mobile: Compact layout with essential controls
-- Desktop: Full controls with volume and progress
-- Device picker for cross-device playback
 
 ---
 
