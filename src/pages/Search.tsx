@@ -508,13 +508,13 @@ const SearchPage: React.FC = () => {
                           </button>
                         </div>
                         <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:gap-4 md:gap-6">
-                          {results.artists.filter(a => a != null).slice(0, 7).map((artist, index) => (
+                          {results.artists.filter(a => a != null).slice(0, 5).map((artist, index) => (
                             <Grow in key={artist.id} timeout={300 + index * 50}>
                               <div 
                                 className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer flex flex-col items-center text-center"
                                 onClick={() => navigate(`/artist/${artist.id}`)}
                               >
-                                <div className="relative w-full aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
+                                <div className="relative w-full max-w-[160px] mx-auto aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
                                   <img 
                                     src={getImageUrl(artist.images)} 
                                     alt={artist.name}
@@ -559,7 +559,7 @@ const SearchPage: React.FC = () => {
                           </button>
                         </div>
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
-                          {results.albums.filter(a => a != null).slice(0, 7).map((album, index) => (
+                          {results.albums.filter(a => a != null).slice(0, 5).map((album, index) => (
                             <Grow in key={album.id} timeout={300 + index * 50}>
                               <div 
                                 className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
@@ -610,7 +610,7 @@ const SearchPage: React.FC = () => {
                           </button>
                         </div>
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-4 sm:gap-6">
-                          {results.playlists.filter(p => p != null).slice(0, 7).map((playlist: any, index: number) => (
+                          {results.playlists.filter(p => p != null).slice(0, 5).map((playlist: any, index: number) => (
                             <Grow in key={playlist.id} timeout={300 + index * 50}>
                               <div 
                                 className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer relative"
@@ -763,10 +763,10 @@ const SearchPage: React.FC = () => {
                       results.artists.filter(a => a != null).map((artist, index) => (
                         <Grow in key={artist.id} timeout={300 + index * 50}>
                           <div 
-                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer"
+                            className="group bg-transparent hover:bg-[#282828] p-4 rounded-lg transition-all duration-300 cursor-pointer flex flex-col items-center"
                             onClick={() => navigate(`/artist/${artist.id}`)}
                           >
-                            <div className="relative w-full aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
+                            <div className="relative w-full max-w-[160px] mx-auto aspect-square mb-4 shadow-lg rounded-full overflow-hidden">
                               <img 
                                 src={getImageUrl(artist.images)} 
                                 alt={artist.name} 
