@@ -2,7 +2,7 @@
 
 > A modern Spotify-powered web client built with React, TypeScript, and Vite, featuring AI-powered music intelligence, personalized recommendations, and a fully responsive design for all devices.
 
-[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-18-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.0-646cff?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06b6d4?logo=tailwindcss)](https://tailwindcss.com/)
