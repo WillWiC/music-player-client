@@ -218,7 +218,7 @@ music-player-client/
 
 | Category | Technologies |
 |----------|-------------|
-| **Frontend** | React 19, TypeScript 5.6, Vite 6 |
+| **Frontend** | React 18, TypeScript 5.6, Vite 6 |
 | **UI Framework** | Material-UI (MUI) v7, Tailwind CSS 3.4 |
 | **State Management** | React Context, Redux Toolkit |
 | **Routing** | React Router v7 |
